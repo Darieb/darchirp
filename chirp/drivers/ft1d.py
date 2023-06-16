@@ -967,7 +967,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 #       index into the specific memory object structure (int) ndx
 #       overall index into memory & specials (int) num
 #       an indicator of the specific radio object structure (str)
-    def slotloc(self, memref, extref):
+    def slotloc(self, memref, extref=None):
         array = None
         num = memref
         ename = ""
@@ -1020,7 +1020,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return (_mem, _flag,  ndx, num, array, ename)
 
     # Build CHIRP version (mem) of radio's memory (_mem)
-    def get_memory(self, number: int | str) -> chirp_common.Memory:
+    def get_memory(self, number):
         _mem, _flag, ndx, num, array, ename = self.slotloc(number)
         mem = chirp_common.Memory()
         mem.number = num
@@ -1161,9 +1161,17 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         for bank in bm.get_memory_mappings(mem):
             bm.remove_memory_from_mapping(mem, bank)
 
-    def enforce_band(self, mem, freq, num, regtype):
-        # TODO check band in Home
-        return freq
+    def validate_memory(self, mem):
+        # Only check the home registers for appropriate bands
+        msgs = super().validate_memory(mem)
+        ndx = mem.number - ALLNAMES.index("Home1") - self.MAX_MEM_SLOT - 1
+        if 10 >= ndx >= 0:
+            f = VALID_BANDS[ndx]
+            if not(f[0] < mem.freq < f[1]):
+                msgs.append(chirp_common.ValidationError(
+                            "Frequency outside of band for Home%2d" %
+                            (ndx + 1)))
+        return msgs
 
     # Modify radio's memory (_mem) corresponding to CHIRP version at 'mem'
     def set_memory(self, mem):
@@ -1200,8 +1208,6 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             flag.skip = mem.skip == "S"
             flag.pskip = mem.skip == "P"
         freq = mem.freq
-        if regtype in ["VFO", "Home"]:
-            freq = self.enforce_band(_mem, mem.freq, ndx, regtype)
         _mem.freq = int(freq / 1000)
         _mem.offset = int(mem.offset / 1000)
         _mem.label = self._encode_label(mem)
