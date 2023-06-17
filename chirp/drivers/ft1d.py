@@ -180,8 +180,8 @@ struct {
 MEM_FORMAT = """
 struct memslot {
   u8 unknown0:2,
-     mode_alt:1,  // mode for FTM-3200D
-     clock_shift:1,
+     mode_alt:1,    // mode for FTM-3200D; HalfDev for FT1D
+     clock_shift:1, // 5 Clock type
      unknown1:4;
   u8 mode:2,
      duplex:2,
@@ -197,12 +197,17 @@ struct memslot {
      tone:6;
   u8 unknown6:1,
      dcs:7;
-  u16 unknown7;
+  u8 unknown7;
+  u8 unk0:2,
+     vibs:1,        // Vibrate Signaling
+     vibb:1,        // Vibrate Busy
+     smeter:4;      // Smeter 0=off, level 1-9
   u8 unknown8:2,
-     att:1,
+     att:1,         // 10dB Antenna Attenuator
      autostep:1,
      automode:1,
-     unknown9:3;
+     unknown9:2,
+     bell:1;        // Bell
 };
 #seekto 0x2D4A;
 struct memslot memory[%(memnum)d];
@@ -1075,15 +1080,52 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                           RadioSettingValueBoolean(ams))
         mem.extra.append(rs)
 
+        rs = RadioSetting("att", "ATT",
+                          RadioSettingValueBoolean(bool(_mem.att)))
+        rs.set_doc("10dB front end attenuator")
+        mem.extra.append(rs)
+
+        rs = RadioSetting("bell", "Bell",
+                          RadioSettingValueBoolean(bool(_mem.bell)))
+        rs.set_doc("Notify Call-received by bell.")
+        mem.extra.append(rs)
+
+        rs = RadioSetting("vibb", "Vibrate Busy",
+                          RadioSettingValueBoolean(bool(_mem.vibb)))
+        rs.set_doc("Vibrate whenever BUSY LED shows.")
+        mem.extra.append(rs)
+
+        rs = RadioSetting("vibs", "Vibrate Signal",
+                          RadioSettingValueBoolean(bool(_mem.vibs)))
+        rs.set_doc("Vibrate during signaling.")
+        mem.extra.append(rs)
+
+        # Disabled until extras can have an integer setting
+        rs = RadioSetting("smeter", "SQL S-METER",
+                          RadioSettingValueInteger(0, 9, int(_mem.smeter)))
+        rs.set_doc("S-Meter Squelch level 0-9")
+        # mem.extra.append(rs)
+
+        rs = RadioSetting("clock_shift", "CLOCK TYPE",
+                          RadioSettingValueBoolean(_mem.clock_shift))
+        rs.set_doc("Clock shift to eliminate spurious signal.")
+        mem.extra.append(rs)
+
     def _set_mem_extra(self, mem, _mem):
-        if 'ysf_ams' in mem.extra:
+        for setting in mem.extra:
+            s = setting.get_name()
+            if s == 'ysf_ams':
             # We only set AMS if the memory mode is DN. If it is FM,
             # then that takes precedence as "analog-only".
-            if mem.mode == 'DN':
-                orig = int(_mem.digmode)
-                _mem.digmode = int(mem.extra['ysf_ams'].value) and 1 or 2
-                LOG.debug('Changed digmode from %i to %i' % (
-                    orig, _mem.digmode))
+                if mem.mode == 'DN':
+                    orig = int(_mem.digmode)
+                    _mem.digmode = int(mem.extra['ysf_ams'].value) and 1 or 2
+                    LOG.debug('Changed digmode from %i to %i' % (
+                        orig, _mem.digmode))
+            elif s == 'smeter':
+                _mem.smeter = setting.value
+            else:
+                setattr(_mem, s, setting.value) 
 
     def _decode_label(self, mem):
         charset = ''.join(CHARSET).ljust(256, '.')
