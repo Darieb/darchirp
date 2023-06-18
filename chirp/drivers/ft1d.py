@@ -3,6 +3,8 @@
 # Copyright 2023 Declan Rieb <WD5EQY@arrl.net>
 # Sections of digital settings applied from ft70.py, thus
 # Copyright 2017 Nicolas Pike <nick@zbm2.com>
+# Sections of special registers modified from ft4..py, thus potentially
+# Copyright 2023 Bernhard Hailer AE6YN <ham73tux@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +18,13 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Nota Bene:
+#   As of June 2023, Several other drivers depend upon this one:
+#   FT2D_R and FT3D_R (both in one file)
+#   FTM-3200D and
+#   FTM-7250D
+#
 
 import re
 import string
