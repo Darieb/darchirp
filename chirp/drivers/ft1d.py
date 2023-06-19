@@ -713,8 +713,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     VENDOR = "Yaesu"
     MODEL = "FT-1D"
     VARIANT = "R"
-    FORMATS = [directory.register_format('FT1D ADMS-6', '*.ft1d'),
-               directory.register_format('Yaesu SDcard', '*.dat')]
+    FORMATS = [directory.register_format('FT1D ADMS-6', '*.ft1d')]
     class_specials = SPECIALS
     _model = b"AH44M"
     _memsize = 130507
