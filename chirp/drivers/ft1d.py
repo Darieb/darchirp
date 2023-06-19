@@ -1078,6 +1078,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         ams = _mem.digmode == 1
         rs = RadioSetting('ysf_ams', 'AMS mode',
                           RadioSettingValueBoolean(ams))
+        rs.set_doc("Automatic digital mode, only applied to DN")
         mem.extra.append(rs)
 
         rs = RadioSetting("att", "ATT",
@@ -1104,7 +1105,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         rs = RadioSetting("smeter", "SQL S-METER",
                           RadioSettingValueInteger(0, 9, int(_mem.smeter)))
         rs.set_doc("S-Meter Squelch level 0-9")
-        # mem.extra.append(rs)
+        mem.extra.append(rs)
 
         rs = RadioSetting("clock_shift", "CLOCK TYPE",
                           RadioSettingValueBoolean(_mem.clock_shift))
@@ -1115,8 +1116,8 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         for setting in mem.extra:
             s = setting.get_name()
             if s == 'ysf_ams':
-            # We only set AMS if the memory mode is DN. If it is FM,
-            # then that takes precedence as "analog-only".
+                # We only set AMS if the memory mode is DN. If it is FM,
+                # then that takes precedence as "analog-only".
                 if mem.mode == 'DN':
                     orig = int(_mem.digmode)
                     _mem.digmode = int(mem.extra['ysf_ams'].value) and 1 or 2
@@ -1125,7 +1126,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             elif s == 'smeter':
                 _mem.smeter = setting.value
             else:
-                setattr(_mem, s, setting.value) 
+                setattr(_mem, s, setting.value)
 
     def _decode_label(self, mem):
         charset = ''.join(CHARSET).ljust(256, '.')
