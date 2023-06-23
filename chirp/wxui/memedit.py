@@ -1461,6 +1461,18 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                   insert_item)
         menu.Append(insert_item)
 
+        cut_item = wx.MenuItem(menu, wx.NewId(), _('Cut'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(cut=True), cut_item)
+        menu.Append(cut_item)
+
+        copy_item = wx.MenuItem(menu, wx.NewId(), _('Copy'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(cut=False), copy_item)
+        menu.Append(copy_item)
+
+        paste_item = wx.MenuItem(menu, wx.NewId(), _('Paste'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_paste(), paste_item)
+        menu.Append(paste_item)
+
         delete_menu = wx.Menu()
         delete_menu_item = menu.AppendSubMenu(delete_menu, _('Delete'))
         delete_menu_item.Enable(self.editable)
@@ -1678,7 +1690,28 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         if cut:
             wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
-        return data
+        self.cb_copy_data(data)
+
+    def memedit_import_all(self, source_radio):
+        source_rf = source_radio.get_features()
+        first = max(source_rf.memory_bounds[0],
+                    self._features.memory_bounds[0])
+        last = min(source_rf.memory_bounds[1],
+                   self._features.memory_bounds[1])
+        memories = [source_radio.get_memory(i)
+                    for i in range(first, last + 1)]
+        used = [m.number for m in memories if not m.empty]
+        # Update the range to be from just the lowest and highest used memory.
+        # The range of memories that are used in the source will be imported,
+        # including any gaps.
+        first = min(used)
+        last = max(used)
+        row = self.mem2row(first)
+        LOG.info('Importing %i-%i starting from %s %s',
+                 first, last, source_radio.VENDOR, source_radio.MODEL)
+        payload = {'mems': [m for m in memories if first <= m.number <= last],
+                   'features': source_rf}
+        self._cb_paste_memories(payload, row=row)
 
     def _cb_paste_memories(self, payload, row=None):
         mems = payload['mems']
@@ -1749,17 +1782,23 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
         if errormsgs:
+            errorextra = ''
+            if len(errormsgs) > 19:
+                errorextra = '\n' + _('...and %i more' % (len(errormsgs) - 19))
+                errormsgs = errormsgs[:19]
             d = wx.MessageDialog(
                     self,
                     _('Some memories are incompatible with this radio'))
             msg = '\n'.join('#%i: %s' % (mem.number, e)
                             for mem, e in errormsgs)
+            msg += errorextra
             d.SetExtendedMessage(msg)
             d.ShowModal()
 
         return True
 
-    def cb_paste(self, data):
+    def cb_paste(self):
+        data = super().cb_paste()
         if common.CHIRP_DATA_MEMORY in data.GetAllFormats():
             payload = pickle.loads(data.GetData().tobytes())
             LOG.debug('CHIRP-native paste: %r' % payload)

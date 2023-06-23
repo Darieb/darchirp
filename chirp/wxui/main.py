@@ -295,8 +295,8 @@ class ChirpEditorSet(wx.Panel):
     def cb_copy(self, cut=False):
         return self.current_editor.cb_copy(cut=cut)
 
-    def cb_paste(self, data):
-        return self.current_editor.cb_paste(data)
+    def cb_paste(self):
+        return self.current_editor.cb_paste()
 
     def cb_delete(self):
         return self.current_editor.cb_delete()
@@ -659,6 +659,12 @@ class ChirpMain(wx.Frame):
         saveas_item.SetAccel(wx.AcceleratorEntry(wx.MOD_CONTROL | wx.ACCEL_ALT,
                                                  ord('S')))
         self.Bind(wx.EVT_MENU, self._menu_save_as, saveas_item)
+
+        self._import_menu_item = wx.NewId()
+        import_item = file_menu.Append(wx.MenuItem(file_menu,
+                                                   self._import_menu_item,
+                                                   _('Import from file')))
+        self.Bind(wx.EVT_MENU, self._menu_import, import_item)
 
         self._export_menu_item = wx.NewId()
         export_item = file_menu.Append(wx.MenuItem(file_menu,
@@ -1067,6 +1073,7 @@ class ChirpMain(wx.Frame):
             (self._reload_driver_item, can_saveas),
             (self._reload_both_item, can_saveas),
             (self._interact_driver_item, can_close),
+            (self._import_menu_item, is_memedit and can_edit)
         ]
         for ident, enabled in items:
             if ident is None:
@@ -1130,7 +1137,7 @@ class ChirpMain(wx.Frame):
     def _menu_new(self, event):
         self.open_file('Untitled.csv', exists=False)
 
-    def _menu_open(self, event):
+    def _do_open(self):
         all_extensions = ['*.img']
         formats = [_('Chirp Image Files') + ' (*.img)|*.img',
                    _('All Files') + ' (*.*)|*.*']
@@ -1158,7 +1165,12 @@ class ChirpMain(wx.Frame):
             chirp_platform.get_platform().set_last_dir(d)
             CONF.set('last_dir', d, 'state')
             config._CONFIG.save()
-            self.open_file(str(filename))
+            return str(filename)
+
+    def _menu_open(self, event):
+        filename = self._do_open()
+        if filename is not None:
+            self.open_file(filename)
 
     def _menu_open_stock_config(self, event):
         fn = self.OPEN_STOCK_CONFIG_MENU.FindItemById(
@@ -1246,6 +1258,32 @@ class ChirpMain(wx.Frame):
         editorset.save()
         self._update_editorset_title(self.current_editorset)
 
+    @common.error_proof(errors.ImageDetectFailed, FileNotFoundError)
+    def _menu_import(self, event):
+        filename = self._do_open()
+        if filename is None:
+            return
+        radio = directory.get_radio_by_image(filename)
+        d = wx.MessageDialog(
+            self,
+            _('The recommended procedure for importing memories is to open '
+              'the source file and copy/paste memories from it into your '
+              'target image. If you continue with this import function, CHIRP '
+              'will replace all memories in your currently-open file with '
+              'those in %(file)s. Would you like to open this file to '
+              'copy/paste memories across, or proceed with the import?') % {
+                  'file': os.path.basename(filename)},
+            _('Import not recommended'),
+            wx.ICON_WARNING | wx.YES_NO | wx.CANCEL | wx.NO_DEFAULT)
+        d.SetYesNoLabels(_('Import'), _('Open'))
+        r = d.ShowModal()
+        if r == wx.ID_YES:
+            self.current_editorset.current_editor.memedit_import_all(radio)
+        elif r == wx.ID_NO:
+            self.open_file(filename)
+        else:
+            return
+
     def _menu_export(self, event):
         wildcard = 'CSV %s (*.csv)|*.csv' % _('Files')
         defcsv = os.path.splitext(os.path.basename(
@@ -1294,28 +1332,20 @@ class ChirpMain(wx.Frame):
             w.Close(True)
 
     @common.error_proof(RuntimeError, errors.InvalidMemoryLocation)
-    @common.closes_clipboard
     def _menu_copy(self, event, cut=False):
-        data = self.current_editorset.cb_copy(cut=cut)
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(data)
-            wx.TheClipboard.Close()
-        else:
-            raise RuntimeError(_('Unable to open the clipboard'))
+        try:
+            self.current_editorset.cb_copy(cut=cut)
+        except NotImplementedError:
+            LOG.warning('Attempt to cut/copy from %s not supported',
+                        self.current_editorset.current_editor)
 
     @common.error_proof()
-    @common.closes_clipboard
     def _menu_paste(self, event):
-        memdata = wx.CustomDataObject(common.CHIRP_DATA_MEMORY)
-        textdata = wx.TextDataObject()
-        if wx.TheClipboard.Open():
-            gotchirpmem = wx.TheClipboard.GetData(memdata)
-            got = wx.TheClipboard.GetData(textdata)
-            wx.TheClipboard.Close()
-        if gotchirpmem:
-            self.current_editorset.cb_paste(memdata)
-        elif got:
-            self.current_editorset.cb_paste(textdata)
+        try:
+            self.current_editorset.cb_paste()
+        except NotImplementedError:
+            LOG.warning('Attempt to paste to %s not supported',
+                        self.current_editorset.current_editor)
 
     def _menu_selall(self, event):
         self.current_editorset.select_all()
