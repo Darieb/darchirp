@@ -26,7 +26,7 @@ from chirp import bitwise, errors, util
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettingValueFloat, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -254,14 +254,6 @@ STEPS = [0.5, 2.5, 5.0, 6.25, 10.0, 12.5, 25.0, 37.5, 50.0, 100.0]
 LIST_STEPS = [str(x) for x in STEPS]
 LIST_VOXDLY = ["0.5", "1.0", "2.0", "3.0"]      # LISTS must be strings
 LIST_PTT = ["Both", "EoT", "BoT", "Off"]
-
-SETTING_LISTS = {"tot": LIST_TIMEOUT, "wtled": LIST_COLOR,
-                 "rxled": LIST_COLOR, "txled": LIST_COLOR,
-                 "ledsw": LIST_LEDSW, "frq_chn_mode": LIST_VFOMODE,
-                 "rx_tone": LIST_CTCSS, "tx_tone": LIST_CTCSS,
-                 "rx_mode": LIST_RECVMODE, "fm_bw": LIST_BW,
-                 "shift": LIST_SHIFT, "step": LIST_STEPS,
-                 "vox_dly": LIST_VOXDLY, "ptt": LIST_PTT}
 
 
 def _clean_buffer(radio):
@@ -1390,7 +1382,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         mod_se = True     # UV8000SE has 3rd freq bank
         if mod_se:
             rx = RadioSettingValueBoolean(bool(_sets.frqr3))
-            rset = RadioSetting("setstuf.frqr3", "Freq Range 3 (220Mhz)", rx)
+            rset = RadioSetting("setstuf.frqr3", "Freq Range 3 (220MHz)", rx)
             rset.set_doc("Enable the 220MHz frequency bank.")
             frng.append(rset)
 
@@ -1479,6 +1471,6 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise

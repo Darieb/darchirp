@@ -322,40 +322,6 @@ VOICE_LIST = ["Off", "English", "Chinese"]
 VOX_LIST = ["OFF"] + ["%s" % x for x in range(1, 11)]
 WORKMODE_LIST = ["Frequency", "Channel"]
 
-SETTING_LISTS = {
-    "almod": ALMOD_LIST,
-    "aniid": PTTID_LIST,
-    "displayab": AB_LIST,
-    "dtmfst": DTMFST_LIST,
-    "dtmfspeed": DTMFSPEED_LIST,
-    "mdfa": MODE_LIST,
-    "mdfb": MODE_LIST,
-    "ponmsg": PONMSG_LIST,
-    "pttid": PTTID_LIST,
-    "rtone": RTONE_LIST,
-    "rogerrx": ROGERRX_LIST,
-    "rpste": RPSTE_LIST,
-    "rxled": COLOR_LIST,
-    "save": SAVE_LIST,
-    "scode": PTTIDCODE_LIST,
-    "screv": RESUME_LIST,
-    "sftd": SHIFTD_LIST,
-    "stedelay": STEDELAY_LIST,
-    "step": STEP_LIST,
-    "step291": STEP291_LIST,
-    "tdrab": TDRAB_LIST,
-    "tdrch": TDRCH_LIST,
-    "timeout": TIMEOUT_LIST,
-    "txled": COLOR_LIST,
-    "txpower": TXPOWER_LIST,
-    "txpower3": TXPOWER3_LIST,
-    "voice": VOICE_LIST,
-    "vox": VOX_LIST,
-    "widenarr": BANDWIDTH_LIST,
-    "workmode": WORKMODE_LIST,
-    "wtled": COLOR_LIST
-}
-
 GMRS_FREQS1 = [462562500, 462587500, 462612500, 462637500, 462662500,
                462687500, 462712500]
 GMRS_FREQS2 = [467562500, 467587500, 467612500, 467637500, 467662500,
@@ -365,9 +331,9 @@ GMRS_FREQS3 = [462550000, 462575000, 462600000, 462625000, 462650000,
 GMRS_FREQS = GMRS_FREQS1 + GMRS_FREQS2 + GMRS_FREQS3 * 2
 
 
-def _do_status(radio, block):
+def _do_status(radio, direction, block):
     status = chirp_common.Status()
-    status.msg = "Cloning"
+    status.msg = "Cloning %s radio" % direction
     status.cur = block
     status.max = radio.get_memsize()
     radio.status_fn(status)
@@ -532,7 +498,7 @@ def _ident_radio(radio):
     for magic, reason in list(IDENT_BLACKLIST.items()):
         try:
             _do_ident(radio, magic, secondack=False)
-        except errors.RadioError as e:
+        except errors.RadioError:
             # No match, try the next one
             continue
 
@@ -590,8 +556,8 @@ def _do_download(radio):
     LOG.debug("downloading main block...")
     for i in range(0, 0x1800, 0x40):
         data += _read_block(radio, i, 0x40, False)
-        _do_status(radio, i)
-    _do_status(radio, radio.get_memsize())
+        _do_status(radio, "from", i)
+    _do_status(radio, "from", radio.get_memsize())
     LOG.debug("done.")
     if radio._aux_block:
         LOG.debug("downloading aux block...")
@@ -674,8 +640,8 @@ def _do_upload(radio):
     for start_addr, end_addr in ranges_main:
         for i in range(start_addr, end_addr, 0x10):
             _send_block(radio, i - 0x08, mmap[i:i + 0x10])
-            _do_status(radio, i)
-        _do_status(radio, radio.get_memsize())
+            _do_status(radio, "to", i)
+        _do_status(radio, "to", radio.get_memsize())
 
     if len(mmap.get_packed()) == 0x1808:
         LOG.info("Old image, not writing aux block")
@@ -1792,7 +1758,7 @@ class BaofengUV5R(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -1808,7 +1774,7 @@ class BaofengUV5R(chirp_common.CloneModeRadio):
                 if self._bw_shift:
                     value = ((value & 0x00FF) << 8) | ((value & 0xFF00) >> 8)
                 self._memobj.fm_presets = value
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

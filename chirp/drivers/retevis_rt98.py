@@ -24,14 +24,13 @@ from chirp import memmap
 from chirp import util
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
     RadioSettingValueList, RadioSettingValueString, RadioSettingValueBoolean, \
-    RadioSettingValueInteger, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError
+    RadioSettingValueInteger
 
 LOG = logging.getLogger(__name__)
 
 #
-#  Chirp Driver for Retevis RT98 models: RT98V (136-174 Mhz)
-#                                        RT98U (400-490 Mhz)
+#  Chirp Driver for Retevis RT98 models: RT98V (136-174 MHz)
+#                                        RT98U (400-490 MHz)
 #
 #
 #
@@ -115,25 +114,6 @@ LIST_RT98V_FREQS = ["Rx(149 - 149.2 MHz) Tx(149 - 149.2 MHz)",
 LIST_RT98U_FREQS = ["Rx(446 - 446.2 MHz) Tx(446 - 446.2 MHz)",
                     "Rx(400 - 470 MHz) Tx(400 - 470 MHz)",
                     "Rx(450 - 470 MHz) Tx(450 - 470 MHz)"]
-
-SETTING_LISTS = {
-        "tuning_step": LIST_STEP,
-        "timeout_timer": LIST_TIMEOUT,
-        "auto_power_off": LIST_APO,
-        "squelch": LIST_SQUELCH,
-        "display_mode": LIST_DISPLAY_MODE,
-        "auto_power_on": LIST_AOP,
-        "ste_type": LIST_STE_TYPE,
-        "ste_frequency": LIST_STE_FREQ,
-        "priority_ch": LIST_PRIORITY_CH,
-        "revert_ch": LIST_REVERT_CH,
-        "settings2.dropout_delay_time": LIST_TIME50,
-        "settings2.dwell_time": LIST_TIME50,
-        "settings2.look_back_time_a": LIST_TIME46,
-        "settings2.look_back_time_b": LIST_TIME46,
-        "settings3.vfomr": LIST_VFOMR,
-        "settings.scan": LIST_SCAN
-}
 
 #  RT98  memory map
 #  section: 1  Channel Bank
@@ -606,7 +586,7 @@ def _ident(radio):
     ver_response = radio.pipe.read(16)
     LOG.debug(util.hexprint(ver_response))
 
-    verok, model, bandlimit = check_ver(ver_response,
+    verok, model, bandlimit = check_ver(radio, ver_response,
                                         radio.ALLOWED_RADIO_TYPES)
     if not verok:
         _finish(radio)
@@ -815,7 +795,7 @@ class Rt98BaseRadio(chirp_common.CloneModeRadio,
             rf.valid_bands = get_band_limits_Hz(
                 str(_embedded.radio_type),
                 int(_embedded.mode))
-        except TypeError as e:
+        except TypeError:
             # If we're asked without memory loaded, assume the most permissive
             rf.valid_bands = get_band_limits_Hz(str(_embedded.radio_type), 1)
         except Exception as e:
@@ -1384,7 +1364,7 @@ class Rt98BaseRadio(chirp_common.CloneModeRadio,
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

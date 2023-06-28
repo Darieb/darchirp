@@ -196,7 +196,7 @@ struct name names[128];
 
 # Radio supports UPPER/lower case and symbols
 CHARSET_ASCII_PLUS = chirp_common.CHARSET_ALPHANUMERIC + \
-                     "!\"#$%&'()*+,-./:;<=>?@[\]^_`"
+                     "!\"#$%&'()*+,-./:;<=>?@[\\]^_`"
 
 POWER_LEVELS = [chirp_common.PowerLevel('Low', watts=1),
                 chirp_common.PowerLevel('High', watts=4)]
@@ -1025,7 +1025,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

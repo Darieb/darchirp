@@ -23,8 +23,7 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
-    RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettings
+    RadioSettingValueString, RadioSettings
 
 MEM_FORMAT = """
 #seekto 0x0010;
@@ -407,7 +406,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         to the correct variant of the radio"""
         rid = get_radio_id(self._mmap)
 
-        # identify the radio variant and set the environment to it's values
+        # identify the radio variant and set the environment to its values
         try:
             self._upper, low, high, self._kind = self.VARIANTS[rid]
 
@@ -485,7 +484,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         actual = self.get_active(chan)
         if actual != bool(value):
             # DEBUG
-            # print "VALUE %s fliping" % int(not value)
+            # print "VALUE %s flipping" % int(not value)
 
             # I have to flip the value
             rbyte = self._memobj.active[byte]

@@ -23,15 +23,13 @@ from chirp import errors
 from chirp import memmap
 from chirp import util
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
-    RadioSettingValueList, RadioSettingValueString, RadioSettingValueBoolean, \
-    RadioSettingValueInteger, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError
+    RadioSettingValueList, RadioSettingValueString, RadioSettingValueInteger
 
 LOG = logging.getLogger(__name__)
 
 #
-#  Chirp Driver for TYT TH-9000D (models: 2M (144 Mhz), 1.25M (220 Mhz)
-#                                 and 70cm (440 Mhz)  radios)
+#  Chirp Driver for TYT TH-9000D (models: 2M (144 MHz), 1.25M (220 MHz)
+#                                 and 70cm (440 MHz)  radios)
 #
 #  Version 1.0
 #
@@ -60,17 +58,6 @@ TIMEOUT_LIST = ["Off"] + ["%s min" % x for x in range(1, 30)]
 TXPWR_LIST = ["60W", "25W"]  # maximum power for Hi setting
 TBSTFREQ_LIST = ["1750Hz", "2100Hz", "1000Hz", "1450Hz"]
 BEEP_LIST = ["Off", "On"]
-
-SETTING_LISTS = {
-        "auto_power_off": APO_LIST,
-        "bg_color": BGCOLOR_LIST,
-        "bg_brightness": BGBRIGHT_LIST,
-        "squelch": SQUELCH_LIST,
-        "timeout_timer": TIMEOUT_LIST,
-        "choose_tx_power": TXPWR_LIST,
-        "tbst_freq": TBSTFREQ_LIST,
-        "voice_prompt": BEEP_LIST
-}
 
 MEM_FORMAT = """
 #seekto 0x0000;
@@ -144,7 +131,7 @@ struct {
 """
 #  TH9000  memory map
 #  section: 5  TX/RX Range
-#     used to set the TX/RX range of the radio (e.g.  222-228Mhz for 220 meter)
+#     used to set the TX/RX range of the radio (e.g.  222-228MHz for 220 meter)
 #     possible to set range for tx/rx
 #
 MEM_FORMAT = MEM_FORMAT + """
@@ -855,7 +842,7 @@ class Th9000Radio(chirp_common.CloneModeRadio,
                         LOG.debug("Setting %s = %s" % (setting,
                                   element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

@@ -22,7 +22,7 @@ from chirp import chirp_common, util, memmap, errors, directory, bitwise
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
     RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, RadioSettings
+    RadioSettings
 import time
 import struct
 import logging
@@ -236,7 +236,7 @@ class FT450DRadio(yaesu_clone.YaesuCloneModeRadio):
                 mym_cw:1,
                 mym_usb:1,
                 mym_lsb:1;
-            u8  myb_24:1,          // My Band: 24Mhz set = OFF
+            u8  myb_24:1,          // My Band: 24MHz set = OFF
                 myb_21:1,
                 myb_18:1,
                 myb_14:1,
@@ -1486,6 +1486,6 @@ class FT450DRadio(yaesu_clone.YaesuCloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise

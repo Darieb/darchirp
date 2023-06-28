@@ -17,9 +17,8 @@
 from chirp.drivers import yaesu_clone
 from chirp import chirp_common, bitwise, memmap, directory, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettings
+    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettings
 
 import time
 import traceback
@@ -335,7 +334,7 @@ struct  {
             self._mmap = self._clone_in()
         except errors.RadioError:
             raise
-        except Exception as e:
+        except Exception:
             trace = traceback.format_exc()
             raise errors.RadioError(
                     "Failed to communicate with radio: %s" % trace)
@@ -346,7 +345,7 @@ struct  {
             self._clone_out()
         except errors.RadioError:
             raise
-        except Exception as e:
+        except Exception:
             trace = traceback.format_exc()
             raise errors.RadioError(
                     "Failed to communicate with radio: %s" % trace)
@@ -417,7 +416,7 @@ struct  {
         mem.skip = _mem.skip and "S" or ""
         if not all(char in chirp_common.CHARSET_ASCII
                    for char in str(_mem.name)):
-            # dont display blank/junk name
+            # don't display blank/junk name
             mem.name = ""
         else:
             mem.name = str(_mem.name).rstrip()
@@ -671,13 +670,13 @@ struct  {
                 newval = element.value
                 if setting == "cwid":
                     newval = self._encode_cwid(newval)
-                if re.match('dtmf\d', setting):
+                if re.match(r'dtmf\d', setting):
                     # set dtmf length field and then get bcd dtmf
                     dtmfstrlen = len(str(newval).strip())
                     setattr(_settings, setting + "_len", dtmfstrlen)
                     newval = self._dtmf2bbcd(newval)
                 LOG.debug("Setting %s(%s) <= %s" % (setting, oldval, newval))
                 setattr(_settings, setting, newval)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise

@@ -730,7 +730,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _adms_ext = '.ft1d'
 
     _SG_RE = re.compile(r"(?P<sign>[-+NESW]?)(?P<d>[\d]+)[\s\.,]*"
-                        "(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
+                        r"(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
 
     _RX_BAUD = ("off", "1200 baud", "9600 baud")
     _TX_DELAY = ("100ms", "150ms", "200ms", "250ms", "300ms",
@@ -1095,7 +1095,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return self._add_ff_pad(label, 16)
 
     def _encode_charsetbits(self, mem):
-        # We only speak english here in chirpville
+        # We only speak English here in chirpville
         return 0x0000
 
     def _decode_power_level(self, mem):
@@ -2471,7 +2471,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -2517,13 +2517,6 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         if hemi != 'N' and hemi != 'S':
             hemi = ' '
         setattr(obj, "NShemi", hemi)
-
-    def apply_WEhemi(cls, setting, obj):
-        hemi = setting.value.get_value().upper()
-
-        if hemi != 'W' and hemi != 'E':
-            hemi = ' '
-        setattr(obj, "WEhemi", hemi)
 
     def apply_WEhemi(cls, setting, obj):
         hemi = setting.value.get_value().upper()

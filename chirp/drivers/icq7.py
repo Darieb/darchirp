@@ -20,8 +20,7 @@ from chirp import chirp_common, directory, bitwise
 from chirp.chirp_common import to_GHz, from_GHz
 from chirp.settings import RadioSetting, RadioSettingGroup, \
                 RadioSettingValueBoolean, RadioSettingValueList, \
-                RadioSettingValueInteger, RadioSettingValueString, \
-                RadioSettingValueFloat, RadioSettings
+                RadioSettingValueInteger, RadioSettings
 
 
 LOG = logging.getLogger(__name__)
@@ -343,6 +342,6 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise

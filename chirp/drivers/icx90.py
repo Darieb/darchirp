@@ -19,11 +19,10 @@ import logging
 
 from chirp.drivers import icf
 from chirp import chirp_common, bitwise, errors, directory
-from chirp.memmap import MemoryMap
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
     RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError, RadioSettings
+    RadioSettings
 import argparse
 
 ICX90_MEM_FORMAT = """
@@ -596,16 +595,12 @@ class ICx90Radio(icf.IcomCloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
     def process_mmap(self):
         self.memobj = bitwise.parse(ICX90_MEM_FORMAT, self._mmap)
-
-    def get_raw_memory(self, number):
-        (mem_item, special, unique_idx) = self.get_mem_item(number)
-        return repr(mem_item)
 
     def sync_in(self):
         icf.IcomCloneModeRadio.sync_in(self)

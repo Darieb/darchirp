@@ -704,7 +704,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
         for power in range(0, 2):
             for index in range(0, 8):
                 key = "test.vhf%s%i" % (powerkeydata[power], index)
-                name = "%s Mhz %s Power" % (vhfdata[index],
+                name = "%s MHz %s Power" % (vhfdata[index],
                                             powernamedata[power])
                 rs = RadioSetting(
                         key, name, RadioSettingValueInteger(
@@ -716,7 +716,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
         for power in range(0, 2):
             for index in range(0, 8):
                 key = "test.uhf%s%i" % (powerkeydata[power], index)
-                name = "%s Mhz %s Power" % (uhfdata[index],
+                name = "%s MHz %s Power" % (uhfdata[index],
                                             powernamedata[power])
                 rs = RadioSetting(
                         key, name, RadioSettingValueInteger(
@@ -775,7 +775,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -791,7 +791,7 @@ class BaofengUVB5(chirp_common.CloneModeRadio,
                 LOG.debug("Setting fm_presets[%1i] = %s" % (index, value))
                 setting = self._memobj.fm_presets
                 setting[index] = value
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

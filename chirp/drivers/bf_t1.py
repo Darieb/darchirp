@@ -29,8 +29,8 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
                 RadioSettingValueBoolean, RadioSettingValueList, \
-                RadioSettingValueInteger, RadioSettingValueString, \
-                RadioSettingValueFloat, RadioSettings
+                RadioSettingValueInteger, RadioSettingValueFloat, \
+                RadioSettings
 
 import struct
 import logging
@@ -380,7 +380,7 @@ def _model_match(cls, data):
 
 def _decode_ranges(low, high):
     """Unpack the data in the ranges zones in the memmap and return
-    a tuple with the integer corresponding to the Mhz it means"""
+    a tuple with the integer corresponding to the MHz it means"""
     return (int(low) * 100000, int(high) * 100000)
 
 
@@ -435,7 +435,7 @@ struct {
   u8 fmrange;       // fm range 1 = low[65-76](ASIA), 0 = high[76-108](AMERICA)
   u8 alarm;         // alarm (count down timer)
                     //    d0 - d16 in half hour increments => off, 0.5 - 8.0 h
-  u8 voice;         // voice prompt 0 = off, 1 = english, 2 = chinese
+  u8 voice;         // voice prompt 0 = off, 1 = English, 2 = Chinese
   u8 volume;        // volume 1-7 as per the radio steps
                     //    set to #FF by original software on upload
                     //    chirp uploads actual value and works.
@@ -904,7 +904,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                     setattr(_settings, name, value)
 
                 LOG.debug("Setting %s: %s" % (name, value))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

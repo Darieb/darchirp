@@ -16,11 +16,10 @@
 import logging
 
 from chirp.drivers import icf
-from chirp import chirp_common, memmap, bitwise, errors, directory
+from chirp import chirp_common, bitwise, errors, directory
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, RadioSettings
+    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -372,7 +371,7 @@ class ICV80Radio(icf.IcomCloneModeRadio, chirp_common.ExperimentalRadio):
                     # This appears to need to be mirrored?
                     if element.get_name() == 'mem_display1':
                         _settings.mem_display2 = _settings.mem_display1
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

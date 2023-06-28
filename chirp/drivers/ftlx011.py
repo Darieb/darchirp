@@ -16,11 +16,10 @@
 import logging
 import time
 
-from chirp import chirp_common, directory, memmap, errors, util, bitwise
+from chirp import chirp_common, directory, memmap, errors, bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
-    RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -388,7 +387,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         return repr(self._memobj.memory[number])
 
     def _decode_tone(self, mem, rx=True):
-        """Parse the tone data to decode from mem tones are encodded like this
+        """Parse the tone data to decode from mem tones are encoded like this
         CTCS: mapped [0x80...0xa5] = [67.0...250.3]
         DTCS: mixed  [0x88, 0x23] last is BCD and first is the 100 power - 88
 
@@ -715,7 +714,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                     setattr(_settings, name, value)
 
                 LOG.debug("Setting %s: %s" % (name, value))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -731,7 +730,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # testing the firmware fingerprint, this experimental
         try:
             match_model = _model_match(cls, filedata)
-        except Exception as e:
+        except Exception:
             match_model = False
 
         return match_size and match_model

@@ -21,8 +21,7 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettings, \
-    RadioSettingValueString
+    RadioSettingValueBoolean, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -104,15 +103,6 @@ MODE_LIST = ["FM", "NFM"]
 
 TONES = chirp_common.TONES
 DTCS_CODES = chirp_common.DTCS_CODES
-
-SETTING_LISTS = {
-    "tot": TIMEOUT_LIST,
-    "scanmode": SCANMODE_LIST,
-    "voice": VOICE_LIST,
-    "vox": VOX_LIST,
-    "voxdelay": VOXDELAY_LIST,
-    "mode": MODE_LIST,
-    }
 
 FRS16_FREQS = [462562500, 462587500, 462612500, 462637500,
                462662500, 462625000, 462725000, 462687500,
@@ -661,7 +651,7 @@ class RadioddityR2(chirp_common.CloneModeRadio):
 
                     LOG.debug("Setting %s = %s" % (setting, element.value))
                     setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -678,7 +668,7 @@ class RetevisRT24(RadioddityR2):
     VENDOR = "Retevis"
     MODEL = "RT24"
 
-    _pmr = True
+    _pmr = False  # sold as PMR radio but supports full band TX/RX
 
 
 @directory.register
@@ -687,4 +677,4 @@ class RetevisH777S(RadioddityR2):
     VENDOR = "Retevis"
     MODEL = "H777S"
 
-    _frs16 = True
+    _frs16 = False  # sold as FRS radio but supports full band TX/RX

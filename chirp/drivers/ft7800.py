@@ -20,9 +20,8 @@ import re
 from chirp.drivers import yaesu_clone
 from chirp import chirp_common, memmap, directory, bitwise, errors
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettings
+    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettings
 
 from collections import defaultdict
 
@@ -743,7 +742,7 @@ class FT7800Radio(FTx800Radio):
             try:
                 _settings = self._memobj.settings
                 setting = element.get_name()
-                if re.match('dtmf\d', setting):
+                if re.match(r'dtmf\d', setting):
                     # set dtmf fields
                     dtmfstr = str(element.value).strip()
                     newval = []
@@ -767,7 +766,7 @@ class FT7800Radio(FTx800Radio):
                 oldval = getattr(_settings, setting)
                 LOG.debug("Setting %s(%s) <= %s" % (setting, oldval, newval))
                 setattr(_settings, setting, newval)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

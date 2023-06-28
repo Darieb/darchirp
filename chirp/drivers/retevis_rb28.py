@@ -33,7 +33,6 @@ from chirp.settings import (
     RadioSettingValueBoolean,
     RadioSettingValueInteger,
     RadioSettingValueList,
-    RadioSettingValueString,
 )
 
 LOG = logging.getLogger(__name__)
@@ -140,19 +139,6 @@ TIMEOUTTIMER_LIST = ["%s seconds" % x for x in range(15, 195, 15)]
 VOICE_LIST = ["Off", "English"]
 VOXD_LIST = ["0.5", "1.0", "1.5", "2.0", "2.5", "3.0"]
 VOXL_LIST = ["OFF"] + ["%s" % x for x in range(1, 10)]
-
-SETTING_LISTS = {
-    "backlight": BACKLIGHT_LIST,
-    "pfkey_gt": PFKEY_EU_LIST,
-    "pfkey_gt": PFKEY_US_LIST,
-    "pfkey_lt": PFKEY_EU_LIST,
-    "pfkey_lt": PFKEY_US_LIST,
-    "save": SAVE_LIST,
-    "tot": TIMEOUTTIMER_LIST,
-    "voice": VOICE_LIST,
-    "voxd": VOXD_LIST,
-    "voxl": VOXL_LIST,
-    }
 
 PMR_TONES = list(chirp_common.TONES)
 [PMR_TONES.remove(x) for x in [69.3, 159.8, 165.5, 171.3, 177.3, 183.5,
@@ -716,7 +702,7 @@ class RB28Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

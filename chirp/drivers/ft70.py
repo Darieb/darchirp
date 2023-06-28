@@ -21,8 +21,7 @@ from chirp import chirp_common, directory, bitwise
 from chirp import errors
 from chirp import memmap
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
-    RadioSettingValueInteger, RadioSettingValueString, \
-    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettingValueList, \
     InvalidValueError
 from chirp import util
 
@@ -644,7 +643,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         return self._add_ff_pad(mem.name.rstrip(), 6)
 
     def _encode_charsetbits(self, mem):
-        # We only speak english here in chirpville
+        # We only speak English here in chirpville
         return [0x00, 0x00]
 
     def _decode_power_level(self, mem):  # 3 High 2 Mid 1 Low
@@ -1187,7 +1186,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

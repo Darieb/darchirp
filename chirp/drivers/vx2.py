@@ -17,9 +17,8 @@
 from chirp.drivers import yaesu_clone
 from chirp import chirp_common, directory, bitwise
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettings
+    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettings
 import re
 import logging
 
@@ -712,7 +711,7 @@ class VX2Radio(yaesu_clone.YaesuCloneModeRadio):
             try:
                 setting = element.get_name()
                 _settings = self._memobj.settings
-                if re.match('dtmf\d', setting):
+                if re.match(r'dtmf\d', setting):
                     # set dtmf fields
                     dtmfstr = str(element.value).strip()
                     newval = []
@@ -744,6 +743,6 @@ class VX2Radio(yaesu_clone.YaesuCloneModeRadio):
                     newval = self._encode_chars(newval, 6)
                 LOG.debug("Setting %s(%s) <= %s" % (setting, oldval, newval))
                 setattr(_settings, setting, newval)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise

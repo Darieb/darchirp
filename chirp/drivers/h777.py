@@ -87,10 +87,6 @@ TIMEOUTTIMER_LIST = ["Off", "30 seconds", "60 seconds", "90 seconds",
                      "300 seconds"]
 SCANMODE_LIST = ["Carrier", "Time"]
 
-SETTING_LISTS = {
-    "voice": VOICE_LIST,
-}
-
 
 def _h777_enter_programming_mode(radio):
     serial = radio.pipe
@@ -577,7 +573,7 @@ class H777Radio(chirp_common.CloneModeRadio):
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

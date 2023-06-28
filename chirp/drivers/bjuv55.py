@@ -18,7 +18,7 @@
 import logging
 
 from chirp.drivers import uv5r
-from chirp import chirp_common, errors, util, directory, memmap
+from chirp import chirp_common, directory
 from chirp import bitwise
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
@@ -643,6 +643,6 @@ class BaojieBJUV55Radio(uv5r.BaofengUV5R):
                 value = int(val.get_value() * 10 - 870)
                 LOG.debug("Setting fm_preset = %s" % (value))
                 self._memobj.fm_preset = value
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise

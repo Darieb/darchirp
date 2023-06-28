@@ -351,7 +351,7 @@ def _clean_buffer(radio):
     junk = radio.pipe.read(256)
     radio.pipe.timeout = STIMEOUT
     if junk:
-        Log.debug("Got %i bytes of junk before starting" % len(junk))
+        LOG.debug("Got %i bytes of junk before starting" % len(junk))
 
 
 def _check_for_double_ack(radio):
@@ -1426,7 +1426,7 @@ class VGCStyleRadio(chirp_common.CloneModeRadio,
                         setattr(obj, setting, int(element.value) + 5)
                     elif setting in ["tt1stdly", "ttdlyqt"]:
                         setattr(obj, setting, int(element.value) + 2)
-                    elif re.match('code\d', setting):
+                    elif re.match(r'code\d', setting):
                         # set dtmf length field and then get bcd dtmf
                         dtmfstrlen = len(str(element.value).strip())
                         setattr(_mem.dtmfcode, setting + "_len", dtmfstrlen)
@@ -1435,7 +1435,7 @@ class VGCStyleRadio(chirp_common.CloneModeRadio,
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

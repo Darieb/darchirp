@@ -20,8 +20,7 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    InvalidValueError, RadioSettings
+    RadioSettingValueBoolean, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -103,23 +102,6 @@ LIST_PRIORITYCH = ["Off"] + ["%s" % x for x in range(1, 17)]
 LIST_SCANSPEED = ["%s" % x for x in range(100, 550, 50)]
 LIST_SCANDELAY = ["%s" % x for x in range(3, 31)]
 LIST_TXTONE = ["Off", "BOT", "EOT", "Both"]
-
-SETTING_LISTS = {
-    "lpt": LIST_LPT,
-    "k1shortp": LIST_SHORT_PRESS,
-    "k1longp": LIST_LONG_PRESS,
-    "k2shortp": LIST_SHORT_PRESS,
-    "k2longp": LIST_LONG_PRESS,
-    "voxd": LIST_VOXDELAY,
-    "voice": LIST_VOICE,
-    "tot": LIST_TIMEOUTTIMER,
-    "save": LIST_SAVE,
-    "ssave": LIST_SSAVE,
-    "prioritych": LIST_PRIORITYCH,
-    "scanspeed": LIST_SCANSPEED,
-    "scandelay": LIST_SCANDELAY,
-    "txtone": LIST_TXTONE,
-    }
 
 # Retevis RT1 fingerprints
 RT1_VHF_fp = b"PXT8K" + b"\xF0\x00\x00"   # RT1 VHF model
@@ -736,7 +718,7 @@ class RT1Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

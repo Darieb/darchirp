@@ -19,9 +19,8 @@ import logging
 from chirp.drivers import yaesu_clone
 from chirp import chirp_common, memmap, bitwise, directory, errors
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, RadioSettings
+    RadioSettingValueList, RadioSettingValueString, \
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -717,7 +716,7 @@ class FT60Radio(yaesu_clone.YaesuCloneModeRadio):
                     setattr(_settings, name, value)
 
                 LOG.debug("Setting %s: %s" % (name, value))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

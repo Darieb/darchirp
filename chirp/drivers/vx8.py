@@ -522,7 +522,7 @@ class VX8Radio(yaesu_clone.YaesuCloneModeRadio):
     _has_af_dual = True
 
     _SG_RE = re.compile(r"(?P<sign>[-+NESW]?)(?P<d>[\d]+)[\s\.,]*"
-                        "(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
+                        r"(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
 
     _RX_BAUD = ("off", "1200 baud", "9600 baud")
     _TX_DELAY = ("100ms", "200ms", "300ms",
@@ -721,7 +721,7 @@ class VX8Radio(yaesu_clone.YaesuCloneModeRadio):
 
         label = "".join([chr(CHARSET.index(x)) for x in mem.name.rstrip()])
         _mem.label = self._add_ff_pad(label, 16)
-        # We only speak english here in chirpville
+        # We only speak English here in chirpville
         _mem.charsetbits[0] = 0x00
         _mem.charsetbits[1] = 0x00
 
@@ -1433,7 +1433,7 @@ class VX8Radio(yaesu_clone.YaesuCloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

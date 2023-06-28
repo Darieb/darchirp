@@ -22,14 +22,11 @@ import struct
 import re
 import time
 import logging
-import struct
 
-from chirp import bitwise
 from chirp import chirp_common, errors, util, memmap
 from chirp import directory
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueBoolean, RadioSettingValueString, RadioSettings
-from chirp import util
+    RadioSettingValueString, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -338,7 +335,7 @@ def _clone_from_radio(radio):
 
     try:
         radio_rev = decode_model(md)
-    except Exception as e:
+    except Exception:
         LOG.error('Failed to decode model data')
         radio_rev = None
 
@@ -467,7 +464,7 @@ def _clone_to_radio(radio):
 
     try:
         radio_rev = decode_model(md)
-    except Exception as e:
+    except Exception:
         LOG.error('Failed to decode model data')
         radio_rev = None
 

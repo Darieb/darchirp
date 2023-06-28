@@ -18,7 +18,6 @@ import csv
 import logging
 
 from chirp import chirp_common, errors, directory
-from chirp import import_logic
 
 LOG = logging.getLogger(__name__)
 DEFAULT_POWER_LEVEL = chirp_common.AutoNamedPowerLevel(50)
@@ -176,7 +175,7 @@ class CSVRadio(chirp_common.FileBackedRadio):
                     val = typ(val)
                 if hasattr(mem, attr):
                     setattr(mem, attr, val)
-            except OmittedHeaderError as e:
+            except OmittedHeaderError:
                 pass
             except Exception as e:
                 raise Exception("[%s] %s" % (attr, e))
@@ -197,8 +196,6 @@ class CSVRadio(chirp_common.FileBackedRadio):
         self._blank()
 
         with open(self._filename, newline='', encoding='utf-8') as f:
-            header = f.readline().strip()
-            f.seek(0, 0)
             return self._load(f)
 
     def _load(self, f):

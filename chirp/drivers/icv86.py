@@ -16,11 +16,10 @@
 import logging
 
 from chirp.drivers import icf
-from chirp import chirp_common, memmap, bitwise, errors, directory
+from chirp import chirp_common, bitwise, errors, directory
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, RadioSettings
+    RadioSettingValueBoolean, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -207,7 +206,7 @@ class ICV86Radio(icf.IcomCloneModeRadio):
                     setting = element.get_name()
                     LOG.debug("Setting %s = %s" % (setting, element.value))
                     setattr(_settings, setting, element.value)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

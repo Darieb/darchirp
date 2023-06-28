@@ -16,7 +16,7 @@
 
 from chirp import chirp_common, bitwise, memmap, errors, directory, util
 from chirp.settings import RadioSettingGroup, RadioSetting
-from chirp.settings import RadioSettingValueBoolean, RadioSettings
+from chirp.settings import RadioSettingValueBoolean
 
 
 import time
@@ -818,7 +818,7 @@ class AlincoDJG7(AlincoStyleRadio):
             elif mem.tmode == "TSQL":
                 _mem.squelch_type = self.TMODES.index("TSQL")
                 # Note how the same TSQL tone is copied to both memory
-                # locaations
+                # locations
                 try:
                     _mem.tx_tone = ALINCO_TONES.index(mem.ctone)+1
                     _mem.rx_tone = ALINCO_TONES.index(mem.ctone)+1

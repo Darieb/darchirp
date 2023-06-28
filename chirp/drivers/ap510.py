@@ -140,7 +140,7 @@ def boolstr(b):
 class AP510Memory(object):
     """Parses and generates AP510 key/value format
 
-    The AP510 sends it's configuration as a set of keys and values. There
+    The AP510 sends its configuration as a set of keys and values. There
     is one key/value pair per line. Line separators are \r\n. Keys are
     deliminated from values with the = symbol.
 
@@ -327,7 +327,7 @@ PATH = [
     'TEMP1-1,WIDE 2-1',
     'WIDE2-1',
 ]
-TABLE = "/\#&0>AW^_acnsuvz"
+TABLE = r"/\#&0>AW^_acnsuvz"
 SYMBOL = "".join(map(chr, range(ord("!"), ord("~")+1)))
 BEACON = ['manual', 'auto', 'auto + manual', 'smart', 'smart + manual']
 ALIAS = ['WIDE1-N', 'WIDE2-N', 'WIDE1-N + WIDE2-N']
@@ -404,7 +404,7 @@ class AP510Radio(chirp_common.CloneModeRadio):
 
     def load_mmap(self, filename):
         """Load the radio's memory map from @filename"""
-        mapfile = file(filename, "rb")
+        mapfile = open(filename, "rb")
         data = mapfile.read()
         if data.startswith('\r\n00=%s 20141215' % self._model):
             self._mmap = AP510Memory20141215(data)
@@ -753,7 +753,7 @@ class AP510Radio(chirp_common.CloneModeRadio):
                     multiple = self._mmap.multiple
                     multiple['tf_card'] = TF_CARD.index(str(setting.value))
                     self._mmap.multiple = multiple
-            except:
+            except Exception:
                 LOG.debug(setting.get_name())
                 raise
 

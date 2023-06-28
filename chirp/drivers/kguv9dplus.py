@@ -1,5 +1,5 @@
 # Copyright 2022 Mel Terechenok <melvin.terechenok@gmail.com>
-# Updated Driver to support Wouxon KG-UV9PX
+# Updated Driver to support Wouxun KG-UV9PX
 # based on prior driver for KG-UV9D Plus by
 # Jim Lieb <lieb@sea-troll.net>
 #
@@ -24,12 +24,12 @@
 import time
 import logging
 import struct
-from chirp import util, chirp_common, bitwise, memmap, errors, directory
-from chirp.settings import RadioSetting, RadioSettingValue, \
-     RadioSettingGroup, \
-     RadioSettingValueBoolean, RadioSettingValueList, \
-     RadioSettingValueInteger, RadioSettingValueString, \
-     RadioSettings, InvalidValueError
+from chirp import chirp_common, bitwise, memmap, errors, directory
+from chirp.settings import RadioSetting, RadioSettingGroup, \
+     RadioSettingValueBoolean, \
+     RadioSettingValueList, RadioSettingValueInteger, \
+     RadioSettingValueString, RadioSettings, \
+     InvalidValueError
 
 LOG = logging.getLogger(__name__)
 
@@ -2442,7 +2442,7 @@ class KGUV9DPlusRadio(chirp_common.CloneModeRadio,
                             setattr(obj, setting, int(element.value)*10)
                         else:
                             setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug("set_settings: Exception with %s" %
                               element.get_name())
                     raise

@@ -19,12 +19,11 @@
 
 import logging
 from chirp.drivers import icf
-from chirp import chirp_common, util, directory, bitwise, memmap
-from chirp import errors
+from chirp import chirp_common, directory, bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettingValueFloat, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -866,7 +865,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         other.append(rset)
 
         rx = RadioSettingValueBoolean(bool(_sets.toneburst))
-        rset = RadioSetting("settings.toneburst", "1750 Htz Tone Burst", rx)
+        rset = RadioSetting("settings.toneburst", "1750 Hz Tone Burst", rx)
         other.append(rset)
 
         rx = RadioSettingValueBoolean(bool(_sets.ifxchg))
@@ -1306,7 +1305,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                             stx += "%0d, " % nx
                     elif (nx >= 8) and (nx < 16):
                         if (_pslg[kx].msk[1] & (1 << (nx - 8))):
-                            sstx += "%0d, " % nx
+                            stx += "%0d, " % nx
                     elif (nx >= 16) and (nx < 24):
                         if (_pslg[kx].msk[2] & (1 << (nx - 16))):
                             stx += "%0d, " % nx
@@ -1357,6 +1356,6 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
