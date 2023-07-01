@@ -66,6 +66,14 @@ OPEN_RECENT_MENU = None
 OPEN_STOCK_CONFIG_MENU = None
 CHIRP_TAB_DF = wx.DataFormat('x-chirp/file-tab')
 ALL_MAIN_WINDOWS = []
+REVEAL_STOCK_DIR = wx.NewId()
+
+
+def get_stock_configs():
+    default_dir = chirp_platform.get_platform().config_file(
+                      "stock_configs")
+    prefs_dir = CONF.get('stock_configs', 'prefs')
+    return prefs_dir or default_dir
 
 
 class ChirpDropTarget(wx.DropTarget):
@@ -566,14 +574,14 @@ class ChirpMain(wx.Frame):
         stock = wx.Menu()
 
         try:
-            user_stock_dir = chirp_platform.get_platform().config_file(
-                "stock_configs")
+            user_stock_dir = get_stock_configs()
             user_stock_confs = sorted(os.listdir(user_stock_dir))
         except FileNotFoundError:
             user_stock_confs = []
+            os.makedirs(user_stock_dir, exist_ok=True)
         dist_stock_confs = sorted(
             [
-                conf.name for conf
+                (conf.name, hashlib.md5(conf.read_bytes())) for conf
                 in importlib_resources.files('chirp.stock_configs').iterdir()
                 if conf.is_file()
             ]
@@ -591,12 +599,38 @@ class ChirpMain(wx.Frame):
 
         stock.Append(wx.MenuItem(stock, wx.ID_SEPARATOR))
 
-        for fn in dist_stock_confs:
-            if os.path.basename(fn) not in found:
-                add_stock(fn)
-            else:
-                LOG.info('Ignoring dist stock conf %s because same name found '
-                         'in user dir', os.path.basename(fn))
+        if sys.platform in ('darwin', 'win32'):
+            reveal = stock.Append(REVEAL_STOCK_DIR,
+                                  _('Open stock config directory'))
+            self.Bind(wx.EVT_MENU, self._menu_open_stock_config, reveal)
+
+        stock.Append(wx.MenuItem(stock, wx.ID_SEPARATOR))
+
+        for fn, hash in dist_stock_confs:
+            if os.path.basename(fn) in found:
+                # Remove old stock configs that were copied to the user's
+                # directory by legacy chirp.
+                try:
+                    user_fn = os.path.join(get_stock_configs(),
+                                           os.path.basename(fn))
+                    with open(user_fn, 'rb') as f:
+                        user_hash = hashlib.md5(f.read())
+                    if hash.digest() == user_hash.digest():
+                        LOG.info('Removing stale legacy stock config %s',
+                                 os.path.basename(fn))
+                        os.remove(user_fn)
+                        # Since we already added it to the user area, just
+                        # don't add it to system this time. At next startup,
+                        # it will move to the system section.
+                        continue
+                    else:
+                        raise FileExistsError('File is changed')
+                except Exception as e:
+                    LOG.info('Ignoring dist stock conf %s because same name '
+                             'found in user dir: %s',
+                             os.path.basename(fn), e)
+                    continue
+            add_stock(fn)
 
         return stock
 
@@ -716,6 +750,7 @@ class ChirpMain(wx.Frame):
         self.Bind(wx.EVT_MENU, self._menu_selall, selall_item)
 
         delete_item = edit_menu.Append(wx.ID_DELETE)
+        delete_item.SetAccel(wx.AcceleratorEntry(wx.MOD_CONTROL, wx.WXK_BACK))
         self.Bind(wx.EVT_MENU, self._menu_delete, delete_item)
 
         edit_menu.Append(wx.MenuItem(edit_menu, wx.ID_SEPARATOR))
@@ -952,7 +987,7 @@ class ChirpMain(wx.Frame):
             return
 
         # Don't add stock config files to the recent files list
-        stock_dir = chirp_platform.get_platform().config_file("stock_configs")
+        stock_dir = get_stock_configs()
         this_dir = os.path.dirname(filename)
         if (stock_dir and os.path.exists(stock_dir) and
                 this_dir and os.path.samefile(stock_dir, this_dir)):
@@ -1172,12 +1207,16 @@ class ChirpMain(wx.Frame):
         if filename is not None:
             self.open_file(filename)
 
+    @common.error_proof(FileNotFoundError)
     def _menu_open_stock_config(self, event):
+        if event.GetId() == REVEAL_STOCK_DIR:
+            common.reveal_location(get_stock_configs())
+            return
+
         fn = self.OPEN_STOCK_CONFIG_MENU.FindItemById(
             event.GetId()).GetItemLabelText()
 
-        user_stock_dir = chirp_platform.get_platform().config_file(
-            "stock_configs")
+        user_stock_dir = get_stock_configs()
         user_stock_conf = os.path.join(user_stock_dir, fn)
         with importlib_resources.as_file(
             importlib_resources.files('chirp.stock_configs')
@@ -1245,6 +1284,7 @@ class ChirpMain(wx.Frame):
             eset.save(filename)
             self.adj_menu_open_recent(filename)
             self._update_editorset_title(eset)
+            self._update_window_for_editor()
             return True
 
     def _menu_save(self, event):
@@ -1601,13 +1641,7 @@ class ChirpMain(wx.Frame):
             prefix='chirp_debug-',
             suffix='.txt').name
         shutil.copy(src, dst)
-        system = platform.system()
-        if system == 'Windows':
-            wx.Execute('explorer /select, %s' % dst)
-        elif system == 'Darwin':
-            wx.Execute('open -R %s' % dst)
-        else:
-            raise Exception(_('Unable to reveal %s on this system') % dst)
+        common.reveal_location(dst)
 
     @common.error_proof()
     def _menu_load_from_issue(self, event):
