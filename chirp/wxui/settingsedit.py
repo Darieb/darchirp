@@ -30,6 +30,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
 
         self._radio = radio
         self._settings = None
+        self._propgrid = None
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
@@ -39,6 +40,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
         sizer.Add(self._group_control, 1, wx.EXPAND)
 
         self._initialized = False
+        self._restore_selection = None
 
     def _initialize(self, job):
         self.stop_wait_dialog()
@@ -47,6 +49,9 @@ class ChirpSettingsEdit(common.ChirpEditor):
                 raise job.result
             self._settings = job.result
             self._load_settings()
+            if self._restore_selection is not None:
+                self._group_control.SetSelection(self._restore_selection)
+                self._restore_selection = None
 
     def selected(self):
         if not self._initialized:
@@ -55,7 +60,19 @@ class ChirpSettingsEdit(common.ChirpEditor):
             self.do_radio(lambda job: wx.CallAfter(self._initialize, job),
                           'get_settings')
 
+    def get_scroll_pos(self):
+        return self._group_control.GetSelection()
+
+    def set_scroll_pos(self, pos):
+        try:
+            self._group_control.SetSelection(pos)
+        except AssertionError:
+            # If we're in the middle of a load, stash the position so we will
+            # restore it once we have everything.
+            self._restore_selection = pos
+
     def refresh(self):
+        self._restore_selection = self._group_control.GetSelection()
         self._group_control.DeleteAllPages()
         # Next select will re-load everything
         self._initialized = False
@@ -67,6 +84,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
 
     def _add_group(self, group, parent=None):
         propgrid = common.ChirpSettingGrid(group, self._group_control)
+        self._propgrid = propgrid
         self.Bind(common.EVT_EDITOR_CHANGED, self._changed, propgrid)
         LOG.debug('Adding page for %s (parent=%s)' % (group.get_shortname(),
                                                       parent))
@@ -128,11 +146,18 @@ class ChirpSettingsEdit(common.ChirpEditor):
         if isinstance(job.result, Exception):
             common.error_proof.show_error(str(job.result))
 
+    def _reload(self):
+        self.refresh()
+        self.selected()
+
     def _changed(self, event):
         if not self._apply_settings():
             return
         self.do_radio(self._set_settings_cb, 'set_settings', self._settings)
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
+        if self._propgrid.needs_reload:
+            LOG.warning('Settings grid needs a reload')
+            wx.CallAfter(self._reload)
 
     def saved(self):
         for i in range(self._group_control.GetPageCount()):
