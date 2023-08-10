@@ -45,7 +45,10 @@ DTMFCHARS = '0123456789ABCD*#'
 
 
 def reset(radio):
-    radio.pipe.write(b'E')
+    try:
+        radio.pipe.write(b'E')
+    except Exception as e:
+        LOG.error('Failed to reset radio: %s' % e)
 
 
 def start_program(radio):
@@ -56,7 +59,6 @@ def start_program(radio):
     if not ack.endswith(b'\x06'):
         LOG.debug('Ack was %r' % ack)
         raise errors.RadioError('Radio did not respond to clone request')
-        reset(radio)
 
     radio.pipe.write(b'F')
 
@@ -86,18 +88,14 @@ def do_download(radio):
         if raddr != addr:
             raise errors.RadioError('Radio send address %04x, expected %04x' %
                                     (raddr, addr))
-            reset(radio)
         if rlen != 0x40 or len(block) != 0x40:
             raise errors.RadioError('Radio sent %02x (%02x) bytes, '
                                     'expected %02x' % (rlen, len(block), 0x40))
-            reset(radio)
 
         data += block
 
         s.cur = addr
         radio.status_fn(s)
-
-    reset(radio)
 
     return data
 
@@ -122,12 +120,9 @@ def do_upload(radio):
         ack = radio.pipe.read(1)
         if ack != b'\x06':
             raise errors.RadioError('Radio refused block at addr %04x' % addr)
-            reset(radio)
 
         s.cur = addr
         radio.status_fn(s)
-
-    reset(radio)
 
 
 BASE_FORMAT = """
@@ -379,6 +374,8 @@ class RadioddityGA510Radio(chirp_common.CloneModeRadio):
         except Exception as e:
             LOG.exception('General failure')
             raise errors.RadioError('Failed to download from radio: %s' % e)
+        finally:
+            reset(self)
         self.process_mmap()
 
     def sync_out(self):
@@ -389,6 +386,8 @@ class RadioddityGA510Radio(chirp_common.CloneModeRadio):
         except Exception as e:
             LOG.exception('General failure')
             raise errors.RadioError('Failed to upload to radio: %s' % e)
+        finally:
+            reset(self)
 
     def process_mmap(self):
         self._memobj = bitwise.parse(BASE_FORMAT + self._mem_format,
@@ -1052,3 +1051,36 @@ class AnysecuAC580Radio(Senhaix8800Radio):
     """Anysecu AC-580"""
     VENDOR = "Anysecu"
     MODEL = "AC-580"
+
+
+@directory.register
+class AbbreeARF5Radio(RadioddityGA510Radio):
+    VENDOR = 'Abbree'
+    MODEL = 'AR-F5'
+    POWER_LEVELS = [
+        chirp_common.PowerLevel('H', watts=5),
+        chirp_common.PowerLevel('L', watts=1),
+        chirp_common.PowerLevel('M', watts=2)]
+
+    _magic = b'PROGROMWLTU'
+
+    def get_features(self):
+        rf = RadioddityGA510Radio.get_features(self)
+        rf.memory_bounds = (1, 128)
+        rf.valid_bands = [(136000000, 174000000),
+                          (200000000, 300000000),
+                          (300000000, 400000000),
+                          (400000000, 520000000)]
+        return rf
+
+    def _get_mem(self, num):
+        return self._memobj.memories[num - 1]
+
+    def _get_nam(self, number):
+        return self._memobj.names[number - 1]
+
+    def _set_mem(self, num):
+        return self._memobj.memories[num - 1]
+
+    def _set_nam(self, number):
+        return self._memobj.names[number - 1]
