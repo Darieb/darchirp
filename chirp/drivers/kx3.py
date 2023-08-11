@@ -1,5 +1,5 @@
 """ CHIRP driver for Elecraft KX-series and K3 """
-# Copyright 2010 Dan Smith <dsmith@danplanet.com>
+# Copyright 2010 Dan Smith <dsmith@danplanet.com> (kenwood_live.py)
 # Copyright 2023 Declan Rieb <WD5EQY@arrl.net>
 #
 # This program is free software: you can redistribute it and/or modify
@@ -22,106 +22,64 @@ import logging
 import string
 
 from typing import NamedTuple
-# To be used: from struct import pack, unpack, calcsize
-from struct import unpack, calcsize
+from struct import pack, unpack, calcsize
 from chirp import chirp_common, errors, directory
-from chirp.settings import RadioSetting, \
-    RadioSettingValueInteger, RadioSettingValueBoolean, \
-    RadioSettingValueString, RadioSettingValueList
+from chirp.settings import RadioSetting, RadioSettingGroup,\
+                           RadioSettingValueList, RadioSettingValueBoolean
 
 logging.basicConfig(level="debug")
 LOG = logging.getLogger(__name__)
 
 NOCACHE = "CHIRP_NOCACHE" in os.environ
 
-MEM_FORMAT = """
-struct elecraft_freq {
-    u8  megahz;
-    u8  tenkhz;         // 0-0x63=99
-    u8  hundredhz;      // 0-0x63=99
-    u8  tenhz;          // 0-9
-    u8  hz;             // 0-9
-    };
-
-struct memslot {
-struct elecraft_freq vfoa;
-struct elecraft_freq vfoa;
-    u8  modeb:4,
-        modea:4;
-    u8  digimode:4,     // Submode if either mode is DATA
-        b75:1,          // 0-> 45/31 Baud, 1-> 75 Baud
-        unk:3;
-    u8  ant:1,          // 0-> Antenna 1, 1-> Antenna 2
-        rev:1,          // Reverse mode (CW-R, DATA-R, AM-S)
-        nb:1,           // noise blanker?
-        unk0:1,
-        pre:1,          // Preamplifier?
-        unk01:2,
-        att:1;          // Attenuator
-    u8  rxant:1,        // Receive antenna
-        flag3:7;
-    u8  flag4:7,
-        split:1;        // Split mode (TX A, RX B)
-    u8  unk1:3,
-        xv:1,           // Xverter in use
-        band:4;         // 0-0xA (normal bands) 0-8 (XV1-XV9)
-    };
-// If this were real memory: #skipto 0x0C00;
-struct {
-    struct memslot slot;
-    u8  subtone;
-    u8  offset;         // 00-0xFA, 20kHz/step
-    u8  unk3:5,         // Repeater flags
-        tone:1,         // Tone off/on
-        minus:1,        // 0 -> shift+  1 -> shift-
-        duplex:1;       // simplex/duplex
-    u32 flags;
-    u8  empty[9];
-    u8  label[5];       // Displayed with memory... NOT ASCII
-    u8  comment[24];
-    i32 cheksum;        // Calculation done on last byte, but sign extended
-} radiomem[99];
-
-// If this were real memory: #skipto 0x0100;
-struct memslot normal_band[11];
-// If this were real memory: #skipto 0x0200;
-struct memslot xcvr[9]; // frequencies are IF; read state for more
-
-// If this were real memory: #skipto 0x02A2;
-struct {
-    u16 state[5];
-} transverter_state[9]; // unknown, but probably contain mixer frequency
-"""
 
 class ElecraftMem(NamedTuple):
-    """ Elecraft regular  memory format (unpacked from 0x40 bytes) """
-    address: int
-    length: int
-    rvfoa: bytes
-    rvfob: bytes
-    modes: int
-    dmode: int
-    f2: int
-    f3: int
-    f4: int
-    band: int
-    subtone: int
-    offset: int
-    repflag: int
-    f9: int
-    fa: int
-    fb: int
-    fc: int
-    fd: int
-    rlabel: bytes
-    comment: bytes
-    cksum: int
+    """ Elecraft memory format (unpacked from 0x40 bytes) """
+    address: int = 0x0c00
+    length: int = 0x40
+    rvfoa: bytes = b'\xff\xff\xff\xff\xff'
+    rvfob: bytes = b'\xff\xff\xff\xff\xff'
+    modes: int = 0xff
+    dmode: int = 0xff
+    f2: int = 0xff
+    f3: int = 0xff
+    f4: int = 0xff
+    band: int = 0xff
+    subtone: int = 0xff
+    offset: int = 0xff
+    repflag: int = 0xff
+    f9: int = 0xff
+    fa: int = 0xff
+    fb: int = 0xff
+    fc: int = 0xff
+    fd: int = 0xff
+    rlabel: bytes = b'\xff\xff\xff\xff\xff'
+    comment: bytes = 24 * b'\xff'
+    cksum: int = -1
 
+
+"""
+Magic for decoding the radio's responses are in FMT here,
+    and match the ElecraftMem structure above.:
+    Assumes 68 characters, converted from text hex string of 136 chars
+    >   Big-endian
+    H   unsigned short (2 bytes):  address
+    B   Unsigned char-sized integer: length
+    5s  string, freq spec (two one per VFO)
+    B   unsigned char-sized integer: Modes
+    13B for other flags
+    x   5 ignored
+    5s  string, label (in vc format)
+    24s string, comment field (in ascii)
+    i   4-byte signed integer for checksum
+"""
+FMT = '>HB5s5sB13B8x5s24si'
 
 DUPLEX = {0: "", 1: "+", 2: "-", 3: "split"}
-MODES = {0: "CW", 1: "LSB", 2: "USB", 3: "DN", 4: "AM", 5: "FM"}
+MODES = {0: "CW", 1: "LSB", 2: "USB", 3: "DN", 4: "AM", 5: "FM", 6: "Auto"}
 DUMMY_MODE = "Auto"
-SUB_MODES = ['DATA-A', 'AFSK-A', 'FSK-D', 'PSK-D']
+SUB_MODES = ['DATA-A', 'AFSK-A', 'FSK-D', 'PSK-D', 'Auto']
+ANTENNAS = ['Ant1', 'Ant2']
 
 ELECRAFT_TONES = list(chirp_common.TONES) + ["1750.0"]
 # All Elecraft commands driver uses:
@@ -130,6 +88,7 @@ WRIT_CMD = "EW"     # MC on K4
 IDEN_CMD = "ID"
 XTRA_CMD = "OM"
 AUTO_CMD = "AI"
+EMPTY_DATA = 126 * b'\xFF'
 
 BAND_NAMES = [
     "160",
@@ -161,28 +120,14 @@ BAND_NAMES = [
     "XV9"
     ]
 SPECIALS = [f"{BAND_NAMES[(n // 4)]} M{(n % 4) + 1}" for n in range(0, 100)]
-""" Magic for decoding the radio's responses are in FMT here:
-    Assumes 68 characters, converted from text hex string of 136 chars
-    >   Big-endian
-    H   unsigned short (2 bytes):  address
-    B   Unsigned char-sized integer: length
-    5s  string, freq spec (two one per VFO)
-    B   unsigned char-sized integer: Modes
-    13B for other flags
-    x   5 ignored
-    5s  string, label (in vc format)
-    24s string, comment field (in ascii)
-    i   4-byte signed integer for checksum
-"""
-FMT = '>HB5s5sB13B8x5s24si'
 MEM_START = 0x0C00
 MEM_LEN = 0X40
 VALID_CHARS = ' ' + string.ascii_uppercase + string.digits + '*+/@_'
-XTABLE = {}
-REVTABLE = {}
-for index in range(0, len(VALID_CHARS)):
-    XTABLE[index] = VALID_CHARS[index]
-    REVTABLE[VALID_CHARS[index]] = index
+XTABLE = dict(enumerate(VALID_CHARS))
+REVTABLE = {v: k for k, v in XTABLE.items()}
+# for index in range(0, len(VALID_CHARS)):
+#     XTABLE[index] = VALID_CHARS[index]
+#     REVTABLE[VALID_CHARS[index]] = index
 
 RADIO_IDS = {       # ID always returns 017, except for K4
                     # periods mean "i don't care"
@@ -332,6 +277,7 @@ class ElecraftLiveRadio(chirp_common.LiveRadio):
     def __init__(self, *args, **kwargs):
         chirp_common.LiveRadio.__init__(self, *args, **kwargs)
         self._memcache = {}
+        self._rmemcache = {}
         if self.pipe:
             self.pipe.timeout = 0.1
             radio_id = get_id(self.pipe)
@@ -382,13 +328,16 @@ class ElecraftLiveRadio(chirp_common.LiveRadio):
         message = f"{READ_CMD}{message}{checksum:2x}"
         return message
 
-    def _cmd_set_memory(self, number: int) -> str:
-        """ Dummy for now yet to do """
+    def _cmd_set_memory(self, number: int, byt: bytes) -> str:
+        """ returns string with command to write memory number to radio """
         address = MEM_START + number * MEM_LEN
-        length = MEM_LEN
-        checksum = 0xFF
-        mem = None
-        return f"{WRIT_CMD}{address:04x}{length:02x}{mem:x}{checksum:2x}"
+        checksum = int((sum(byt[:-1]) - 1) & 0xFF) ^ 0xFF
+        checksum += (address & 0xff) + ((address >> 8) & 0xff) + MEM_LEN
+        checksum = (checksum & 0xFF) ^ 0xFF
+        message = byt[:-1].hex()
+        cmd = f"{WRIT_CMD}{address:04x}{MEM_LEN:02x}{message}{checksum:02x}"
+        LOG.warning("CSM: %s %d bytes. %s", message, len(message), cmd)
+        return cmd
 
     def radio_to_freq(self, byt: str) -> int:
         """ Turns the hex "byt" into integer frequency """
@@ -400,6 +349,18 @@ class ElecraftLiveRadio(chirp_common.LiveRadio):
             byt[3]*10 +\
             byt[4]
         return freq
+
+    def freq_to_radio(self, freq: int) -> bytes:
+        """ Turns the frequency "freq" to Elecraft format """
+        ss = chr(freq // 1000000)
+        rem = freq % 1000000
+        ss += chr(rem // 10000)
+        rem = rem % 1000
+        ss += chr(rem // 100)
+        rem = rem % 100
+        ss += chr(rem // 10)
+        ss += chr(rem % 10)
+        return bytes(ss, 'cp1252')
 
     def ret_empty(self, number: int, mem: chirp_common.Memory) ->\
             chirp_common.Memory:
@@ -439,15 +400,16 @@ class ElecraftLiveRadio(chirp_common.LiveRadio):
             LOG.debug("Radio returned no valid data '%s'", result)
             return self.ret_empty(mem.number, mem)
         if ln == 138:
-            y = ElecraftMem(*unpack(FMT, byt[:calcsize(FMT)]))
-            vfoa = self.radio_to_freq(y.rvfoa)
+            # _mem is the elecraft memory mapped image, mem is the CHIRP memory
+            _mem = ElecraftMem(*unpack(FMT, byt[:calcsize(FMT)]))
+            vfoa = self.radio_to_freq(_mem.rvfoa)
             if vfoa < 0:
                 mem.empty = True
                 return mem
-            vfob = self.radio_to_freq(y.rvfob)
-            modea = MODES.get(y.modes & 0x0F, DUMMY_MODE)
-            modeb = MODES.get((y.modes & 0xF0) & 0x0F, DUMMY_MODE)
-            dmode = y.dmode ^ 0x0F
+            vfob = self.radio_to_freq(_mem.rvfob)
+            modea = MODES.get(_mem.modes & 0x0F, DUMMY_MODE)
+            modeb = MODES.get(((_mem.modes & 0xF0) >> 4) & 0x0F, DUMMY_MODE)
+            dmode = _mem.dmode ^ 0x0F
             if dmode < len(SUB_MODES) and (modea == 'DN' or modeb == 'DN'):
                 dmode = SUB_MODES[dmode]
             else:
@@ -456,113 +418,84 @@ class ElecraftLiveRadio(chirp_common.LiveRadio):
             mem.mode = modea
             mem.offset = vfob
             mem.duplex = "split"
-            mem.name = y.rlabel.decode('cp1252').translate(XTABLE)
-            if 0 < y.subtone <= len(ELECRAFT_TONES):
-                mem.rtone = mem.ctone = ELECRAFT_TONES[y.subtone]
+            mem.name = _mem.rlabel.decode('cp1252').translate(XTABLE)
+            if 0 < _mem.subtone <= len(ELECRAFT_TONES):
+                mem.rtone = mem.ctone = ELECRAFT_TONES[_mem.subtone]
                 # Fake "Tone" mode to get CHIRP to show VFOB as OFFSET
                 mem.tmode = "Tone"
-            mem.comment = y.comment.decode('cp1252')\
+            mem.comment = _mem.comment.decode('cp1252')\
                 .strip('\x00').strip('\xFF')
+            self.get_mem_extra(_mem, mem, modeb)
+        self._rmemcache[mem.number] = _mem
         self._memcache[mem.number] = mem
         LOG.debug("GLM: %s", mem)
         return mem
 
+    def get_mem_extra(self, _mem: ElecraftMem, mem: chirp_common.Memory,
+                      modeb: str) -> None:
+        """ Save/display extra fields according to Tuple y into memory mem """
+        mem.extra = RadioSettingGroup('Extra', 'extra')
+        val = RadioSettingValueList(self._modes, modeb)
+        rs = RadioSetting('modeb', 'ModeB', val)
+        mem.extra.append(rs)
+        val = RadioSettingValueList(SUB_MODES,
+                                    SUB_MODES[(_mem.dmode >> 4) & 0x0F])
+        rs = RadioSetting('dmode', 'D Mode', val)
+        mem.extra.append(rs)
+        reverse = (_mem.f2 & 0x40) != 0
+        val = RadioSettingValueBoolean(reverse)
+        rs = RadioSetting('rev', 'Reverse', val)
+        mem.extra.append(rs)
+        antenna = ANTENNAS[(_mem.f2 & 0x80) >> 7]
+        val = RadioSettingValueList(ANTENNAS, antenna)
+        rs = RadioSetting('antenna', 'Antenna', val)
+        mem.extra.append(rs)
 
     def set_memory(self, memory: chirp_common.Memory) -> None:
         """ Save a radio memory that's stored in CHIRP "memory" """
-        # Still yet to do
-        if memory.number < 0 or memory.number > self._upper:
-            raise errors.InvalidMemoryLocation(
-                f"Number must be between 0 and {self._upper}")
-
-        r1 = command(self.pipe, *self._cmd_set_memory(memory.number))
-        if not iserr(r1) and self._has_name:
-            memory.name = memory.name.rstrip()
-            self._memcache[memory.number] = memory
-        elif self._has_name:
-            raise errors.InvalidDataError(f"Radio refused {memory.number}")
-
-        if memory.duplex == "split":
-            # spec = ",".join(self._make_split_spec(memory))
-            result = command(self.pipe, "AI0")
-            if iserr(result):
-                raise errors.InvalidDataError(f"Radio refused {memory.number}")
+        if memory.empty:
+            byt = EMPTY_DATA
+        else:
+            _mem = self._rmemcache.get(memory.number, ElecraftMem())
+            modeb = int(memory.extra['modeb'].value) if 'modeb' in memory.extra\
+                else 0
+            mydmode = str(memory.extra['dmode'].value)
+            LOG.warning("SM: mydmode(%s)=%s SUBMODES=%s",
+                type(mydmode), mydmode, SUB_MODES)
+            mydmode = SUB_MODES.index(mydmode)
+            mydmode = mydmode if mydmode < 6 else 0
+            mydmode = ((mydmode << 4) & 0xF0) | (int(_mem.dmode) & 0x0F)
+            myf2a = 0x80 if str(memory.extra['antenna'].value) == 'Ant2' else 0
+            myf2r = 0x40 if str(memory.extra['rev'].value) == 'Rev' else 0
+            myf2 = (_mem.f2 & 0x37) | myf2a | myf2r
+            _mem._replace(
+                    rvfoa=self.freq_to_radio(memory.freq),
+                    rvfob=self.freq_to_radio(memory.offset),
+                    modes=(((modeb & 0x0F) << 4) | (int(memory.mode) & 0x0F)),
+                    dmode=mydmode,
+                    f2=myf2,
+                    rlabel=memory.name.translate(REVTABLE),
+                    comment=memory.comment,
+                    subtone=ELECRAFT_TONES.index(str(memory.rtone))
+                    )
+            byt = pack(FMT, *_mem)
+        cmd = self._cmd_set_memory(memory.number, byt)
+        LOG.warning("SM: byt='%s'\nlen=%d, command='%s'",
+                    byt, len(cmd), cmd)
+        # r1 = command(self.pipe, *self._cmd_set_memory(mem.number), byt)
+        r1 = 'EW goes here'     # But not yet!
+        if r1 in "NE?":
+            LOG.warning("set_memory: Radio returned error '%s'", r1)
 
     def erase_memory(self, number: int) -> None:
         """ Erase the memory at "number" """
         if number not in self._memcache:
             return
         # send an erase command here ... yet to do
-        resp = command(self.pipe, *self._cmd_set_memory(number))
+        resp = command(self.pipe, *self._cmd_set_memory(number, EMPTY_DATA))
         if iserr(resp):
             raise errors.RadioError(f"Radio refused delete of {number}")
         del self._memcache[number]
-
-    def _elecraft_get(self, cmd):
-        # Dunno
-        resp = command(self.pipe, cmd)
-        if " " in resp:
-            return resp.split(" ", 1)
-        if resp == cmd:
-            return [resp, ""]
-        raise errors.RadioError("Radio refused to return {cmd}")
-
-    def _elecraft_set(self, cmd, value):
-        # Dunno
-        resp = command(self.pipe, cmd, value)
-        if resp[:len(cmd)] == cmd:
-            return
-        raise errors.RadioError("Radio refused to set {cmd}")
-
-    def _elecraft_get_bool(self, cmd):
-        # Dunno
-        _cmd, result = self._elecraft_get(cmd)
-        return result == "1"
-
-    def _elecraft_set_bool(self, cmd, value):
-        # Dunno
-        return self._elecraft_set(cmd, str(int(value)))
-
-    def _elecraft_get_int(self, cmd):
-        # Dunno
-        _cmd, result = self._elecraft_get(cmd)
-        return int(result)
-
-    def _elecraft_set_int(self, cmd, value, digits=1):
-        # Dunno
-        return self._elecraft_set(cmd, ("%%0%ii" % digits) % value)
-
-    def set_settings(self, settings):
-        # Dunno; should not be called, since has_settings = False
-        for element in settings:
-            if not isinstance(element, RadioSetting):
-                self.set_settings(element)
-                continue
-            if not element.changed():
-                continue
-            if isinstance(element.value, RadioSettingValueBoolean):
-                self._elecraft_set_bool(element.get_name(), element.value)
-            elif isinstance(element.value, RadioSettingValueList):
-                # options = self._get_setting_options(element.get_name())
-                options = "value"
-                if len(options) > 9:
-                    digits = 2
-                else:
-                    digits = 1
-                self._elecraft_set_int(element.get_name(),
-                                       options.index(str(element.value)),
-                                       digits)
-            elif isinstance(element.value, RadioSettingValueInteger):
-                if element.value.get_max() > 9:
-                    digits = 2
-                else:
-                    digits = 1
-                self._elecraft_set_int(element.get_name(),
-                                       element.value, digits)
-            elif isinstance(element.value, RadioSettingValueString):
-                self._elecraft_set(element.get_name(), str(element.value))
-            else:
-                LOG.error("Unknown type %s", element.value)
 
 
 @directory.register
@@ -583,3 +516,63 @@ class KX2Radio(ElecraftLiveRadio):
 class KXRadio(ElecraftLiveRadio):
     """ Class for Elecraft KX radio. DAR"""
     MODEL = "K3"
+
+
+MEM_FORMAT = """
+struct elecraft_freq {
+    u8  megahz;
+    u8  tenkhz;         // 0-0x63=99
+    u8  hundredhz;      // 0-0x63=99
+    u8  tenhz;          // 0-9
+    u8  hz;             // 0-9
+    };
+
+struct memslot {
+struct elecraft_freq vfoa;
+struct elecraft_freq vfoa;
+    u8  modeb:4,
+        modea:4;
+    u8  digimode:4,     // Submode if either mode is DATA
+        b75:1,          // 0-> 45/31 Baud, 1-> 75 Baud
+        unk:3;
+    u8  ant:1,          // 0-> Antenna 1, 1-> Antenna 2
+        rev:1,          // Reverse mode (CW-R, DATA-R, AM-S)
+        nb:1,           // noise blanker?
+        unk0:1,
+        pre:1,          // Preamplifier?
+        unk01:2,
+        att:1;          // Attenuator
+    u8  rxant:1,        // Receive antenna
+        flag3:7;
+    u8  flag4:7,
+        split:1;        // Split mode (TX A, RX B)
+    u8  unk1:3,
+        xv:1,           // Xverter in use
+        band:4;         // 0-0xA (normal bands) 0-8 (XV1-XV9)
+    };
+// If this were real memory: #skipto 0x0C00;
+struct {
+    struct memslot slot;
+    u8  subtone;
+    u8  offset;         // 00-0xFA, 20kHz/step
+    u8  unk3:5,         // Repeater flags
+        tone:1,         // Tone off/on
+        minus:1,        // 0 -> shift+  1 -> shift-
+        duplex:1;       // simplex/duplex
+    u32 flags;
+    u8  empty[9];
+    u8  label[5];       // Displayed with memory... NOT ASCII
+    u8  comment[24];
+    i32 cheksum;        // Calculation done on last byte, but sign extended
+} radiomem[99];
+
+// If this were real memory: #skipto 0x0100;
+struct memslot normal_band[11];
+// If this were real memory: #skipto 0x0200;
+struct memslot xcvr[9]; // frequencies are IF; read state for more
+
+// If this were real memory: #skipto 0x02A2;
+struct {
+    u16 state[5];
+} transverter_state[9]; // unknown, but probably contain mixer frequency
+"""
