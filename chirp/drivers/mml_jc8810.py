@@ -441,7 +441,7 @@ class JC8810base(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = self.POWER_LEVELS
         rf.valid_duplexes = ["", "-", "+", "split", "off"]
-        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 KHz.
+        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 kHz.
         rf.valid_dtcs_codes = DTCS
         rf.memory_bounds = (1, 256)
         rf.valid_tuning_steps = [2.5, 5., 6.25, 10., 12.5, 20., 25., 50.]
@@ -578,7 +578,7 @@ class JC8810base(chirp_common.CloneModeRadio):
             mem.skip = "S"
 
         _levels = self.POWER_LEVELS
-        if self.MODEL in ["A36plus", "UV-A37"]:
+        if self.MODEL in ["A36plus", "UV-A37", "AR-730"]:
             if _mem.txpower == TXPOWER_HIGH:
                 mem.power = _levels[0]
             elif _mem.txpower == TXPOWER_LOW:
@@ -686,7 +686,7 @@ class JC8810base(chirp_common.CloneModeRadio):
         _mem.narrow = mem.mode == "NFM"
 
         _levels = self.POWER_LEVELS
-        if self.MODEL == "UV-A37":
+        if self.MODEL in ["A36plus", "UV-A37", "AR-730"]:
             if mem.power is None:
                 _mem.txpower = TXPOWER_HIGH
             elif mem.power == _levels[0]:
@@ -747,7 +747,7 @@ class JC8810base(chirp_common.CloneModeRadio):
         rset = RadioSetting("voice", "Voice Prompts", rs)
         basic.append(rset)
 
-        if self.MODEL not in ["A36plus", "UV-A37"]:
+        if self.MODEL not in ["A36plus", "UV-A37", "AR-730"]:
             # Menu 17: LANGUAGE
             rs = RadioSettingValueList(LANGUAGE_LIST,
                                        LANGUAGE_LIST[_settings.language])
@@ -816,9 +816,9 @@ class JC8810base(chirp_common.CloneModeRadio):
 
         if self.MODEL in ["RT-470"]:
             unwanted = [0, 7, 9, 10, 11, 12]
-        elif self.MODEL in ["HI-8811", "RT-470L"]:
+        elif self.MODEL in ["HI-8811", "RT-470L", "RT-470X"]:
             unwanted = [9, 10, 11, 12]
-        elif self.MODEL in ["UV-A37"]:
+        elif self.MODEL in ["UV-A37", "AR-730"]:
             unwanted = [0, 5, 7, 9, 10, 11, 12]
         elif self.MODEL in ["A36plus"]:
             unwanted = [0, 5, 7, 9, 10, 11]
@@ -849,9 +849,9 @@ class JC8810base(chirp_common.CloneModeRadio):
 
         if self.MODEL in ["RT-470"]:
             unwanted = [0, 7, 8, 9, 10, 11, 12]
-        elif self.MODEL in ["HI-8811", "RT-470L"]:
+        elif self.MODEL in ["HI-8811", "RT-470L", "RT-470X"]:
             unwanted = [8, 9, 10, 11, 12]
-        elif self.MODEL in ["UV-A37"]:
+        elif self.MODEL in ["UV-A37", "AR-730"]:
             unwanted = [0, 5, 7, 8, 10, 11, 12]
         elif self.MODEL in ["A36plus"]:
             unwanted = [0, 5, 7, 8, 11, 12]
@@ -882,9 +882,9 @@ class JC8810base(chirp_common.CloneModeRadio):
 
         if self.MODEL in ["RT-470"]:
             unwanted = [0, 7, 8, 9, 10, 11, 12]
-        elif self.MODEL in ["HI-8811", "RT-470L"]:
+        elif self.MODEL in ["HI-8811", "RT-470L", "RT-470X"]:
             unwanted = [8, 9, 10, 11, 12]
-        elif self.MODEL in ["UV-A37"]:
+        elif self.MODEL in ["UV-A37", "AR-730"]:
             unwanted = [0, 5, 7, 8, 9, 10, 11, 12]
         elif self.MODEL in ["A36plus"]:
             unwanted = [0, 5, 7, 8, 9]
@@ -905,7 +905,7 @@ class JC8810base(chirp_common.CloneModeRadio):
         rset.set_apply_callback(apply_skey3s_listvalue, _settings.skey3_sp)
         basic.append(rset)
 
-        if self.MODEL in ["HI-8811", "RT-470L"]:
+        if self.MODEL in ["HI-8811", "RT-470L", "RT-470X"]:
             # Menu 24: PF3 LONG PRESS (RT-470L)
             def apply_skey3l_listvalue(setting, obj):
                 LOG.debug("Setting value: " + str(setting.value) +
@@ -915,7 +915,7 @@ class JC8810base(chirp_common.CloneModeRadio):
                 val = SKEY2L_VALUES[index]
                 obj.set_value(val)
 
-            if self.MODEL in ["HI-8811", "RT-470L"]:
+            if self.MODEL in ["HI-8811", "RT-470L", "RT-470X"]:
                 unwanted = [8, 9, 10, 11, 12]
             else:
                 unwanted = []
@@ -953,9 +953,9 @@ class JC8810base(chirp_common.CloneModeRadio):
             # Press) setting in CHIRP.
             # ==========
             unwanted = [0, 7, 8, 9, 10, 11, 12]
-        elif self.MODEL in ["HI-8811", "RT-470L"]:
+        elif self.MODEL in ["HI-8811", "RT-470L", "RT-470X"]:
             unwanted = [8, 9, 10, 11, 12]
-        elif self.MODEL in ["UV-A37"]:
+        elif self.MODEL in ["UV-A37", "AR-730"]:
             unwanted = [0, 5, 7, 8, 9, 10, 11, 12]
         elif self.MODEL in ["A36plus"]:
             unwanted = [0, 5, 7, 8, 9]
@@ -1067,7 +1067,7 @@ class JC8810base(chirp_common.CloneModeRadio):
         rset = RadioSetting("beep", "Beep", rs)
         basic.append(rset)
 
-        if self.MODEL not in ["A36plus", "UV-A37"]:
+        if self.MODEL not in ["A36plus", "UV-A37", "AR-730"]:
             # Menu 48: RX END TAIL
             rs = RadioSettingValueList(TONERXEND_LIST,
                                        TONERXEND_LIST[_settings.rxendtail])
@@ -1261,6 +1261,24 @@ class RT470LRadio(JC8810base):
 
 
 @directory.register
+class RT470XRadio(RT470LRadio):
+    """Radtel RT-470X"""
+    VENDOR = "Radtel"
+    MODEL = "RT-470X"
+
+    # ==========
+    # Notice to developers:
+    # The RT-470 support in this driver is currently based upon v1.18 firmware.
+    # ==========
+
+    VALID_BANDS = [(100000000, 136000000),
+                   (136000000, 200000000),
+                   (200000000, 300000000),
+                   (300000000, 400000000),
+                   (400000000, 560000000)]
+
+
+@directory.register
 class HI8811Radio(RT470LRadio):
     """Hiroyasu HI-8811"""
     VENDOR = "Hiroyasu"
@@ -1341,3 +1359,25 @@ class A36plusRadio(JC8810base):
                (0xB000, 0xB440)
               ]
     _memsize = 0xB440
+
+
+@directory.register
+class AR730Radio(UVA37Radio):
+    """Abbree AR730"""
+    VENDOR = "Abbree"
+    MODEL = "AR-730"
+
+    # ==========
+    # Notice to developers:
+    # The AR-730 support in this driver is currently based upon v1.24
+    # firmware.
+    # ==========
+
+    POWER_LEVELS = [chirp_common.PowerLevel("H", watts=5.00),
+                    chirp_common.PowerLevel("L", watts=1.00)]
+
+    VALID_BANDS = [(108000000, 136000000),
+                   (136000000, 180000000),
+                   (200000000, 260000000),
+                   (350000000, 390000000),
+                   (400000000, 520000000)]
