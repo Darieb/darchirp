@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CHIRP\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-02-04 12:44-0800\n"
+"POT-Creation-Date: 2024-02-05 15:07-0800\n"
 "PO-Revision-Date: 2024-01-20 12:24+0100\n"
 "Last-Translator: Daniele Forsi <iu5hkx@gmail.com>\n"
 "Language-Team: \n"
@@ -655,7 +655,7 @@ msgstr "Tutti i formati supportati|"
 msgid "Amateur"
 msgstr "Radioamatore"
 
-#: ../wxui/common.py:547 ../wxui/common.py:573
+#: ../wxui/common.py:572 ../wxui/common.py:598
 msgid "An error has occurred"
 msgstr "Si è verificato un errore"
 
@@ -695,7 +695,7 @@ msgstr ""
 msgid "Canada"
 msgstr "Canada"
 
-#: ../wxui/common.py:436
+#: ../wxui/common.py:461
 msgid ""
 "Changing this setting requires refreshing the settings from the image, which "
 "will happen now."
@@ -842,7 +842,7 @@ msgstr ""
 "Polarità\n"
 "DTCS"
 
-#: ../drivers/uvk5.py:897
+#: ../drivers/uvk5.py:912
 msgid "DTMF decode"
 msgstr ""
 
@@ -921,7 +921,7 @@ msgstr "Scarica dalla radio..."
 msgid "Download instructions"
 msgstr "Istruzioni per lo scaricamento"
 
-#: ../drivers/uvk5.py:1315
+#: ../drivers/uvk5.py:1330
 msgid "Driver information"
 msgstr "Informazioni sul driver"
 
@@ -983,7 +983,7 @@ msgstr "Inserire la porta personalizzata:"
 msgid "Erased memory %s"
 msgstr "Memoria %s cancellata"
 
-#: ../wxui/settingsedit.py:143
+#: ../wxui/settingsedit.py:144
 #, fuzzy
 msgid "Error applying settings"
 msgstr "Errore di scrittura della memoria"
@@ -1012,7 +1012,7 @@ msgstr "Esporta in CSV..."
 msgid "Extra"
 msgstr ""
 
-#: ../drivers/uvk5.py:1313
+#: ../drivers/uvk5.py:1328
 msgid "FM Radio"
 msgstr "Radio FM"
 
@@ -1432,11 +1432,11 @@ msgstr ""
 msgid "Loading settings"
 msgstr "Caricamento delle impostazioni"
 
-#: ../drivers/uvk5.py:1814
+#: ../drivers/uvk5.py:1831
 msgid "Logo string 1 (12 characters)"
 msgstr ""
 
-#: ../drivers/uvk5.py:1821
+#: ../drivers/uvk5.py:1838
 msgid "Logo string 2 (12 characters)"
 msgstr ""
 
@@ -1754,7 +1754,7 @@ msgid ""
 "<small>Premium account required</small>"
 msgstr ""
 
-#: ../wxui/common.py:438
+#: ../wxui/common.py:463
 msgid "Refresh required"
 msgstr ""
 
@@ -1829,11 +1829,11 @@ msgstr "Salva file"
 msgid "Saved settings"
 msgstr "Impostazioni salvate"
 
-#: ../drivers/uvk5.py:911
+#: ../drivers/uvk5.py:926
 msgid "Scanlists"
 msgstr ""
 
-#: ../drivers/uvk5.py:907
+#: ../drivers/uvk5.py:922
 msgid "Scrambler"
 msgstr ""
 
@@ -1997,6 +1997,14 @@ msgstr ""
 msgid "This driver is in development and should be considered as experimental."
 msgstr ""
 
+#: ../drivers/uvk5.py:753
+msgid ""
+"This image is missing firmware information. It may have been generated with "
+"an old or modified version of CHIRP. It is advised that you download a fresh "
+"image from your radio and use that going forward for the best safety and "
+"compatibility."
+msgstr ""
+
 #: ../drivers/th_uv88.py:555
 msgid "This is an early stage beta driver\n"
 msgstr ""
@@ -2033,7 +2041,7 @@ msgstr "Questa memoria e sposta tutto in alto"
 msgid "This memory and shift block up"
 msgstr "Questa memoria e sposta il blocco in alto"
 
-#: ../drivers/uvk5_egzumer.py:1450
+#: ../drivers/uvk5_egzumer.py:1459
 msgid ""
 "This option may break your radio! Each radio has a unique set of calibration "
 "data and uploading the data from the image will cause physical harm to the "
@@ -2050,7 +2058,7 @@ msgid ""
 "If you can get into it, please check the radio and cable.\n"
 msgstr ""
 
-#: ../drivers/uvk5.py:1899
+#: ../drivers/uvk5.py:1916
 msgid ""
 "This should only be enabled if you are using modified firmware that supports "
 "wider frequency coverage. Enabling this will cause CHIRP not to enforce OEM "
@@ -2114,7 +2122,7 @@ msgid ""
 "model and try again."
 msgstr ""
 
-#: ../wxui/common.py:623
+#: ../wxui/common.py:648
 #, python-format
 msgid "Unable to reveal %s on this system"
 msgstr "Impossibile rivelare %s su questo sistema"
@@ -2162,12 +2170,12 @@ msgstr "Usa carattere più grande"
 msgid "Value does not fit in %i bits"
 msgstr "Il valore non entra in %i bit"
 
-#: ../wxui/common.py:470
+#: ../wxui/common.py:495
 #, python-format
 msgid "Value must be at least %.4f"
 msgstr "Il valore deve essere almeno %.4f"
 
-#: ../wxui/common.py:474
+#: ../wxui/common.py:499
 #, python-format
 msgid "Value must be at most %.4f"
 msgstr "Il valore deve essere al massimo %.4f"
@@ -2193,7 +2201,7 @@ msgstr "Produttore"
 msgid "View"
 msgstr "Visualizza"
 
-#: ../wxui/common.py:422
+#: ../wxui/common.py:447
 msgid "WARNING!"
 msgstr ""
 
