@@ -355,6 +355,7 @@ class ChirpSettingGrid(wx.Panel):
     def __init__(self, settinggroup, *a, **k):
         super(ChirpSettingGrid, self).__init__(*a, **k)
         self._group = settinggroup
+        self._settings = {}
         self._needs_reload = False
 
         self.pg = wx.propgrid.PropertyGrid(
@@ -370,8 +371,17 @@ class ChirpSettingGrid(wx.Panel):
 
         self._choices = {}
 
-        for name, element in self._group.items():
-            if not isinstance(element, settings.RadioSetting):
+        self._add_items(self._group)
+        self.pg.Bind(wx.propgrid.EVT_PG_CHANGING, self._check_change)
+
+    def _add_items(self, group):
+        for name, element in group.items():
+            if isinstance(element, settings.RadioSettingSubGroup):
+                self.pg.Append(wx.propgrid.PropertyCategory(
+                    element.get_shortname()))
+                self._add_items(element)
+                continue
+            elif not isinstance(element, settings.RadioSetting):
                 LOG.debug('Skipping nested group %s' % element)
                 continue
             if len(element.keys()) > 1:
@@ -401,13 +411,13 @@ class ChirpSettingGrid(wx.Panel):
                     editor.SetLabel('')
                 editor.Enable(value.get_mutable())
                 self.pg.Append(editor)
-        self.pg.Bind(wx.propgrid.EVT_PG_CHANGING, self._check_change)
+                self._settings[element.get_name()] = element
 
     def get_setting_by_name(self, name, index=0):
         if INDEX_CHAR in name:
             # FIXME: This will only work for single-index settings of course
             name, _ = name.split(INDEX_CHAR, 1)
-        for setting_name, setting in self._group.items():
+        for setting_name, setting in self._settings.items():
             if name == setting_name:
                 return setting
 
@@ -523,7 +533,7 @@ class ChirpSettingGrid(wx.Panel):
                 value = self._choices[basename][prop.GetValue()]
             else:
                 value = prop.GetValue()
-            setting = self._group[basename]
+            setting = self._settings[basename]
             values[prop.GetName()] = setting, value
         return values
 
