@@ -16,7 +16,7 @@
 
 from chirp import chirp_common, bitwise, memmap, errors, directory, util
 from chirp.settings import RadioSettingGroup, RadioSetting
-from chirp.settings import RadioSettingValueBoolean, RadioSettings
+from chirp.settings import RadioSettingValueBoolean
 
 
 import time
@@ -79,7 +79,6 @@ class AlincoStyleRadio(chirp_common.CloneModeRadio):
     """Base class for all known Alinco radios"""
     _memsize = 0
     _model = b"NONE"
-    NEEDS_COMPAT_SERIAL = False
 
     def _send(self, data):
         LOG.debug("PC->R: (%2i)\n%s" % (len(data), util.hexprint(data)))
@@ -787,7 +786,7 @@ class AlincoDJG7(AlincoStyleRadio):
             if _mem.skip:
                 mem.skip = "S"
             # FIXME find out what every other byte is used for. Japanese?
-            mem.name = str(_mem.name.get_raw()[::2]).rstrip('\0')
+            mem.name = str(_mem.name.get_raw(asbytes=False)[::2]).rstrip('\0')
         return mem
 
     def set_memory(self, mem):
@@ -818,7 +817,7 @@ class AlincoDJG7(AlincoStyleRadio):
             elif mem.tmode == "TSQL":
                 _mem.squelch_type = self.TMODES.index("TSQL")
                 # Note how the same TSQL tone is copied to both memory
-                # locaations
+                # locations
                 try:
                     _mem.tx_tone = ALINCO_TONES.index(mem.ctone)+1
                     _mem.rx_tone = ALINCO_TONES.index(mem.ctone)+1

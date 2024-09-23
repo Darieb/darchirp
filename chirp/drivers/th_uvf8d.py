@@ -268,7 +268,6 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
     VENDOR = "TYT"
     MODEL = "TH-UVF8D"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     def get_features(self):
         rf = chirp_common.RadioFeatures()
@@ -367,7 +366,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         else:
             mem.number = number
 
-        if _mem.get_raw().startswith("\xFF\xFF\xFF\xFF"):
+        if _mem.get_raw(asbytes=False).startswith("\xFF\xFF\xFF\xFF"):
             mem.empty = True
             return mem
 
@@ -410,7 +409,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("pttid", "PTT ID",
                           RadioSettingValueList(PTTID_LIST,
-                                                PTTID_LIST[_mem.pttid]))
+                                                current_index=_mem.pttid))
         mem.extra.append(rs)
 
         rs = RadioSetting("vox", "VOX",
@@ -419,17 +418,17 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("bclo", "Busy Channel Lockout",
                           RadioSettingValueList(BCLO_LIST,
-                                                BCLO_LIST[_mem.bclo]))
+                                                current_index=_mem.bclo))
         mem.extra.append(rs)
 
         rs = RadioSetting("apro", "APRO",
                           RadioSettingValueList(APRO_LIST,
-                                                APRO_LIST[_mem.apro]))
+                                                current_index=_mem.apro))
         mem.extra.append(rs)
 
         rs = RadioSetting("rpt_md", "Repeater Mode",
                           RadioSettingValueList(RPTMD_LIST,
-                                                RPTMD_LIST[_mem.rpt_md]))
+                                                current_index=_mem.rpt_md))
         mem.extra.append(rs)
 
         return mem
@@ -447,7 +446,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         else:
             e.flags[7 - ((mem.number - 1) % 8)] = True
 
-        if _mem.get_raw() == ("\xFF" * 32):
+        if _mem.get_raw(asbytes=False) == ("\xFF" * 32):
             LOG.debug("Initializing empty memory")
             _mem.set_raw("\x00" * 32)
 
@@ -488,12 +487,12 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         group.append(RadioSetting(
                 "mode", "Mode",
                 RadioSettingValueList(
-                    MODE_LIST, MODE_LIST[_settings.mode])))
+                    MODE_LIST, current_index=_settings.mode)))
 
         group.append(RadioSetting(
                 "ab_switch", "A/B",
                 RadioSettingValueList(
-                    AB_LIST, AB_LIST[_settings.ab_switch])))
+                    AB_LIST, current_index=_settings.ab_switch)))
 
         group.append(RadioSetting(
                 "a_channel", "A Selected Memory",
@@ -508,19 +507,19 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         group.append(RadioSetting(
                 "a_display", "A Channel Display",
                 RadioSettingValueList(
-                    DISPLAY_LIST, DISPLAY_LIST[_settings.a_display])))
+                    DISPLAY_LIST, current_index=_settings.a_display)))
         group.append(RadioSetting(
                 "b_display", "B Channel Display",
                 RadioSettingValueList(
-                    DISPLAY_LIST, DISPLAY_LIST[_settings.b_display])))
+                    DISPLAY_LIST, current_index=_settings.b_display)))
         group.append(RadioSetting(
                 "tx_sel", "Priority Transmit",
                 RadioSettingValueList(
-                    TXSEL_LIST, TXSEL_LIST[_settings.tx_sel])))
+                    TXSEL_LIST, current_index=_settings.tx_sel)))
         group.append(RadioSetting(
                 "vox_level", "VOX Level",
                 RadioSettingValueList(
-                    VOX_LIST, VOX_LIST[_settings.vox_level])))
+                    VOX_LIST, current_index=_settings.vox_level)))
 
         group.append(RadioSetting(
                 "squelch", "Squelch Level",
@@ -532,12 +531,12 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
 
         group.append(RadioSetting(
                 "led", "LED Mode",
-                RadioSettingValueList(LED_LIST, LED_LIST[_settings.led])))
+                RadioSettingValueList(LED_LIST, current_index=_settings.led)))
 
         group.append(RadioSetting(
                 "light", "Light Color",
                 RadioSettingValueList(
-                    LIGHT_LIST, LIGHT_LIST[_settings.light])))
+                    LIGHT_LIST, current_index=_settings.light)))
 
         group.append(RadioSetting(
                 "beep", "Beep",
@@ -549,7 +548,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
 
         group.append(RadioSetting(
                 "tot", "Timeout Timer",
-                RadioSettingValueList(TOT_LIST, TOT_LIST[_settings.tot])))
+                RadioSettingValueList(TOT_LIST, current_index=_settings.tot)))
 
         group.append(RadioSetting(
                 "roger", "Roger Beep",
@@ -573,7 +572,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         group.append(RadioSetting(
                 "scan_mode", "Scan Mode",
                 RadioSettingValueList(
-                    SCAN_MODE_LIST, SCAN_MODE_LIST[_settings.scan_mode])))
+                    SCAN_MODE_LIST, current_index=_settings.scan_mode)))
 
         group.append(RadioSetting(
             'taileliminate', 'Tail Eliminate',
@@ -586,7 +585,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         group.append(RadioSetting(
                 "lock_mode", "Keypad Lock Mode",
                 RadioSettingValueList(
-                    LOCK_MODE_LIST, LOCK_MODE_LIST[_settings.lock_mode])))
+                    LOCK_MODE_LIST, current_index=_settings.lock_mode)))
 
         group.append(RadioSetting(
                 "voice", "Voice Prompt",
@@ -595,37 +594,31 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
         group.append(RadioSetting(
                 "opnmsg", "Opening Message",
                 RadioSettingValueList(
-                    OPNMSG_LIST, OPNMSG_LIST[_settings.opnmsg])))
+                    OPNMSG_LIST, current_index=_settings.opnmsg)))
 
         group.append(RadioSetting(
                 "tuning_step", "Tuning Step",
                 RadioSettingValueList(
                     TUNING_STEPS_LIST,
-                    TUNING_STEPS_LIST[_settings.tuning_step])))
+                    current_index=_settings.tuning_step)))
 
         group.append(RadioSetting(
                 "lamp_t", "Backlight Timeout",
                 RadioSettingValueList(
                     BACKLIGHT_TIMEOUT_LIST,
-                    BACKLIGHT_TIMEOUT_LIST[_settings.lamp_t])))
+                    current_index=_settings.lamp_t)))
 
         group.append(RadioSetting(
                 "a_work_area", "A Work Area",
                 RadioSettingValueList(
-                    AB_LIST, AB_LIST[_settings.a_work_area])))
+                    AB_LIST, current_index=_settings.a_work_area)))
 
         group.append(RadioSetting(
                 "b_work_area", "B Work Area",
                 RadioSettingValueList(
-                    AB_LIST, AB_LIST[_settings.b_work_area])))
+                    AB_LIST, current_index=_settings.b_work_area)))
 
         return top
-
-        group.append(RadioSetting(
-                "disnm", "Display Name",
-                RadioSettingValueBoolean(_settings.disnm)))
-
-        return group
 
     def set_settings(self, settings):
         _settings = self._memobj.settings
@@ -638,7 +631,7 @@ class TYTUVF8DRadio(chirp_common.CloneModeRadio):
                     _settings.rxsave = 0
                 continue
             if element.get_name().endswith('_channel'):
-                LOG.debug(element.value, type(element.value))
+                LOG.debug('%s %s', element.value, type(element.value))
                 setattr(_settings, element.get_name(), int(element.value) - 1)
                 continue
             if not isinstance(element, RadioSetting):

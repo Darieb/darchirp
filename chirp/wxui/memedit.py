@@ -16,7 +16,6 @@
 import functools
 import logging
 import pickle
-import platform
 import sys
 
 import wx
@@ -26,6 +25,7 @@ import wx.propgrid
 import wx.lib.mixins.gridlabelrenderer as glr
 
 from chirp import chirp_common
+from chirp import directory
 from chirp import bandplan
 from chirp.drivers import generic_csv
 from chirp import errors
@@ -35,13 +35,67 @@ from chirp.wxui import config
 from chirp.wxui import common
 from chirp.wxui import developer
 
+_ = wx.GetTranslation
 LOG = logging.getLogger(__name__)
 CONF = config.get()
+WX_GTK = 'gtk' in wx.version().lower()
+
+
+class ChirpGridTable(wx.grid.GridStringTable):
+    def __init__(self, features, num_cols):
+        self._features = features
+        num_rows = (self._features.memory_bounds[1] -
+                    self._features.memory_bounds[0] +
+                    len(self._features.valid_special_chans) + 1)
+        super().__init__(num_rows, num_cols)
+        self._rowmap = {x: x for x in range(0, self.GetRowsCount())}
+        self._rowmap_rev = {v: k for k, v in self._rowmap.items()}
+
+    @property
+    def rowmap(self):
+        return self._rowmap
+
+    @property
+    def rowmap_rev(self):
+        return self._rowmap_rev
+
+    def sort_via(self, col, asc=True):
+        # We sort the current values for the requested column and generate
+        # a mapping of "view row" to "real row" from that ordering. The mapping
+        # is used to translate get/set requests to the appropriate row in the
+        # underlying data store.
+        # The list of values we actually sort is a tuple of:
+        #   (empty, value, location)
+        # Where the empty flag is conditionally negated based on our sort
+        # order. That convoluted scheme makes us always sort empty values at
+        # the bottom instead of the top of the list, which is what a human
+        # will want.
+        if col < 0:
+            self._rowmap = {x: x for x in range(0, self.GetRowsCount())}
+        else:
+            sorted_values = sorted((
+                (asc != bool(
+                    super(ChirpGridTable, self).GetValue(
+                        realrow, col).strip()),
+                 super(ChirpGridTable, self).GetValue(realrow, col),
+                 realrow)
+                for realrow in range(0, self.GetRowsCount())),
+                reverse=not asc)
+            self._rowmap = dict((i, mapping[-1])
+                                for i, mapping in enumerate(sorted_values))
+        self._rowmap_rev = {v: k for k, v in self._rowmap.items()}
+
+    def GetValue(self, row, col):
+        return super().GetValue(self._rowmap[row], col)
+
+    def SetValue(self, row, col, value):
+        return super().SetValue(self._rowmap[row], col, value)
 
 
 class ChirpMemoryGrid(wx.grid.Grid, glr.GridWithLabelRenderersMixin):
     def __init__(self, *a, **k):
         wx.grid.Grid.__init__(self, *a, **k)
+        self.SetColLabelSize(wx.grid.GRID_AUTOSIZE)
         glr.GridWithLabelRenderersMixin.__init__(self)
 
 
@@ -70,8 +124,29 @@ class ChirpRowLabelRenderer(glr.GridDefaultRowLabelRenderer):
         self.DrawText(grid, dc, rect, text, hAlign, vAlign)
 
 
+DEFAULT_COLUMN_HELP = {
+    'freq': _('Receive frequency'),
+    'name': _('Memory label (stored in radio)'),
+    'tmode': _('Tone squelch mode'),
+    'rtone': _('Transmit tone'),
+    'ctone': _('Transmit/receive tone for TSQL mode, else receive tone'),
+    'mode': _('Transmit/receive modulation (FM, AM, SSB, etc)'),
+    'dtcs': _('Transmit/receive DTCS code for DTCS mode, else transmit code'),
+    'rx_dtcs': _('Receive DTCS code'),
+    'dtcs_polarity': _('TX-RX DTCS polarity (normal or reversed)'),
+    'cross_mode': _('Complex or non-standard tone squelch mode '
+                    '(starts the tone mode selection wizard)'),
+    'duplex': _('Transmit shift, split mode, or transmit inhibit'),
+    'offset': _('Shift amount (or transmit frequency) controlled by duplex'),
+    'tuning_step': _('Frequency granularity in kHz'),
+    'skip': _('Scan control (skip, include, priority, etc)'),
+    'power': _('Transmit Power'),
+    'comment': _('Human-readable comment (not stored in radio)'),
+}
+
+
 class ChirpMemoryColumn(object):
-    DEFAULT = ''
+    DEFAULT: object = ''
 
     def __init__(self, name, radio, label=None):
         """
@@ -82,10 +157,19 @@ class ChirpMemoryColumn(object):
         self._label = label or _(name.title())
         self._radio = radio
         self._features = radio.get_features()
+        self._doc = None
 
     @property
     def name(self):
         return self._name
+
+    @property
+    def doc(self):
+        return self._doc or DEFAULT_COLUMN_HELP.get(self.name)
+
+    @doc.setter
+    def doc(self, value):
+        self._doc = value
 
     @property
     def label(self):
@@ -128,7 +212,7 @@ class ChirpMemoryColumn(object):
 
     def value(self, memory):
         if '.' in self._name:
-            parent, child = self._name.split('.')
+            parent, child = self._name.split('.', 1)
             try:
                 return getattr(memory, parent)[child].value
             except (AttributeError, KeyError):
@@ -149,7 +233,7 @@ class ChirpMemoryColumn(object):
 
     def digest_value(self, memory, input_value):
         if '.' in self._name:
-            parent, child = self._name.split('.')
+            parent, child = self._name.split('.', 1)
             try:
                 getattr(memory, parent)[child].value = self._digest_value(
                     memory, input_value)
@@ -265,9 +349,6 @@ class ChirpFrequencyColumn(ChirpMemoryColumn):
 
 
 class ChirpVariablePowerColumn(ChirpMemoryColumn):
-    def __init__(self, name, radio, power_levels):
-        super().__init__(name, radio)
-
     @property
     def level(self):
         return _('Power')
@@ -349,7 +430,7 @@ class ChirpToneColumn(ChirpChoiceColumn):
     def __init__(self, name, radio):
         self.rf = radio.get_features()
         tones = self.rf.valid_tones or chirp_common.TONES
-        tones = [str(x) for x in tones]
+        tones = [str(x) for x in sorted(tones)]
         super(ChirpToneColumn, self).__init__(name, radio,
                                               tones)
 
@@ -444,7 +525,7 @@ class ChirpDTCSColumn(ChirpChoiceColumn):
     def __init__(self, name, radio):
         rf = radio.get_features()
         codes = rf.valid_dtcs_codes or chirp_common.DTCS_CODES
-        dtcs_codes = ['%03i' % code for code in codes]
+        dtcs_codes = ['%03i' % code for code in sorted(codes)]
         super(ChirpDTCSColumn, self).__init__(name, radio,
                                               dtcs_codes)
 
@@ -520,10 +601,16 @@ class ChirpCrossModeColumn(ChirpChoiceColumn):
 
     @property
     def label(self):
-        return _('Cross mode')
+        return _('Cross Mode')
 
     def hidden_for(self, memory):
         return memory.tmode != 'Cross'
+
+
+class ChirpSkipColumn(ChirpChoiceColumn):
+    @property
+    def valid(self):
+        return self._features.valid_skips
 
 
 class ChirpCommentColumn(ChirpMemoryColumn):
@@ -559,6 +646,8 @@ def get_column_for_extra(radio, setting):
                                  label=label)
     elif isinstance(value, settings.RadioSettingValueBoolean):
         return ChirpFlagColumn(field, radio, label=label)
+    elif isinstance(value, settings.RadioSettingValueInteger):
+        return ChirpMemoryColumn(field, radio, label=label)
 
 
 class ChirpMemoryDropTarget(wx.DropTarget):
@@ -569,17 +658,24 @@ class ChirpMemoryDropTarget(wx.DropTarget):
         self.data.Add(wx.CustomDataObject(common.CHIRP_DATA_MEMORY))
         self.SetDataObject(self.data)
 
+    def parse_data(self):
+        data = self.data.GetObject(common.CHIRP_DATA_MEMORY)
+        return pickle.loads(data.GetData().tobytes())
+
     def OnData(self, x, y, defResult):
         if not self.GetData():
             return wx.DragNone
+        payload = self.parse_data()
         x, y = self._memedit._grid.CalcUnscrolledPosition(x, y)
         y -= self._memedit._grid.GetColLabelSize()
         row, cell = self._memedit._grid.XYToCell(x, y)
-        if row < 0:
+        start_row = self._memedit.mem2row(payload['mems'][0].number)
+        if row < 0 or row == start_row:
+            LOG.debug('Ignoring drag from row %i -> %i',
+                      start_row, row)
             return wx.DragCancel
+
         LOG.debug('Memory dropped on row %s,%s' % (row, cell))
-        data = self.data.GetObject(common.CHIRP_DATA_MEMORY)
-        payload = pickle.loads(data.GetData().tobytes())
         original_locs = [m.number for m in payload['mems']]
         source = self._memedit.FindWindowById(payload.pop('source'))
         if not self._memedit._cb_paste_memories(payload, row=row):
@@ -593,11 +689,20 @@ class ChirpMemoryDropTarget(wx.DropTarget):
         return defResult
 
     def OnDragOver(self, x, y, defResult):
+        if self.GetData():
+            payload = self.parse_data()
+            rows = len(payload['mems'])
+        else:
+            rows = 1
+
         x, y = self._memedit._grid.CalcUnscrolledPosition(x, y)
         y -= self._memedit._grid.GetColLabelSize()
         row, cell = self._memedit._grid.XYToCell(x, y)
+        max_row = self._memedit._grid.GetNumberRows()
         if row >= 0:
-            self._memedit._grid.SelectRow(row)
+            self._memedit._grid.ClearSelection()
+            for i in range(row, min(max_row, row + rows)):
+                self._memedit._grid.SelectRow(i, addToSelected=True)
         return defResult
 
     def OnDrop(self, x, y):
@@ -621,17 +726,19 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._special_numbers = {}
         # Extra memory column names
         self._extra_cols = set()
+        # Memory errors by row
+        self._memory_errors = {}
 
         self._col_defs = self._setup_columns()
 
         self.bandplan = bandplan.BandPlans(CONF)
 
         self._grid = ChirpMemoryGrid(self)
-        self._grid.CreateGrid(
-            self._features.memory_bounds[1] - self._features.memory_bounds[0] +
-            len(self._features.valid_special_chans) + 1,
-            len(self._col_defs))
-        self._grid.SetSelectionMode(wx.grid.Grid.SelectRows)
+        self._table = ChirpGridTable(self._features, len(self._col_defs))
+        # AssignTable added in wxPython 4.1, so use the older interface for
+        # earlier version support (i.e. Ubuntu Jammy)
+        self._grid.SetTable(self._table, takeOwnership=True,
+                            selmode=wx.grid.Grid.SelectRows)
         self._grid.DisableDragRowSize()
         self._grid.EnableDragCell()
         self._grid.SetFocus()
@@ -648,6 +755,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._variable_font = self._grid.GetDefaultCellFont()
         self.update_font(False)
 
+        self._grid.Bind(wx.grid.EVT_GRID_COL_SORT,
+                        self._sort_column)
         self._grid.Bind(wx.grid.EVT_GRID_CELL_CHANGING,
                         self._memory_edited)
         self._grid.Bind(wx.grid.EVT_GRID_CELL_CHANGED,
@@ -657,33 +766,107 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._grid.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,
                         self._memory_rclick)
         self._grid.Bind(wx.grid.EVT_GRID_CELL_BEGIN_DRAG, self._memory_drag)
+        if WX_GTK:
+            self._grid.Bind(wx.EVT_KEY_DOWN, self._gtk_short_circuit_edit_copy)
         row_labels = self._grid.GetGridRowLabelWindow()
         row_labels.Bind(wx.EVT_LEFT_DOWN, self._row_click)
+        row_labels.Bind(wx.EVT_LEFT_UP, self._row_click)
         row_labels.Bind(wx.EVT_MOTION, self._rowheader_mouseover)
+        col_labels = self._grid.GetGridColLabelWindow()
+        col_labels.Bind(wx.EVT_MOTION, self._colheader_mouseover)
+        corner_label = self._grid.GetGridCornerLabelWindow()
+        corner_label.Bind(wx.EVT_LEFT_DOWN, self._sort_column)
+        self._dragging_rows = None
 
         self._dc = wx.ScreenDC()
         self.set_cell_attrs()
 
-    def _row_click(self, event):
-        if event.AltDown():
-            return self._memory_drag(event)
+    @property
+    def is_sorted(self):
+        return self._grid.GetSortingColumn() != wx.NOT_FOUND
+
+    def _gtk_short_circuit_edit_copy(self, event):
+        # wxGTK is broken and does not direct Ctrl-C to the menu items
+        # because wx.grid.Grid() tries to implement something for it,
+        # which we don't want. The wxWidgets people say the only way is to
+        # grab it ourselves and direct it appropriately before wx.grid.Grid()
+        # can do it.
+        # https://github.com/wxWidgets/wxWidgets/issues/22625
+        if (event.GetKeyCode() == ord('C') and
+                event.GetModifiers() == wx.MOD_CONTROL):
+            self.cb_copy(cut=False)
         else:
             event.Skip()
 
-    def _rowheader_mouseover(self, event):
-        event.Skip()
-        if len(self.get_selected_rows_safe()) <= 1:
-            return
-        self._grid.YToRow(event.GetY())
+    def _row_click(self, event):
+        # In order to override the drag-to-multi-select behavior of the base
+        # grid, we need to basically reimplement what happens when a user
+        # clicks on a row header. Shift for block select, Ctrl/Cmd for add-
+        # to-selection, and then drag to actually copy/move memories.
         if sys.platform == 'darwin':
-            key = 'option'
+            multi = event.CmdDown()
         else:
-            key = 'alt'
-        event.GetEventObject().SetToolTip(
-            _('Hold %(key)s to drag multiple memories') % {'key': key})
+            multi = event.ControlDown()
+        cur_selected = self._grid.GetSelectedRows()
+        x, y = self._grid.CalcUnscrolledPosition(event.GetX(), event.GetY())
+        row, _cell = self._grid.XYToCell(x, y)
+        if event.LeftDown():
+            # Record where we clicked in case we start to drag, but only if
+            # they started that drag from one of the selected memories.
+            self._dragging_rows = (row, event.GetX(), event.GetY())
+        elif self._dragging_rows is not None:
+            # Never dragged, so skip to get regular behavior
+            self._dragging_rows = None
+            try:
+                first_row = cur_selected[0]
+            except IndexError:
+                first_row = 0
+            if event.ShiftDown():
+                # Find the block the user wants and select all of it
+                start = min(row, first_row)
+                end = max(row, first_row)
+                self._grid.SelectBlock(start, 0, end, 0)
+            elif multi and row in cur_selected:
+                # The row is currently selected and we were clicked with the
+                # multi-select key held, so we need to select everything *but*
+                # the clicked row.
+                cur_selected.remove(row)
+                self._grid.ClearSelection()
+                for row in cur_selected:
+                    self._grid.SelectRow(row, addToSelected=True)
+            else:
+                # They clicked on a row, add to selection if the multi-select
+                # key is held, otherwise select only this row.
+                self._grid.SelectRow(row, addToSelected=multi)
+        else:
+            # Unclick but we started a drag
+            self._dragging_rows = None
+
+    def _rowheader_mouseover(self, event):
+        x, y = self._grid.CalcUnscrolledPosition(event.GetX(), event.GetY())
+        row, _cell = self._grid.XYToCell(x, y)
+
+        tip = self._memory_errors.get(row)
+        event.GetEventObject().SetToolTip(tip)
+
+        if self._dragging_rows is not None:
+            row, x, y = self._dragging_rows
+            if row not in self._grid.GetSelectedRows():
+                # Drag started from a non-selected cell, so ignore
+                return
+            if abs(event.GetX() - x) > 10 or abs(event.GetY() - y) > 10:
+                # Enough motion to consider this a drag motion
+                self._dragging_rows = None
+                return self._memory_drag(event)
+
+    def _colheader_mouseover(self, event):
+        x, y = self._grid.CalcUnscrolledPosition(event.GetX(), event.GetY())
+        _row, cell = self._grid.XYToCell(x, y)
+        col = self._col_defs[cell]
+        event.GetEventObject().SetToolTip(col.doc or None)
 
     def _memory_drag(self, event):
-        data = self.cb_copy()
+        data = self.cb_copy_getdata()
         ds = wx.DropSource(self)
         ds.SetData(data)
         result = ds.DoDragDrop(wx.Drag_AllowMove)
@@ -698,10 +881,19 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     @property
     def comment_col(self):
-        return self._col_defs.index(self._col_def_by_name('comment'))
+        # If we're not displaying the comment field (like for live radios),
+        # we need to choose the field before the comment as the point for
+        # expansion
+        has_comment = (self._features.has_comment or
+                       isinstance(self._radio, chirp_common.CloneModeRadio))
+        if has_comment:
+            offset = 0
+        else:
+            offset = -1
+        return self._col_defs.index(self._col_def_by_name('comment')) + offset
 
     def set_cell_attrs(self):
-        if platform.system() == 'Linux':
+        if WX_GTK:
             minwidth = 100
         else:
             minwidth = 75
@@ -710,7 +902,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             if not col_def.valid:
                 self._grid.HideCol(col)
             else:
-                self._grid.SetColLabelValue(col, col_def.label)
+                label = col_def.label
+                if self._grid.GetSortingColumn() == col:
+                    asc = self._grid.IsSortOrderAscending()
+                    label += ' ' + (asc and '▲' or '▼')
+                self._grid.SetColLabelValue(col, label)
                 attr = wx.grid.GridCellAttr()
                 attr.SetEditor(col_def.get_editor())
                 self._grid.SetColAttr(col, attr)
@@ -739,7 +935,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         move_dn.SetAccel(wx.AcceleratorEntry(
             extra_move | wx.ACCEL_RAW_CTRL, wx.WXK_DOWN))
 
-        goto = common.EditorMenuItem(cls, '_goto', _('Goto'))
+        goto = common.EditorMenuItem(cls, '_goto', _('Goto...'))
         goto.SetAccel(wx.AcceleratorEntry(wx.MOD_CONTROL, ord('G')))
 
         expand_extra = common.EditorMenuItemToggle(
@@ -793,12 +989,13 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         valid_modes = filter_unknowns(self._features.valid_modes)
         valid_skips = filter_unknowns(self._features.valid_skips)
         valid_duplexes = filter_unknowns(self._features.valid_duplexes)
-        valid_power_levels = self._features.valid_power_levels
         valid_tuning_steps = self._features.valid_tuning_steps
         if self._features.has_variable_power:
-            power_col_cls = ChirpVariablePowerColumn
+            power_column = ChirpVariablePowerColumn('power', self._radio)
         else:
-            power_col_cls = ChirpChoiceColumn
+            valid_power_levels = self._features.valid_power_levels
+            power_column = ChirpChoiceColumn('power', self._radio,
+                                             valid_power_levels)
         defs = [
             ChirpFrequencyColumn('freq', self._radio),
             ChirpMemoryColumn('name', self._radio),
@@ -817,11 +1014,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             ChirpChoiceColumn('mode', self._radio,
                               valid_modes),
             ChirpChoiceColumn('tuning_step', self._radio,
-                              valid_tuning_steps),
-            ChirpChoiceColumn('skip', self._radio,
-                              valid_skips),
-            power_col_cls('power', self._radio,
-                          valid_power_levels),
+                              valid_tuning_steps,
+                              label=_('Tuning Step')),
+            ChirpSkipColumn('skip', self._radio,
+                            valid_skips),
+            power_column,
             ChirpCommentColumn('comment', self._radio),
         ]
         return defs
@@ -834,17 +1031,24 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     def mem2row(self, number):
         if isinstance(number, str):
-            return self._special_rows[number]
-        if number in self._special_numbers:
-            return self._special_rows[self._special_numbers[number]]
-        return number - self._features.memory_bounds[0]
+            row = self._special_rows[number]
+        elif number in self._special_numbers:
+            row = self._special_rows[self._special_numbers[number]]
+        else:
+            row = number - self._features.memory_bounds[0]
+        return self._table.rowmap_rev[row]
 
     def row2mem(self, row):
+        row = self._table.rowmap[row]
         if row in self._special_rows.values():
             row2number = {v: k for k, v in self._special_rows.items()}
             return row2number[row]
         else:
             return row + self._features.memory_bounds[0]
+
+    def special2mem(self, name):
+        name2mem = {v: k for k, v in self._special_numbers.items()}
+        return name2mem[name]
 
     def _expand_extra_col(self, setting):
         # Add this to the list of seen extra columns regardless of if we
@@ -852,6 +1056,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._extra_cols.add(setting.get_name())
         col = get_column_for_extra(self._radio, setting)
         if col:
+            col.doc = (setting.__doc__
+                       if setting.__doc__ != setting.get_name() else None)
             LOG.debug('Adding mem.extra column %s as %s',
                       setting.get_name(), col.__class__.__name__)
             # We insert extra columns in front of the comment column, which
@@ -871,16 +1077,22 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             if setting.get_name() not in self._extra_cols:
                 self._expand_extra_col(setting)
 
-    def _refresh_memory(self, number, memory):
+    def _refresh_memory(self, number, memory, orig_mem=None):
         row = self.mem2row(number)
 
         if isinstance(memory, Exception):
             LOG.error('Failed to load memory %s as error because: %s' % (
                 number, memory))
             self._row_label_renderers[row].set_error()
+            self._memory_errors[row] = str(memory)
+            self._memory_cache[row] = chirp_common.Memory(number=number,
+                                                          empty=True)
             self._grid.SetRowLabelValue(row, '!%s' % (
                 self._grid.GetRowLabelValue(row)))
             return
+
+        if row in self._memory_errors:
+            del self._memory_errors[row]
 
         hide_empty = CONF.get_bool('hide_empty', 'memedit', False)
         if memory.empty:
@@ -899,6 +1111,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         if memory.extra:
             self._expand_extra(memory)
 
+        if orig_mem:
+            delta = orig_mem.debug_diff(memory, '->')
+            if delta:
+                LOG.debug('Driver refresh delta from set: %s', delta)
+
         self._memory_cache[row] = memory
 
         with wx.grid.GridUpdateLocker(self._grid):
@@ -906,10 +1123,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
             for col, col_def in enumerate(self._col_defs):
                 self._grid.SetCellValue(row, col, col_def.render_value(memory))
+                immutable = col_def.name in memory.immutable or (
+                    'extra' in col_def.name and 'extra' in memory.immutable)
                 self._grid.SetReadOnly(row, col,
-                                       col_def.name in memory.immutable or
-                                       not self.editable)
-                if col_def.name in memory.immutable:
+                                       immutable or not self.editable)
+                if immutable:
                     color = (0xF5, 0xF5, 0xF5, 0xFF)
                 else:
                     color = self._default_cell_bg_color
@@ -942,14 +1160,14 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         else:
             self._grid.SetRowLabelValue(row, '*%i' % memory.number)
 
-    def refresh_memory(self, number, lazy=False):
+    def refresh_memory(self, number, lazy=False, orig_mem=None):
         if lazy:
             executor = self.do_lazy_radio
         else:
             executor = self.do_radio
 
         def extra_cb(job):
-            self._refresh_memory(number, job.result)
+            self._refresh_memory(number, job.result, orig_mem=orig_mem)
 
         def get_cb(job):
             # If get_memory() failed, just refresh with the exception
@@ -975,12 +1193,13 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
     def set_memory(self, mem, refresh=True):
         """Update a memory in the radio and refresh our view on success"""
         row = self.mem2row(mem.number)
+        orig_mem = mem.dupe()
         if refresh:
             self.set_row_pending(row)
 
         def extra_cb(job):
             if refresh:
-                self.refresh_memory(mem.number)
+                self.refresh_memory(mem.number, orig_mem=orig_mem)
 
         def set_cb(job):
             if isinstance(job.result, Exception):
@@ -992,6 +1211,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                     self.do_radio(extra_cb, 'set_memory_extra', mem)
                 else:
                     extra_cb(job)
+
+        LOG.debug('Setting memory: %r' % mem)
 
         # Use a FrozenMemory for the actual set to catch potential attempts
         # to modify the memory during set_memory().
@@ -1040,14 +1261,13 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         lower, upper = self._features.memory_bounds
 
         def setlabel(row, number):
+            row = self.mem2row(number)
             self._grid.SetRowLabelValue(row, '%s' % number)
 
         # Build our row label renderers so we can set colors to
         # indicate success or failure
         self._row_label_renderers = []
-        for row, _ in enumerate(
-                range(lower,
-                      upper + len(self._features.valid_special_chans) + 1)):
+        for row in range(0, self._grid.GetNumberRows()):
             self._row_label_renderers.append(ChirpRowLabelRenderer())
             self._grid.SetRowLabelRenderer(row, self._row_label_renderers[-1])
 
@@ -1104,24 +1324,25 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                 mem.offset = want_offset
 
         if defaults.step_khz in features.valid_tuning_steps:
-            LOG.debug(
-                'Chose default step %s from bandplan' % defaults.step_khz)
             want_tuning_step = defaults.step_khz
+            if mem.freq % (want_tuning_step * 1000):
+                want_tuning_step = chirp_common.required_step(mem.freq)
+                LOG.debug('Bandplan step %s not suitable for %s, choosing %s',
+                          defaults.step_khz,
+                          chirp_common.format_freq(mem.freq),
+                          want_tuning_step)
+            else:
+                LOG.debug(
+                    'Chose default step %s from bandplan' % defaults.step_khz)
         else:
             want_tuning_step = 5.0
             try:
-                # First calculate the needed step in case it is not supported
-                # by the radio. If we fail to find one the radio supports,
-                # we will use this one and then the error message about it
-                # being unsupported will be accurate.
-                want_tuning_step = chirp_common.required_step(mem.freq)
-
-                # Now try to find a suitable one that the radio supports.
+                # Try to find a tuning step for the frequency that the radio
+                # supports, or with the default set
                 want_tuning_step = chirp_common.required_step(
-                    mem.freq, features.valid_tuning_steps)
-                LOG.debug('Chose radio-supported step %s' % want_tuning_step)
+                    mem.freq, features.valid_tuning_steps or None)
             except errors.InvalidDataError as e:
-                LOG.warning(e)
+                LOG.warning('Failed to find step: %s' % e)
 
         if 'tuning_step' in only and want_tuning_step:
             mem.tuning_step = want_tuning_step
@@ -1212,6 +1433,22 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             mem.duplex = duplex
         return True
 
+    def _sort_column(self, event):
+        if isinstance(event, wx.grid.GridEvent):
+            col = event.GetCol()
+            cur = self._grid.GetSortingColumn()
+            asc = not self._grid.IsSortOrderAscending() if col == cur else True
+        else:
+            col = -1
+            asc = True
+            self._grid.SetSortingColumn(wx.NOT_FOUND, True)
+        LOG.debug('Sorting col %s asc %s', col, asc)
+        self._table.sort_via(col, asc)
+        self.refresh()
+        # This needs to be called after we're done here so that the grid's
+        # sort/asc attributes are updated
+        wx.CallAfter(self.set_cell_attrs)
+
     @common.error_proof()
     def _memory_edited(self, event):
         """
@@ -1229,13 +1466,15 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         col_def = self._col_defs[col]
 
         try:
-            mem = self._memory_cache[row]
+            mem = self._memory_cache[row].dupe()
         except KeyError:
             # This means we never loaded this memory from the radio in the
             # first place, likely due to some error.
             wx.MessageBox(_('Unable to edit memory before radio is loaded'))
             event.Veto()
             return
+
+        orig_mem = mem.dupe()
 
         # Filter the name according to the radio's rules before we try to
         # validate it
@@ -1293,7 +1532,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         # offset in some cases. For radios that do not store offset itself,
         # we need to prompt for the offset so it is set in the same operation.
         # For split mode, we should always prompt, because trying to set a
-        # TX frequency of 600kHz is likely to fail on most radios.
+        # TX frequency of 600 kHz is likely to fail on most radios.
         if col_def.name == 'duplex' and val != '':
             if not self._resolve_duplex(mem):
                 event.Veto()
@@ -1309,19 +1548,20 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         warnings, errors = chirp_common.split_validation_msgs(
             self._radio.validate_memory(mem))
         if errors:
-            LOG.warning('Memory failed validation: %s' % mem)
+            LOG.warning('Memory failed validation: %r', mem)
             wx.MessageBox(_('Invalid edit: %s') % '; '.join(errors),
-                          'Invalid Entry')
+                          _('Invalid Entry'))
             event.Skip()
             return
         if warnings:
-            LOG.warning('Memory validation had warnings: %s' % mem)
+            LOG.warning('Memory validation had warnings: %r', mem)
             wx.MessageBox(_('Warning: %s') % '; '.join(warnings),
                           _('Warning'))
 
         self.set_row_pending(row)
+        LOG.debug('Memory row %i column %i(%s) edited: %s',
+                  row, col, col_def.name, orig_mem.debug_diff(mem, '->'))
         self.set_memory(mem)
-        LOG.debug('Memory %i changed, column: %i:%s' % (row, col, mem))
 
         wx.CallAfter(self._resize_col_after_edit, row, col)
 
@@ -1361,6 +1601,13 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         for row in rows:
             if not self._memory_cache[row].empty:
                 self.delete_memory_at(row, event)
+            elif row in self._memory_errors:
+                LOG.warning('Attempting to clear memory error '
+                            '%r for memory %i at row %i with delete',
+                            self._memory_errors[row], self.row2mem(row), row)
+                self.delete_memory_at(row, event)
+            else:
+                LOG.debug('Not re-deleting empty memory at row %i', row)
 
         if not shift_up:
             return
@@ -1409,7 +1656,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
     def _do_sort_memories(self, rows, reverse, sortattr):
         memories = [self._memory_cache[r] for r in rows]
         LOG.debug('Sorting %s by %s%s',
-                  memories, reversed and '>' or '<', sortattr)
+                  memories, reverse and '>' or '<', sortattr)
         memories.sort(key=lambda m: getattr(m, sortattr), reverse=reverse)
         for i, mem in enumerate(memories):
             new_number = self.row2mem(rows[0] + i)
@@ -1461,6 +1708,18 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                   insert_item)
         menu.Append(insert_item)
 
+        cut_item = wx.MenuItem(menu, wx.NewId(), _('Cut'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(cut=True), cut_item)
+        menu.Append(cut_item)
+
+        copy_item = wx.MenuItem(menu, wx.NewId(), _('Copy'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(cut=False), copy_item)
+        menu.Append(copy_item)
+
+        paste_item = wx.MenuItem(menu, wx.NewId(), _('Paste'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_paste(), paste_item)
+        menu.Append(paste_item)
+
         delete_menu = wx.Menu()
         delete_menu_item = menu.AppendSubMenu(delete_menu, _('Delete'))
         delete_menu_item.Enable(self.editable)
@@ -1468,14 +1727,18 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         if len(selected_rows) > 1:
             del_item = wx.MenuItem(
                 delete_menu, wx.NewId(),
-                _('%i Memories') % len(selected_rows))
+                ngettext('%i Memory', '%i Memories',
+                         len(selected_rows)) % len(selected_rows))
             del_block_item = wx.MenuItem(
                 delete_menu, wx.NewId(),
-                _('%i Memories and shift block up') % (
-                    len(selected_rows)))
+                ngettext('%i Memory and shift block up',
+                         '%i Memories and shift block up',
+                         len(selected_rows)) % (len(selected_rows)))
             del_shift_item = wx.MenuItem(
                 delete_menu, wx.NewId(),
-                _('%i Memories and shift all up') % len(selected_rows))
+                ngettext('%i Memories and shift all up',
+                         '%i Memories and shift all up',
+                         len(selected_rows)) % len(selected_rows))
             to_delete = selected_rows
         else:
             del_item = wx.MenuItem(delete_menu, wx.NewId(), _('This Memory'))
@@ -1501,7 +1764,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         delete_menu.Append(del_shift_item)
 
         # Only offer sort if a contiguous group of non-empty, non-special
-        # memories is selected
+        # memories is selected and we're not sorted by column
         empty_selected = any([self._memory_cache[r].empty
                               for r in selected_rows])
         used_selected = sum([0 if self._memory_cache[r].empty else 1
@@ -1512,14 +1775,18 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             selected_rows[-1] - selected_rows[0] == len(selected_rows) - 1)
         can_sort = (len(selected_rows) > 1 and contig_selected and
                     not empty_selected and not special_selected and
+                    not self.is_sorted and
                     self.editable)
         sort_menu = wx.Menu()
         sort_menu_item = menu.AppendSubMenu(
             sort_menu,
-            _('Sort %i memories') % len(selected_rows))
+            ngettext('Sort %i memory', 'Sort %i memories',
+                     len(selected_rows)) % len(selected_rows))
         sortasc_item = wx.MenuItem(
             sort_menu, wx.NewId(),
-            _('Sort %i memories ascending') % len(selected_rows))
+            ngettext('Sort %i memory ascending',
+                     'Sort %i memories ascending',
+                     len(selected_rows)) % len(selected_rows))
         self.Bind(wx.EVT_MENU,
                   functools.partial(self._sort_memories, selected_rows,
                                     False),
@@ -1528,7 +1795,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         arrange_item = wx.MenuItem(
             menu, wx.NewId(),
-            _('Cluster %i memories') % used_selected)
+            ngettext('Cluster %i memory', 'Cluster %i memories',
+                     used_selected) % used_selected)
         self.Bind(wx.EVT_MENU,
                   functools.partial(self._arrange_memories, selected_rows),
                   arrange_item)
@@ -1538,7 +1806,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         sortdesc_item = wx.MenuItem(
             menu, wx.NewId(),
-            _('Sort %i memories descending') % len(selected_rows))
+            ngettext('Sort %i memory descending',
+                     'Sort %i memories descending',
+                     len(selected_rows)) % len(selected_rows))
         self.Bind(wx.EVT_MENU,
                   functools.partial(self._sort_memories, selected_rows,
                                     True),
@@ -1546,12 +1816,12 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         sort_menu.Append(sortdesc_item)
 
         # Don't allow bulk operations on live radios with pending jobs
-        del_block_item.Enable(not self.busy)
-        del_shift_item.Enable(not self.busy)
+        del_block_item.Enable(not self.busy and not self.is_sorted)
+        del_shift_item.Enable(not self.busy and not self.is_sorted)
         insert_item.Enable(not self.busy and self.editable)
         menu.Enable(sort_menu_item.GetId(), not self.busy and can_sort)
 
-        if CONF.get_bool('developer', 'state'):
+        if developer.developer_mode():
             menu.Append(wx.MenuItem(menu, wx.ID_SEPARATOR))
 
             raw_item = wx.MenuItem(menu, wx.NewId(), _('Show Raw Memory'))
@@ -1560,13 +1830,13 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                       raw_item)
             menu.Append(raw_item)
 
-            if len(selected_rows) == 2:
-                diff_item = wx.MenuItem(menu, wx.NewId(),
-                                        _('Diff Raw Memories'))
-                self.Bind(wx.EVT_MENU,
-                          functools.partial(self._mem_diff, selected_rows),
-                          diff_item)
-                menu.Append(diff_item)
+            diff_item = wx.MenuItem(menu, wx.NewId(),
+                                    _('Diff Raw Memories'))
+            self.Bind(wx.EVT_MENU,
+                      functools.partial(self._mem_diff, selected_rows),
+                      diff_item)
+            menu.Append(diff_item)
+            menu.Enable(diff_item.GetId(), len(selected_rows) == 2)
 
         self.PopupMenu(menu)
         menu.Destroy()
@@ -1591,7 +1861,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
     @common.error_proof()
     def _mem_insert(self, row, event):
         # Traverse memories downward until we find a hole
-        for i in range(row, self.mem2row(self._features.memory_bounds[1] + 1)):
+        for i in range(row, self.mem2row(self._features.memory_bounds[1]) + 1):
             mem = self._memory_cache[i]
             if mem.empty:
                 LOG.debug("Found empty memory %i at row %i" % (mem.number, i))
@@ -1647,19 +1917,18 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             self.refresh()
         wx.CallAfter(self._grid.AutoSizeColumns, setAsMin=False)
         wx.CallAfter(self._grid.AutoSizeRows, setAsMin=False)
+        wx.CallAfter(self._grid.SetRowLabelSize, wx.grid.GRID_AUTOSIZE)
 
-    def cb_copy(self, cut=False):
+    def cb_copy_getdata(self, cut=False):
         rows = self.get_selected_rows_safe()
-        offset = self._features.memory_bounds[0]
         mems = []
         for row in rows:
-            mem = self.synchronous_get_memory(row + offset)
-            # We can't pickle settings, nor would they apply if we
-            # paste across models
-            mem.extra = []
+            mem = self.synchronous_get_memory(self.row2mem(row))
             mems.append(mem)
+        rcid = directory.radio_class_id(self._radio.__class__)
         payload = {'mems': mems,
                    'features': self._radio.get_features(),
+                   'source_radio_id': rcid,
                    'source': self.GetId()}
         data = wx.DataObjectComposite()
         memdata = wx.CustomDataObject(common.CHIRP_DATA_MEMORY)
@@ -1680,6 +1949,33 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         return data
 
+    def cb_copy(self, cut=False):
+        self.cb_copy_data(self.cb_copy_getdata(cut=cut))
+
+    def memedit_import_all(self, source_radio):
+        if self.is_sorted:
+            wx.MessageBox(_('Unable to import while the view is sorted'))
+            return
+        source_rf = source_radio.get_features()
+        first = max(source_rf.memory_bounds[0],
+                    self._features.memory_bounds[0])
+        last = min(source_rf.memory_bounds[1],
+                   self._features.memory_bounds[1])
+        memories = [source_radio.get_memory(i)
+                    for i in range(first, last + 1)]
+        used = [m.number for m in memories if not m.empty]
+        # Update the range to be from just the lowest and highest used memory.
+        # The range of memories that are used in the source will be imported,
+        # including any gaps.
+        first = min(used)
+        last = max(used)
+        row = self.mem2row(first)
+        LOG.info('Importing %i-%i starting from %s %s',
+                 first, last, source_radio.VENDOR, source_radio.MODEL)
+        payload = {'mems': [m for m in memories if first <= m.number <= last],
+                   'features': source_rf}
+        self._cb_paste_memories(payload, row=row)
+
     def _cb_paste_memories(self, payload, row=None):
         mems = payload['mems']
         srcrf = payload['features']
@@ -1688,19 +1984,24 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         overwrite = []
         for i in range(len(mems)):
-            mem = self._memory_cache[row + i]
+            try:
+                mem = self._memory_cache[row + i]
+            except KeyError:
+                # No more memories in the target. This will be handled/reported
+                # in the actual paste loop below.
+                break
             if not mem.empty:
-                overwrite.append(mem.number)
+                overwrite.append(mem.extd_number or mem.number)
 
         if overwrite:
             if len(overwrite) == 1 and len(mems) == 1:
-                msg = _('Pasted memory will overwrite memory %i') % (
+                msg = _('Pasted memory will overwrite memory %s') % (
                     overwrite[0])
             elif len(overwrite) == 1 and len(mems) > 0:
-                msg = _('Pasted memories will overwrite memory %i') % (
+                msg = _('Pasted memories will overwrite memory %s') % (
                     overwrite[0])
             elif len(overwrite) > 10:
-                msg = _('Pasted memories will overwrite %i '
+                msg = _('Pasted memories will overwrite %s '
                         'existing memories') % (len(overwrite))
             else:
                 msg = _('Pasted memories will overwrite memories %s') % (
@@ -1712,11 +2013,42 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             if resp == wx.ID_NO:
                 return False
 
+        same_class = (payload.get('source_radio_id') ==
+                      directory.radio_class_id(self._radio.__class__))
+        LOG.debug('Paste is from identical radio class: %s', same_class)
+
         errormsgs = []
         modified = False
         for mem in mems:
-            existing = self._memory_cache[row]
-            mem.number = self.row2mem(row)
+            try:
+                existing = self._memory_cache[row]
+            except KeyError:
+                if not mem.empty:
+                    LOG.debug('Not pasting to row %i beyond end of memory',
+                              row)
+                    errormsgs.append(
+                        (mem, _('No more space available; '
+                                'some memories were not applied')))
+                    break
+                else:
+                    # Don't complain about empty memories past the end of the
+                    # current radio's memory upper bound.
+                    continue
+            number = self.row2mem(row)
+            # We need to disable immutable checking while we reassign these
+            # numbers. This might be a flag that we should be copying things
+            # between memories and not reassigning memories to then set.
+            immutable = list(mem.immutable)
+            mem.immutable = []
+            # Handle potential need to convert between special and regular
+            # memories
+            if isinstance(number, str):
+                mem.extd_number = number
+                mem.number = self.special2mem(number)
+            else:
+                mem.extd_number = ''
+                mem.number = number
+            mem.immutable = immutable
             row += 1
             try:
                 if mem.empty:
@@ -1729,6 +2061,12 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                         self._radio.validate_memory(mem))
                     errormsgs.extend([(mem, e) for e in errs])
                     errormsgs.extend([(mem, w) for w in warns])
+
+                    # If we are not pasting into a radio of the same type,
+                    # then unset the mem.extra bits which won't be compatible.
+                    if not same_class:
+                        mem.extra = []
+
                     if not errs:
                         # If we got error messages from validate, don't even
                         # try to set the memory, just like if import_logic
@@ -1749,17 +2087,23 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
         if errormsgs:
+            errorextra = ''
+            if len(errormsgs) > 19:
+                errorextra = '\n' + _('...and %i more' % (len(errormsgs) - 19))
+                errormsgs = errormsgs[:19]
             d = wx.MessageDialog(
                     self,
                     _('Some memories are incompatible with this radio'))
-            msg = '\n'.join('#%i: %s' % (mem.number, e)
+            msg = '\n'.join('[%s]: %s' % (mem.extd_number or mem.number, e)
                             for mem, e in errormsgs)
+            msg += errorextra
             d.SetExtendedMessage(msg)
             d.ShowModal()
 
         return True
 
-    def cb_paste(self, data):
+    def cb_paste(self):
+        data = super().cb_paste()
         if common.CHIRP_DATA_MEMORY in data.GetAllFormats():
             payload = pickle.loads(data.GetData().tobytes())
             LOG.debug('CHIRP-native paste: %r' % payload)
@@ -1786,8 +2130,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     def cb_delete(self):
         selected_rows = self.get_selected_rows_safe()
-        for row in selected_rows:
-            self.delete_memory_at(row, None)
+        self._delete_memories_at(selected_rows, None)
 
     def get_selected_rows_safe(self):
         """Return the currently-selected rows
@@ -1800,6 +2143,10 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         return selected
 
     def cb_move(self, direction):
+        if self.is_sorted:
+            wx.MessageBox(
+                _('Move operations are disabled while the view is sorted'))
+            return
         selected = self.get_selected_rows_safe()
         last_row = self._grid.GetNumberRows() - 1
         if direction < 0 and selected[0] == 0:
@@ -1840,7 +2187,10 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         for mem in to_set:
             self.set_memory(mem)
         cursor_r, cursor_c = self._grid.GetGridCursorCoords()
-        self._grid.SetGridCursor(cursor_r + direction, cursor_c)
+        cursor_r += direction
+        if 0 <= cursor_r <= last_row:
+            # Avoid pushing the cursor past the edges
+            self._grid.SetGridCursor(cursor_r, cursor_c)
 
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
@@ -1887,6 +2237,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         selected = self._grid.GetSelectedRows()
         if len(selected) <= 1:
             selected = range(0, self._grid.GetNumberRows())
+
         r = generic_csv.CSVRadio(None)
         # The CSV driver defaults to a single non-empty memory at location
         # zero, so delete it before we go to export.
@@ -1897,7 +2248,13 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                 # We don't export specials
                 continue
             if not m.empty:
-                m = import_logic.import_mem(r, self._features, m)
+                try:
+                    m = import_logic.import_mem(r, self._features, m,
+                                                mem_cls=chirp_common.Memory)
+                except import_logic.ImportError as e:
+                    LOG.error('Failed to export %r: %s', m, e)
+                    raise common.ExportFailed(
+                        'Failed to export memory %i: %s' % (m.number, e))
             r.set_memory(m)
         r.save(filename)
         LOG.info('Wrote exported CSV to %s' % filename)
@@ -1978,7 +2335,7 @@ class ChirpMemPropDialog(wx.Dialog):
         self._pg = wx.propgrid.PropertyGrid(self._tabs,
                                             style=wx.propgrid.PG_BOLD_MODIFIED)
         self._pg.Bind(wx.propgrid.EVT_PG_CHANGED, self._mem_prop_changed)
-        self._tabs.InsertPage(0, self._pg, 'Values')
+        self._tabs.InsertPage(0, self._pg, _('Values'))
         page_index = 0
         self._extra_page = None
         self._dv_page = None
@@ -2041,8 +2398,8 @@ class ChirpMemPropDialog(wx.Dialog):
             setattr(mem, name, prop.GetValue())
         else:
             setattr(mem, name, value)
-        LOG.debug('Changed mem %i %s=%r' % (mem.number, name,
-                                            value))
+        LOG.debug('Properties dialog changed mem %i %s=%r',
+                  mem.number, name, value)
         if prop.GetName() == 'freq':
             mem.empty = False
 
@@ -2079,7 +2436,7 @@ class ChirpMemPropDialog(wx.Dialog):
             msgs = self._radio.validate_memory(mem)
             if msgs:
                 wx.MessageBox(_('Invalid edit: %s') % '; '.join(msgs),
-                              'Invalid Entry')
+                              'Invalid Entry', parent=self)
                 raise errors.InvalidValueError()
 
     def _button(self, event):

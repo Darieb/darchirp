@@ -20,7 +20,7 @@ import struct
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
     RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError, RadioSettings
+    RadioSettings
 from chirp.chirp_common import format_freq
 import logging
 from datetime import date
@@ -41,7 +41,7 @@ struct mem {
   u8 fmdev:2,       // wide=00, mid=01, narrow=10
      scramb:1,
      compand:1,
-     emphasis:1
+     emphasis:1,
      unknown1a:2,
      sqlmode:1;     // carrier, tone
   u8 rptmod:2,      // off, -, +
@@ -87,7 +87,7 @@ struct {
         right_func_key:1;
     u8  tbst_freq:2,
         ani_display:1,
-        unk0xdc25_4:1
+        unk0xdc25_4:1,
         mute_mode:2,
         unk0xdc25_10:2;
     u8  auto_xfer:1,
@@ -162,8 +162,8 @@ BUSY_LOCK = ["off", "Carrier", "2 tone"]
 MICKEYFUNC = ["None", "SCAN", "SQL.OFF", "TCALL", "PPTR", "PRI", "LOW", "TONE",
               "MHz", "REV", "HOME", "BAND", "VFO/MR"]
 SQLPRESET = ["Off", "2", "5", "9", "Full"]
-BANDS = ["30MHz", "50MHz", "60MHz", "108MHz", "150MHz", "250MHz", "350MHz",
-         "450MHz", "850MHz"]
+BANDS = ["30 MHz", "50 MHz", "60 MHz", "108 MHz", "150 MHz", "250 MHz",
+         "350 MHz", "450 MHz", "850 MHz"]
 STEPS = [2.5, 5.0, 6.25, 7.5, 8.33, 10.0, 12.5,
          15.0, 20.0, 25.0, 30.0, 50.0, 100.0]
 
@@ -199,7 +199,6 @@ def isValidDate(month, day, year):
 class TYTTH9800Base(chirp_common.Radio):
     """Base class for TYT TH-9800"""
     VENDOR = "TYT"
-    NEEDS_COMPAT_SERIAL = False
 
     def get_features(self):
         rf = chirp_common.RadioFeatures()
@@ -313,19 +312,19 @@ class TYTTH9800Base(chirp_common.Radio):
         opts = ["Frequency", "Name"]
         display = RadioSetting(
                 "display", "Display",
-                RadioSettingValueList(opts, opts[_mem.display]))
+                RadioSettingValueList(opts, current_index=_mem.display))
         mem.extra.append(display)
 
         bclo = RadioSetting(
                 "bclo", "Busy Lockout",
-                RadioSettingValueList(BUSY_LOCK, BUSY_LOCK[_mem.bclo]))
+                RadioSettingValueList(BUSY_LOCK, current_index=_mem.bclo))
         bclo.set_doc("Busy Lockout")
         mem.extra.append(bclo)
 
         emphasis = RadioSetting(
                 "emphasis", "Emphasis",
                 RadioSettingValueBoolean(bool(_mem.emphasis)))
-        emphasis.set_doc("Boosts 300Hz to 2500Hz mic response")
+        emphasis.set_doc("Boosts 300 Hz to 2500 Hz mic response")
         mem.extra.append(emphasis)
 
         compand = RadioSetting(
@@ -398,12 +397,8 @@ class TYTTH9800Base(chirp_common.Radio):
             display = None
         if mem.name:
             _mem.display = True
-            if display and not display.changed():
-                display.value = "Name"
         else:
             _mem.display = False
-            if display and not display.changed():
-                display.value = "Frequency"
 
         _mem.scan = SCAN_MODES.index(mem.skip)
         if mem.skip == "P":
@@ -464,56 +459,70 @@ class TYTTH9800Base(chirp_common.Radio):
         basic.append(RadioSetting(
                 "left_sql", "Left Squelch",
                 RadioSettingValueList(
-                    SQLPRESET, SQLPRESET[_settings.left_sql])))
+                    SQLPRESET, current_index=_settings.left_sql)))
         basic.append(RadioSetting(
                 "right_sql", "Right Squelch",
                 RadioSettingValueList(
-                    SQLPRESET, SQLPRESET[_settings.right_sql])))
+                    SQLPRESET, current_index=_settings.right_sql)))
 #      basic.append(RadioSetting("apo", "Auto Power off (0.1h)",
 #              RadioSettingValueInteger(0, 20, _settings.apo)))
         opts = ["Off"] + ["%0.1f" % (t / 10.0) for t in range(1, 21, 1)]
         basic.append(RadioSetting(
                 "apo", "Auto Power off (Hours)",
-                RadioSettingValueList(opts, opts[_settings.apo])))
+                RadioSettingValueList(opts, current_index=_settings.apo)))
         opts = ["Off", "1", "2", "3", "Full"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "backlight", "Display Backlight",
-                RadioSettingValueList(opts, opts[_settings.backlight])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.backlight)))
         opts = ["Off", "Right", "Left", "Both"]
         basic.append(RadioSetting(
                 "pttlock", "PTT Lock",
-                RadioSettingValueList(opts, opts[_settings.pttlock])))
+                RadioSettingValueList(opts, current_index=_settings.pttlock)))
         opts = ["Manual", "Auto"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "hyper_chan", "Hyper Channel",
-                RadioSettingValueList(opts, opts[_settings.hyper_chan])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.hyper_chan)))
         opts = ["Key 1", "Key 2"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "right_func_key", "Right Function Key",
-                RadioSettingValueList(opts, opts[_settings.right_func_key])))
-        opts = ["1000Hz", "1450Hz", "1750Hz", "2100Hz"]
-        basic.append(RadioSetting(
+                RadioSettingValueList(
+                    opts, current_index=_settings.right_func_key)))
+        opts = ["1000 Hz", "1450 Hz", "1750 Hz", "2100 Hz"]
+        basic.append(
+            RadioSetting(
                 "tbst_freq", "Tone Burst Frequency",
-                RadioSettingValueList(opts, opts[_settings.tbst_freq])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.tbst_freq)))
         opts = ["Off", "TX", "RX", "TX RX"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "mute_mode", "Mute Mode",
-                RadioSettingValueList(opts, opts[_settings.mute_mode])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.mute_mode)))
         opts = ["MEM", "MSM"]
         scanmode = RadioSetting(
                 "scan_mode", "Scan Mode",
-                RadioSettingValueList(opts, opts[_settings.scan_mode]))
+                RadioSettingValueList(opts, current_index=_settings.scan_mode))
         scanmode.set_doc("MEM = Normal scan, bypass channels marked skip. "
                          " MSM = Scan only channels marked priority.")
         basic.append(scanmode)
         opts = ["TO", "CO"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "scan_resume", "Scan Resume",
-                RadioSettingValueList(opts, opts[_settings.scan_resume])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.scan_resume)))
         opts = ["%0.1f" % (t / 10.0) for t in range(0, 51, 1)]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "exit_delay", "Span Transit Exit Delay",
-                RadioSettingValueList(opts, opts[_settings.exit_delay])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.exit_delay)))
         basic.append(RadioSetting(
                 "tot", "Time Out Timer (minutes)",
                 RadioSettingValueInteger(0, 30, _settings.tot)))
@@ -528,16 +537,16 @@ class TYTTH9800Base(chirp_common.Radio):
                 RadioSettingValueInteger(0, 15, _settings.tot_reset)))
         basic.append(RadioSetting(
                 "p1", "P1 Function",
-                RadioSettingValueList(MICKEYFUNC, MICKEYFUNC[_settings.p1])))
+                RadioSettingValueList(MICKEYFUNC, current_index=_settings.p1)))
         basic.append(RadioSetting(
                 "p2", "P2 Function",
-                RadioSettingValueList(MICKEYFUNC, MICKEYFUNC[_settings.p2])))
+                RadioSettingValueList(MICKEYFUNC, current_index=_settings.p2)))
         basic.append(RadioSetting(
                 "p3", "P3 Function",
-                RadioSettingValueList(MICKEYFUNC, MICKEYFUNC[_settings.p3])))
+                RadioSettingValueList(MICKEYFUNC, current_index=_settings.p3)))
         basic.append(RadioSetting(
                 "p4", "P4 Function",
-                RadioSettingValueList(MICKEYFUNC, MICKEYFUNC[_settings.p4])))
+                RadioSettingValueList(MICKEYFUNC, current_index=_settings.p4)))
         # opts = ["0", "1"]
         # basic.append(RadioSetting("x", "Desc",
         #       RadioSettingValueList(opts, opts[_settings.x])))
@@ -633,7 +642,7 @@ class TYTTH9800Base(chirp_common.Radio):
 
                 LOG.debug("Setting %s(%s) <= %s" % (setting, oldval, newval))
                 setattr(_settings, setting, newval)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

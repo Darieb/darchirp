@@ -13,14 +13,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""TYT uv3r (2.5kHz) radio management module"""
+"""TYT uv3r (2.5 kHz) radio management module"""
 
 from chirp import chirp_common, bitwise, directory
 from chirp.drivers.wouxun import do_download, do_upload
 
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString
+    RadioSettingValueList, RadioSettingValueBoolean
 
 from chirp.drivers.th_uv3r import TYTUV3RRadio, tyt_uv3r_prep, THUV3R_CHARSET
 
@@ -70,7 +69,6 @@ VOICE_MODE_LIST = ["Compander", "Scrambler", "None"]
 class TYTUV3R25Radio(TYTUV3RRadio):
     MODEL = "TH-UV3R-25"
     _memsize = 2864
-    NEEDS_COMPAT_SERIAL = False
 
     POWER_LEVELS = [chirp_common.PowerLevel("High", watts=2.00),
                     chirp_common.PowerLevel("Low", watts=0.80)]
@@ -149,7 +147,7 @@ class TYTUV3R25Radio(TYTUV3RRadio):
         rs = RadioSetting("voice_mode", "Voice Mode",
                           RadioSettingValueList(
                               VOICE_MODE_LIST,
-                              VOICE_MODE_LIST[_mem.voice_mode-1]))
+                              current_index=_mem.voice_mode-1))
         mem.extra.append(rs)
 
         return mem

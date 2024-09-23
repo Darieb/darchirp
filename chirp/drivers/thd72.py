@@ -14,12 +14,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from chirp import chirp_common, errors, util, directory
+from chirp import chirp_common, errors, directory
 from chirp import bitwise, memmap
 from chirp.drivers import kenwood_live
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings
-from chirp.settings import RadioSettingValueInteger, RadioSettingValueString
-from chirp.settings import RadioSettingValueList, RadioSettingValueBoolean
+from chirp.settings import RadioSettingValueString
+from chirp.settings import RadioSettingValueList
 import time
 import struct
 import sys
@@ -225,7 +225,6 @@ class THD72Radio(chirp_common.CloneModeRadio):
     VENDOR = "Kenwood"
     MODEL = "TH-D72 (clone mode)"
     HARDWARE_FLOW = sys.platform == "darwin"  # only OS X driver needs hw flow
-    NEEDS_COMPAT_SERIAL = False
     FORMATS = [directory.register_format('Kenwood MCP4A', '*.mc4')]
 
     mem_upper_limit = 1022
@@ -601,7 +600,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -645,7 +644,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._LCD_CONTRAST,
-            self._LCD_CONTRAST[display_settings.contrast - 1])
+            current_index=display_settings.contrast - 1)
         rs = RadioSetting("display.contrast", "LCD Contrast",
                           val)
         rs.set_apply_callback(self.apply_lcd_contrast, display_settings)
@@ -653,7 +652,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._LAMP_CONTROL,
-            self._LAMP_CONTROL[display_settings.lamp_control])
+            current_index=display_settings.lamp_control)
         rs = RadioSetting("display.lamp_control", "Lamp Control",
                           val)
         rs.set_apply_callback(self.apply_lamp_control, display_settings)
@@ -661,7 +660,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._LAMP_TIMER,
-            self._LAMP_TIMER[display_settings.lamp_timer - 2])
+            current_index=display_settings.lamp_timer - 2)
         rs = RadioSetting("display.lamp_timer", "Lamp Timer",
                           val)
         rs.set_apply_callback(self.apply_lamp_timer, display_settings)
@@ -685,7 +684,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._BATTERY_SAVER,
-            self._BATTERY_SAVER[battery_settings.battery_saver])
+            current_index=battery_settings.battery_saver)
         rs = RadioSetting("battery.battery_saver", "Battery Saver",
                           val)
         rs.set_apply_callback(self.apply_battery_saver, battery_settings)
@@ -693,7 +692,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._APO,
-            self._APO[battery_settings.APO])
+            current_index=battery_settings.APO)
         rs = RadioSetting("battery.APO", "Auto Power Off",
                           val)
         rs.set_apply_callback(self.apply_APO, battery_settings)
@@ -717,7 +716,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._AUDIO_BALANCE,
-            self._AUDIO_BALANCE[audio_settings.balance])
+            current_index=audio_settings.balance)
         rs = RadioSetting("audio.balance", "Balance",
                           val)
         rs.set_apply_callback(self.apply_balance, audio_settings)
@@ -725,7 +724,7 @@ class THD72Radio(chirp_common.CloneModeRadio):
 
         val = RadioSettingValueList(
             self._KEY_BEEP,
-            self._KEY_BEEP[audio_settings.key_beep])
+            current_index=audio_settings.key_beep)
         rs = RadioSetting("audio.key_beep", "Key Beep",
                           val)
         rs.set_apply_callback(self.apply_key_beep, audio_settings)
@@ -769,75 +768,3 @@ class THD72Radio(chirp_common.CloneModeRadio):
             return True
         else:
             return super(THD72Radio, cls).match_model(filedata, filename)
-
-
-if __name__ == "__main__":
-    import sys
-    import serial
-    import detect
-    import getopt
-
-    def fixopts(opts):
-        r = {}
-        for opt in opts:
-            k, v = opt
-            r[k] = v
-        return r
-
-    def usage():
-        print("Usage: %s <-i input.img>|<-o output.img> -p port "
-              "[[-f first-addr] [-l last-addr] | [-b list,of,blocks]]" %
-              sys.argv[0])
-        sys.exit(1)
-
-    opts, args = getopt.getopt(sys.argv[1:], "i:o:p:f:l:b:")
-    opts = fixopts(opts)
-    first = last = 0
-    blocks = None
-    if '-i' in opts:
-        fname = opts['-i']
-        download = False
-    elif '-o' in opts:
-        fname = opts['-o']
-        download = True
-    else:
-        usage()
-    if '-p' in opts:
-        port = opts['-p']
-    else:
-        usage()
-
-    if '-f' in opts:
-        first = int(opts['-f'], 0)
-    if '-l' in opts:
-        last = int(opts['-l'], 0)
-    if '-b' in opts:
-        blocks = [int(b, 0) for b in opts['-b'].split(',')]
-        blocks.sort()
-
-    ser = serial.Serial(port=port, baudrate=9600, timeout=0.25)
-    r = THD72Radio(ser)
-    memmax = r._memsize
-    if not download:
-        memmax -= 512
-
-    if blocks is None:
-        if first < 0 or first > (r._memsize - 1):
-            raise errors.RadioError("first address out of range")
-        if (last > 0 and last < first) or last > memmax:
-            raise errors.RadioError("last address out of range")
-        elif last == 0:
-            last = memmax
-        first /= 256
-        if last % 256 != 0:
-            last += 256
-        last /= 256
-        blocks = range(first, last)
-
-    if download:
-        data = r.download(True, blocks)
-        file(fname, "wb").write(data)
-    else:
-        r._mmap = file(fname, "rb").read(r._memsize)
-        r.upload(blocks)
-    print("\nDone")

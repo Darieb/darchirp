@@ -23,8 +23,7 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
-    RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettings
+    RadioSettingValueString, RadioSettings
 
 MEM_FORMAT = """
 #seekto 0x0010;
@@ -180,7 +179,6 @@ def recv(radio):
     if len(rxdata) != 12:
         raise errors.RadioError(
             "Received a length of data that is not possible")
-        return
 
     cmd, addr, length = struct.unpack(">BHB", rxdata[0:4])
     data = ""
@@ -321,6 +319,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
     VARIANT = ""
     MODEL = ""
     _kind = ""
+    NEEDS_COMPAT_SERIAL = True
 
     @classmethod
     def get_prompts(cls):
@@ -407,7 +406,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         to the correct variant of the radio"""
         rid = get_radio_id(self._mmap)
 
-        # identify the radio variant and set the environment to it's values
+        # identify the radio variant and set the environment to its values
         try:
             self._upper, low, high, self._kind = self.VARIANTS[rid]
 
@@ -485,7 +484,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         actual = self.get_active(chan)
         if actual != bool(value):
             # DEBUG
-            # print "VALUE %s fliping" % int(not value)
+            # print "VALUE %s flipping" % int(not value)
 
             # I have to flip the value
             rbyte = self._memobj.active[byte]
@@ -495,7 +494,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
     def decode_tone(self, val):
         """Parse the tone data to decode from mem, it returns:
         Mode (''|DTCS|Tone), Value (None|###), Polarity (None,N,R)"""
-        if val.get_raw() == "\xFF\xFF":
+        if val.get_raw(asbytes=False) == "\xFF\xFF":
             return '', None, None
 
         val = int(val)
@@ -558,7 +557,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         # Memory number
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw(asbytes=False)[0] == "\xFF":
             mem.empty = True
             # but is not enough, you have to clear the memory in the mmap
             # to get it ready for the sync_out process, just in case
@@ -570,7 +569,7 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        if _mem.get_raw()[4] == "\xFF" or int(_mem.txen) == 255:
+        if _mem.get_raw(asbytes=False)[4] == "\xFF" or int(_mem.txen) == 255:
             # TX freq not set
             mem.offset = 0
             mem.duplex = "off"
@@ -746,23 +745,23 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
             sett.sql = 6
 
         tot = RadioSetting("settings.tot", "Time Out Timer (TOT)",
-                           RadioSettingValueList(TOT, TOT[int(sett.tot)]))
+                           RadioSettingValueList(TOT, current_index=int(sett.tot)))
         basic.append(tot)
 
         tota = RadioSetting("settings.tot_alert", "TOT pre-plert",
-                            RadioSettingValueList(TOT_A, TOT_A[int(sett.tot_alert)]))
+                            RadioSettingValueList(TOT_A, current_index=int(sett.tot_alert)))
         basic.append(tota)
 
         totrk = RadioSetting("settings.tot_rekey", "TOT rekey time",
-                             RadioSettingValueList(TOT_RK, TOT_RK[int(sett.tot_rekey)]))
+                             RadioSettingValueList(TOT_RK, current_index=int(sett.tot_rekey)))
         basic.append(totrk)
 
         totrs = RadioSetting("settings.tot_reset", "TOT reset time",
-                             RadioSettingValueList(TOT_RS, TOT_RS[int(sett.tot_reset)]))
+                             RadioSettingValueList(TOT_RS, current_index=int(sett.tot_reset)))
         basic.append(totrs)
 
         sql = RadioSetting("settings.sql", "Squelch level",
-                           RadioSettingValueList(SQL, SQL[int(sett.sql)]))
+                           RadioSettingValueList(SQL, current_index=int(sett.sql)))
         basic.append(sql)
 
         # front keys
@@ -770,35 +769,35 @@ class Kenwood_P60_Radio(chirp_common.CloneModeRadio, chirp_common.ExperimentalRa
         if m > 3:
             m = 1
         mon = RadioSetting("settings.kMoni", "Monitor",
-                           RadioSettingValueList(MONI, MONI[m]))
+                           RadioSettingValueList(MONI, current_index=m))
         fkeys.append(mon)
 
         s = int(sett.kScan)
         if s > 3:
             s = 1
         scn = RadioSetting("settings.kScan", "Scan",
-                           RadioSettingValueList(SCAN, SCAN[s]))
+                           RadioSettingValueList(SCAN, current_index=s))
         fkeys.append(scn)
 
         d = int(sett.kDial)
         if d > 1:
             d = 0
         dial = RadioSetting("settings.kDial", "Dial",
-                            RadioSettingValueList(YESNO, YESNO[d]))
+                            RadioSettingValueList(YESNO, current_index=d))
         fkeys.append(dial)
 
         t = int(sett.kTa)
         if t > 2:
             t = 2
         ta = RadioSetting("settings.kTa", "Ta",
-                          RadioSettingValueList(TA, TA[t]))
+                          RadioSettingValueList(TA, current_index=t))
         fkeys.append(ta)
 
         l = int(sett.kLo)
         if l > 1:
             l = 0
         low = RadioSetting("settings.kLo", "Low",
-                           RadioSettingValueList(YESNO, YESNO[l]))
+                           RadioSettingValueList(YESNO, current_index=l))
         fkeys.append(low)
 
         return top

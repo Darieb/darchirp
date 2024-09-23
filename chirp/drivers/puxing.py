@@ -152,7 +152,6 @@ class Puxing777Radio(chirp_common.CloneModeRadio):
     """Puxing PX-777"""
     VENDOR = "Puxing"
     MODEL = "PX-777"
-    NEEDS_COMPAT_SERIAL = False
 
     def sync_in(self):
         self._mmap = puxing_download(self)
@@ -188,7 +187,7 @@ class Puxing777Radio(chirp_common.CloneModeRadio):
         elif self._memobj.model.model == PUXING_MODELS[328]:
             # There are PX-777 that says to be model 328 ...
             # for them we only know this freq limits till now
-            if self._memobj.model.limits == 0xEE:
+            if self._memobj.model.limits in (0xEE, 0xEF):
                 rf.valid_bands = [PUXING_777_BANDS[1]]
             else:
                 raise Exception("Unsupported band limits 0x%02x for PX-777" %
@@ -218,12 +217,12 @@ class Puxing777Radio(chirp_common.CloneModeRadio):
 
         def _is_empty():
             for i in range(0, 4):
-                if _mem.rx_freq[i].get_raw() != "\xFF":
+                if _mem.rx_freq[i].get_raw(asbytes=False) != "\xFF":
                     return False
             return True
 
         def _is_no_tone(field):
-            return field.get_raw() in ["\x00\x00", "\xFF\xFF"]
+            return field.get_raw(asbytes=False) in ["\x00\x00", "\xFF\xFF"]
 
         def _get_dtcs(value):
             # Upper nibble 0x80 -> DCS, 0xC0 -> Inv. DCS
@@ -238,12 +237,12 @@ class Puxing777Radio(chirp_common.CloneModeRadio):
             if int(txfield) < 8000 or int(rxfield) < 8000:
                 raise Exception("Split tone not supported")
 
-            if txfield[0].get_raw() == "\xFF":
+            if txfield[0].get_raw(asbytes=False) == "\xFF":
                 tp, tx = "N", None
             else:
                 tp, tx = _get_dtcs(int(txfield))
 
-            if rxfield[0].get_raw() == "\xFF":
+            if rxfield[0].get_raw(asbytes=False) == "\xFF":
                 rp, rx = "N", None
             else:
                 rp, rx = _get_dtcs(int(rxfield))
@@ -328,8 +327,10 @@ class Puxing777Radio(chirp_common.CloneModeRadio):
             # Argh.  Set the high order two bits to signal DCS or Inv. DCS
             txm = mem.dtcs_polarity[0] == "N" and 0x80 or 0xC0
             rxm = mem.dtcs_polarity[1] == "N" and 0x80 or 0xC0
-            _mem.tx_tone[1].set_raw(chr(ord(_mem.tx_tone[1].get_raw()) | txm))
-            _mem.rx_tone[1].set_raw(chr(ord(_mem.rx_tone[1].get_raw()) | rxm))
+            _mem.tx_tone[1].set_raw(
+                chr(ord(_mem.tx_tone[1].get_raw(asbytes=False)) | txm))
+            _mem.rx_tone[1].set_raw(
+                chr(ord(_mem.rx_tone[1].get_raw(asbytes=False)) | rxm))
 
         elif mem.tmode:
             _mem.tx_tone = int(mem.rtone * 10)
@@ -419,6 +420,7 @@ class Puxing2RRadio(chirp_common.CloneModeRadio):
     """Puxing PX-2R"""
     VENDOR = "Puxing"
     MODEL = "PX-2R"
+    NEEDS_COMPAT_SERIAL = True
     _memsize = 0x0FE0
 
     def get_features(self):
@@ -459,7 +461,7 @@ class Puxing2RRadio(chirp_common.CloneModeRadio):
 
         mem = chirp_common.Memory()
         mem.number = number
-        if _mem.get_raw()[0:4] == "\xff\xff\xff\xff":
+        if _mem.get_raw(asbytes=False)[0:4] == "\xff\xff\xff\xff":
             mem.empty = True
             return mem
 

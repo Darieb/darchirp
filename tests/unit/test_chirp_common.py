@@ -2,6 +2,7 @@ import base64
 import copy
 import json
 import os
+import pickle
 import tempfile
 
 from unittest import mock
@@ -11,6 +12,7 @@ from chirp import CHIRP_VERSION
 from chirp import chirp_common
 from chirp import directory
 from chirp import errors
+from chirp import settings
 
 
 class TestUtilityFunctions(base.BaseTest):
@@ -501,6 +503,11 @@ class TestStepFunctions(base.BaseTest):
         self.assertEqual(2.5, chirp_common.required_step(self._005[0],
                                                          allowed=[2.5]))
 
+    def test_required_step_finds_radio_specific(self):
+        # Make sure we find a radio-specific step, 10Hz in this case
+        self.assertEqual(0.01, chirp_common.required_step(
+            146000010, allowed=[5.0, 10.0, 0.01, 20.0]))
+
     def test_required_step_fail(self):
         self.assertRaises(errors.InvalidDataError,
                           chirp_common.required_step,
@@ -572,7 +579,8 @@ class TestImageMetadata(base.BaseTest):
             f.write(b'thisisrawdata')
             f.flush()
 
-        with mock.patch('chirp.memmap.MemoryMap') as mock_mmap:
+        with mock.patch('chirp.memmap.MemoryMapBytes.__init__') as mock_mmap:
+            mock_mmap.return_value = None
             chirp_common.CloneModeRadio(None).load_mmap(fn)
             mock_mmap.assert_called_once_with(b'thisisrawdata')
         os.remove(fn)
@@ -584,7 +592,8 @@ class TestImageMetadata(base.BaseTest):
             f.write(chirp_common.CloneModeRadio.MAGIC + b'bad')
             f.flush()
 
-        with mock.patch('chirp.memmap.MemoryMap') as mock_mmap:
+        with mock.patch('chirp.memmap.MemoryMapBytes.__init__') as mock_mmap:
+            mock_mmap.return_value = None
             chirp_common.CloneModeRadio(None).load_mmap(fn)
             mock_mmap.assert_called_once_with(b'thisisrawdata')
         os.remove(fn)
@@ -726,8 +735,14 @@ class TestCloneModeExtras(base.BaseTest):
         # Now we should have the comment
         self.assertEqual('a comment', m.comment)
 
+        # Make sure it is in the metadata
+        self.assertIn('0000_comment', r.metadata['mem_extra'])
+
         # Erase the memory (only extra) and make sure we get no comment
         r.erase_memory_extra(0)
+
+        # Make sure it's gone from metadata
+        self.assertNotIn('0000_comment', r.metadata['mem_extra'])
 
         # Do a get, get_extra
         m = r.get_memory(0)
@@ -736,24 +751,34 @@ class TestCloneModeExtras(base.BaseTest):
         # Now we should have no comment because we erased
         self.assertEqual('', m.comment)
 
+        r.set_memory_extra(m)
+
+        # Make sure we don't keep empty comments
+        self.assertNotIn('0000_comment', r.metadata['mem_extra'])
+
 
 class TestOverrideRules(base.BaseTest):
     # You should not need to add your radio to this list. If you think you do,
     # please ask permission first.
+    # Immutable fields should really only be used for cases where the value
+    # is not changeable based on the *location* of the memory. If something
+    # is forced to be a value based on the *content* of the memory (i.e. AM
+    # for frequencies in airband), coerce them on set/get, and return a
+    # ValidationWarning in validate_memory() so the user is told that the
+    # values are being forced.
     IMMUTABLE_WHITELIST = [
         # Uncomment me when the time comes
         'Baofeng_GT-5R',
-        'Baofeng_UV-9G',
         'BTECH_GMRS-20V2',
         'BTECH_GMRS-50V2',
         'BTECH_GMRS-50X1',
         'BTECH_GMRS-V2',
         'BTECH_MURS-V2',
         'Radioddity_DB25-G',
-        'Retevis_RA85',
-        'Retevis_RA685',
         'Retevis_RB17P',
-        'Retevis_RB27',
+        'Baofeng_UV-17ProGPS',
+        'Baofeng_5RM',
+        'Baofeng_K5-Plus',
     ]
 
     def _test_radio_override_immutable_policy(self, rclass):
@@ -787,3 +812,148 @@ class TestOverrideRules(base.BaseTest):
                 self._test_radio_override_calls_super(rclass)
             else:
                 self._test_radio_override_immutable_policy(rclass)
+
+
+class TestMemory(base.BaseTest):
+    def test_pickle_with_extra(self):
+        m = chirp_common.Memory()
+        m.extra = settings.RadioSettingGroup('extra', 'extra')
+        m.extra.append(settings.RadioSetting(
+            'test', 'test',
+            settings.RadioSettingValueString(1, 32, current='foo')))
+        n = pickle.loads(pickle.dumps(m))
+        self.assertEqual(str(n.extra['test'].value),
+                         str(m.extra['test'].value))
+
+    def test_frozen_from_frozen(self):
+        m = chirp_common.FrozenMemory(chirp_common.Memory(123))
+        n = chirp_common.FrozenMemory(m)
+        self.assertEqual(123, n.number)
+
+    def test_frozen_dupe_unfrozen(self):
+        FrozenMemory = chirp_common.FrozenMemory(
+            chirp_common.Memory()).__class__
+        m = chirp_common.FrozenMemory(chirp_common.Memory(123)).dupe()
+        self.assertNotIsInstance(m, FrozenMemory)
+        self.assertFalse(hasattr(m, '_frozen'))
+
+    def test_frozen_modifications(self):
+        orig = chirp_common.Memory(123)
+        orig.extra = [settings.RadioSetting(
+            'foo', 'Foo',
+            settings.RadioSettingValueBoolean(False))]
+        frozen = chirp_common.FrozenMemory(orig)
+        with self.assertRaises(ValueError):
+            frozen.extra[0].value = True
+
+    def test_tone_validator(self):
+        m = chirp_common.Memory()
+        # 100.0 is a valid tone
+        m.rtone = 100.0
+        m.ctone = 100.0
+
+        # 100 is not (must be a float)
+        with self.assertRaises(ValueError):
+            m.rtone = 100
+        with self.assertRaises(ValueError):
+            m.ctone = 100
+
+        # 30.0 and 300.0 are out of range
+        with self.assertRaises(ValueError):
+            m.rtone = 30.0
+        with self.assertRaises(ValueError):
+            m.rtone = 300.0
+        with self.assertRaises(ValueError):
+            m.ctone = 30.0
+        with self.assertRaises(ValueError):
+            m.ctone = 300.0
+
+    def test_repr_dump(self):
+        m = chirp_common.Memory()
+        self.assertEqual(
+            "<Memory 0: freq=0,name='',vfo=0,rtone=88.5,ctone=88.5,dtcs=23,"
+            "rx_dtcs=23,tmode='',cross_mode='Tone->Tone',dtcs_polarity='NN',"
+            "skip='',power=None,duplex='',offset=600000,mode='FM',"
+            "tuning_step=5.0,comment='',empty=False,immutable=[]>", repr(m))
+
+        m.freq = 146520000
+        m.rtone = 107.2
+        m.tmode = 'Tone'
+        self.assertEqual(
+            "<Memory 0: freq=146520000,name='',vfo=0,rtone=107.2,ctone=88.5,"
+            "dtcs=23,rx_dtcs=23,tmode='Tone',cross_mode='Tone->Tone',"
+            "dtcs_polarity='NN',skip='',power=None,duplex='',offset=600000,"
+            "mode='FM',tuning_step=5.0,comment='',empty=False,immutable=[]>",
+            repr(m))
+
+        m.number = 101
+        m.extd_number = 'Call'
+        self.assertEqual(
+            "<Memory Call(101): freq=146520000,name='',vfo=0,rtone=107.2,"
+            "ctone=88.5,dtcs=23,rx_dtcs=23,tmode='Tone',"
+            "cross_mode='Tone->Tone',dtcs_polarity='NN',skip='',power=None,"
+            "duplex='',offset=600000,mode='FM',tuning_step=5.0,comment='',"
+            "empty=False,immutable=[]>", repr(m))
+
+        m.extra = settings.RadioSettingGroup('extra', 'Extra')
+        m.extra.append(
+            settings.RadioSetting('test1', 'Test Setting 1',
+                                  settings.RadioSettingValueBoolean(False)))
+        m.extra.append(
+            settings.RadioSetting('test2', 'Test Setting 2',
+                                  settings.RadioSettingValueList(
+                                      ['foo', 'bar'], 'foo')))
+        self.assertEqual(
+            "<Memory Call(101): freq=146520000,name='',vfo=0,rtone=107.2,"
+            "ctone=88.5,dtcs=23,rx_dtcs=23,tmode='Tone',"
+            "cross_mode='Tone->Tone',dtcs_polarity='NN',skip='',power=None,"
+            "duplex='',offset=600000,mode='FM',tuning_step=5.0,comment='',"
+            "empty=False,immutable=[],extra.test1='False',extra.test2='foo'>",
+            repr(m))
+
+    def test_debug_diff(self):
+        m1 = chirp_common.Memory(1)
+        m2 = chirp_common.Memory(1)
+
+        m1.freq = 146520000
+        m2.freq = 446000000
+        self.assertEqual('freq=146520000>446000000', m1.debug_diff(m2, '>'))
+
+        m2.tmode = 'TSQL'
+        self.assertEqual("freq=146520000/446000000,tmode=''/'TSQL'",
+                         m1.debug_diff(m2))
+
+        # Make sure ident diffs come first and are noticed
+        m2.number = 2
+        m2.freq = 146520000
+        self.assertEqual("ident=1/2,tmode=''/'TSQL'", m1.debug_diff(m2))
+
+        # Make sure we can diff extras, and amongst heterogeneous formats
+        m2.number = 1
+        m1.extra = settings.RadioSettingGroup('extra', 'Extra')
+        m2.extra = settings.RadioSettingGroup('extra', 'Extra')
+        m1.extra.append(
+            settings.RadioSetting('test1', 'Test Setting 1',
+                                  settings.RadioSettingValueBoolean(False)))
+        m2.extra.append(
+            settings.RadioSetting('test2', 'Test Setting 2',
+                                  settings.RadioSettingValueList(
+                                      ['foo', 'bar'], 'foo')))
+        self.assertEqual(
+            "extra.test1='False'/'<missing>',extra.test2='<missing>'/'foo',"
+            "tmode=''/'TSQL'", m1.debug_diff(m2))
+
+
+class TestRadioFeatures(base.BaseTest):
+    def test_valid_tones(self):
+        rf = chirp_common.RadioFeatures()
+        # These are valid tones
+        rf.valid_tones = [100.0, 107.2]
+
+        # These contain invalid tones
+        with self.assertRaises(ValueError):
+            rf.valid_tones = [100.0, 30.0]
+        with self.assertRaises(ValueError):
+            rf.valid_tones = [100.0, 300.0]
+        with self.assertRaises(ValueError):
+            rf.valid_tones = [100, 107.2]

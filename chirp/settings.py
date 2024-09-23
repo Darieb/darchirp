@@ -13,8 +13,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import logging
+import warnings
+
 from chirp import chirp_common
 
+LOG = logging.getLogger(__name__)
 BANNED_NAME_CHARACTERS = r'%'
 
 
@@ -41,9 +45,23 @@ class RadioSettingValue:
 
     def __init__(self):
         self._current = None
+        self._preinit_current = None
         self._has_changed = False
-        self._validate_callback = lambda x: x
+        self._validate_callback = self.null_callback
         self._mutable = True
+
+    def initialize(self):
+        """Initialize this value to the stashed value"""
+        assert self._current is None and self._preinit_current is not None
+        self.set_value(self._preinit_current)
+        self._preinit_current = None
+
+    def queue_current(self, current):
+        """Set this value's current on initialization"""
+        self._preinit_current = current
+
+    def null_callback(self, x):
+        return x
 
     def set_mutable(self, mutable):
         self._mutable = mutable
@@ -60,7 +78,7 @@ class RadioSettingValue:
 
     def set_value(self, value):
         """Sets the current value, triggers changed"""
-        if not self.get_mutable():
+        if not self.get_mutable() and self.initialized:
             raise InvalidValueError("This value is not mutable")
 
         if self._current is not None and value != self._current:
@@ -69,9 +87,14 @@ class RadioSettingValue:
 
     def get_value(self):
         """Gets the current value"""
+        if not self.initialized:
+            LOG.error('Accessing setting value before init!')
         return self._current
 
     def __trunc__(self):
+        return int(self.get_value())
+
+    def __int__(self):
         return int(self.get_value())
 
     def __float__(self):
@@ -79,6 +102,28 @@ class RadioSettingValue:
 
     def __str__(self):
         return str(self.get_value())
+
+    def __floordiv__(self, value):
+        return int(self.get_value()) // value
+
+    def __div__(self, value):
+        return float(self.get_value()) / value
+
+    def __mul__(self, value):
+        return self.get_value() * value
+
+    def __gt__(self, value):
+        return self.get_value() > value
+
+    def __lt__(self, value):
+        return self.get_value() < value
+
+    def __eq__(self, value):
+        return self.get_value() == value
+
+    @property
+    def initialized(self):
+        return self._current is not None
 
 
 class RadioSettingValueInteger(RadioSettingValue):
@@ -90,7 +135,7 @@ class RadioSettingValueInteger(RadioSettingValue):
         self._min = minval
         self._max = maxval
         self._step = step
-        self.set_value(current)
+        self.queue_current(current)
 
     def set_value(self, value):
         try:
@@ -125,7 +170,7 @@ class RadioSettingValueFloat(RadioSettingValue):
         self._max = maxval
         self._res = resolution
         self._pre = precision
-        self.set_value(current)
+        self.queue_current(current)
 
     def format(self, value=None):
         """Formats the value into a string"""
@@ -162,7 +207,7 @@ class RadioSettingValueBoolean(RadioSettingValue):
 
     def __init__(self, current):
         RadioSettingValue.__init__(self)
-        self.set_value(current)
+        self.queue_current(current)
 
     def set_value(self, value):
         RadioSettingValue.set_value(self, bool(value))
@@ -182,9 +227,23 @@ class RadioSettingValueList(RadioSettingValue):
     def __init__(self, options, current=None, current_index=0):
         RadioSettingValue.__init__(self)
         self._options = list(options)
-        self.set_value(current or self._options[int(current_index)])
+        if current is not None:
+            # Using current_index is safer than using current because we can
+            # gracefully handle out-of-range values without crashing. All new
+            # code should use current_index and old code should be fixed.
+            warnings.warn(
+                'RadioSettingValueList should be provided with '
+                'current_index instead of current (value) for '
+                'safety', FutureWarning, stacklevel=2)
+        self.queue_current(current if current is not None
+                           else int(current_index))
 
     def set_value(self, value):
+        if isinstance(value, int):
+            try:
+                value = self._options[value]
+            except IndexError:
+                raise InvalidValueError("Value for %s is out of range" % value)
         if value not in self._options:
             raise InvalidValueError("%s is not valid for this setting" % value)
         RadioSettingValue.set_value(self, value)
@@ -200,6 +259,9 @@ class RadioSettingValueList(RadioSettingValue):
     def __trunc__(self):
         return self._options.index(self._current)
 
+    def __int__(self):
+        return self._options.index(self._current)
+
 
 class RadioSettingValueString(RadioSettingValue):
 
@@ -212,7 +274,7 @@ class RadioSettingValueString(RadioSettingValue):
         self._maxlength = maxlength
         self._charset = charset
         self._autopad = autopad
-        self.set_value(current)
+        self.queue_current(current)
 
     def set_charset(self, charset):
         """Sets the set of allowed characters"""
@@ -222,12 +284,12 @@ class RadioSettingValueString(RadioSettingValue):
         if len(value) < self._minlength or len(value) > self._maxlength:
             raise InvalidValueError("Value must be between %i and %i chars" %
                                     (self._minlength, self._maxlength))
-        if self._autopad:
-            value = value.ljust(self._maxlength)
         for char in value:
             if char not in self._charset:
                 raise InvalidValueError("Value contains invalid " +
                                         "character `%s'" % char)
+        if self._autopad:
+            value = value.ljust(self._maxlength)
         RadioSettingValue.set_value(self, value)
 
     def __str__(self):
@@ -293,6 +355,12 @@ class RadioSettingValueMap(RadioSettingValueList):
         value = self._mem_vals[index]
         return value
 
+    def __int__(self):
+        """Return memory value that matches current user option"""
+        index = self._options.index(self._current)
+        value = self._mem_vals[index]
+        return value
+
 
 def zero_indexed_seq_map(user_options):
     """RadioSettingValueMap factory method
@@ -335,10 +403,26 @@ class RadioSettingGroup(object):
         self.__doc__ = name          # Longer explanation/documentation
         self._elements = {}
         self._element_order = []
+        self._frozen = False
 
-        for element in elements:
+        for i, element in enumerate(elements):
             self._validate(element)
+            if (isinstance(element, RadioSettingValue) and
+                    not element.initialized):
+                # Late-initialize this value
+                try:
+                    element.initialize()
+                except InvalidValueError as e:
+                    LOG.error('Failed to load %s value %i: %s',
+                              self._name, i, e)
+
             self.append(element)
+
+    def set_frozen(self):
+        self._frozen = True
+        for i in self:
+            if isinstance(i, RadioSettingGroup):
+                i.set_frozen()
 
     def get_name(self):
         """Returns the group name"""
@@ -355,7 +439,8 @@ class RadioSettingGroup(object):
     def __str__(self):
         string = "group '%s': {\n" % self._name
         for element in sorted(self._elements.values()):
-            string += "\t" + str(element) + "\n"
+            for line in str(element).split("\n"):
+                string += "\t" + line + "\n"
         string += "}"
         return string
 
@@ -363,6 +448,8 @@ class RadioSettingGroup(object):
 
     def append(self, element):
         """Adds an element to the group"""
+        if self._frozen:
+            raise ValueError('Setting is frozen')
         self[element.get_name()] = element
 
     def __iter__(self):
@@ -403,6 +490,10 @@ class RadioSettingGroup(object):
         self._elements[name] = value
         self._element_order.append(name)
 
+    def __delitem__(self, item):
+        del self._elements[item.get_name()]
+        self._element_order.remove(item.get_name())
+
     def __contains__(self, name):
         return name in self._elements
 
@@ -422,6 +513,15 @@ class RadioSettingGroup(object):
         return self._name < other._name
 
 
+class RadioSettingSubGroup(RadioSettingGroup):
+    """A subgroup of related settings.
+
+    These are to be displayed with less weight than a regular group. Used
+    for repeated sections of related settings, or small groups that don't
+    merit their own panel of display in the UI.
+    """
+
+
 class RadioSetting(RadioSettingGroup):
 
     """A single setting, which could be an array of items like a group"""
@@ -429,6 +529,16 @@ class RadioSetting(RadioSettingGroup):
     def __init__(self, *args):
         super(RadioSetting, self).__init__(*args)
         self._apply_callback = None
+        self._warning_text = None
+        self._safe_value = None
+        self._volatile = False
+
+    @property
+    def volatile(self):
+        return self._volatile
+
+    def set_volatile(self, value):
+        self._volatile = value
 
     def set_apply_callback(self, callback, *args):
         self._apply_callback = lambda: callback(self, *args)
@@ -438,6 +548,22 @@ class RadioSetting(RadioSettingGroup):
 
     def run_apply_callback(self):
         return self._apply_callback()
+
+    def set_warning(self, warning_text, safe_value=None):
+        """Set a warning message to be shown to the user when changed.
+
+        This should not be over-used as it will be annoying (on purpose). This
+        message will be shown to the user with an option to continue to abort.
+        It should be used to warn the user of potential invalid operation or
+        compatibility issues. If safe_value is set, this will only warn the
+        user if the value is changed *to* something other than the safe_value.
+        """
+        self._warning_text = warning_text
+        self._safe_value = safe_value
+
+    def get_warning(self, value):
+        if value != self._safe_value:
+            return self._warning_text
 
     def _validate(self, value):
         # RadioSetting can only contain RadioSettingValue objects
@@ -465,11 +591,15 @@ class RadioSetting(RadioSettingGroup):
                 return self._elements[self._element_order[0]]
             else:
                 return list(self._elements.values())
+        elif name in ('__getstate__', '__setstate__', '__deepcopy__'):
+            super().__getattr__(name)
         else:
             return self.__dict__[name]
 
     def __setattr__(self, name, value):
         if name == "value":
+            if self._frozen:
+                raise ValueError('Value is frozen')
             if len(self) == 1:
                 self._elements[self._element_order[0]].set_value(value)
             else:

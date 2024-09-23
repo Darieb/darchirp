@@ -53,7 +53,7 @@ DIR_FROM = 0x00
 config_map = (          # map address, write size, write count
     # (0x0, 64, 512),     # 0 to 8000 - full write use only
     (0x4c,  12, 1),    # Mode PSW --  Display name
-    (0x60,  44, 1),    # Freq Limits
+    (0x60,  16, 3),    # Freq Limits
     (0x740,  40, 1),    # FM chan 1-20
     (0x830,  16, 13),    # General settings
     (0x900, 8, 1),       # General settings
@@ -68,6 +68,7 @@ config_map = (          # map address, write size, write count
 
 
 MEM_VALID = 0x00
+MEM_INVALID = [0x80]
 TX_BLANK = 0x40
 RX_BLANK = 0x80
 
@@ -556,7 +557,7 @@ _MEM_FORMAT = """
         u8      unknown3:6,
                 Unknown4_shft_dir:2;
         u8      unknown5:3,
-                compander:1
+                compander:1,
                 scrambler:4;
     } memory[1000];
 
@@ -710,7 +711,6 @@ class KG980PRadio(chirp_common.CloneModeRadio,
     _model = b"KG-UV950R2"
     _file_ident = b"980P"
     BAUD_RATE = 19200
-    NEEDS_COMPAT_SERIAL = False
     # Start Byte for Communication messages
     _record_start = 0xDA
     # _cs_size = 0x0F for 4-bit checksum, 0xFF for 8-Bit checksum
@@ -774,7 +774,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
     #
     # The ID record returned by the radio also includes the
     # current frequency range
-    # as 4 bytes big-endian in 10Hz increments
+    # as 4 bytes big-endian in 10 Hz increments
     #
     # Offset
     #  0:10     Model, zero padded
@@ -826,7 +826,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
     # It would be smarter to only load the active areas and none of
     # the padding/unused areas. Padding still need to be investigated.
     def _download(self):
-        """Talk to a wouxun KG-UV980P and do a download"""
+        """Talk to a Wouxun KG-UV980P and do a download"""
         try:
             self._identify()
             return self._do_download(0, 32768, 64)
@@ -859,7 +859,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         return memmap.MemoryMapBytes(image)
 
     def _upload(self):
-        """Talk to a wouxun KG-UV980P and do a upload"""
+        """Talk to a Wouxun KG-UV980P and do a upload"""
         try:
             self._identify()
             LOG.debug("Done with Upload Identify")
@@ -1006,14 +1006,31 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         mem = chirp_common.Memory()
         mem.number = number
         _valid = self._memobj.valid[mem.number]
+        _nam = self._memobj.names[number]
 
-        if (_valid != MEM_VALID) & ((_mem.rxfreq == 0xFFFFFFFF) or
-                                    _mem.rxfreq == 0x00000000):
+        # Handle deleted channel quirks due to radio firmware
+        # not always clearing the valid channel indicators
+        # _valid == 0x80 indicates channel was deleted thru radio menu and
+        # only part of the channel structure data is cleared by firmware
+        # _valid == 0x00 indicates the channel is Valid
+        # all other values the firmware uses for _valid: look for valid
+        # Rx and Tx freq values to determine validity
+        if (_valid in MEM_INVALID or
+           ((_valid != MEM_VALID) & ((_mem.rxfreq == 0xFFFFFFFF) or
+                                     _mem.rxfreq == 0x00000000))):
             mem.empty = True
+            if _valid == 0x80:
+                LOG.debug("Ch %s was deleted by using radio menu" % number)
+                LOG.debug("Current Memory: \n%s" % _mem)
+                LOG.debug("Clearing Ch %s memory" % number)
+                _mem.set_raw(b"\xFF" * (_mem.size() // 8))
+                _nam.set_raw(b"\xFF" * (_nam.size() // 8))
+            self._memobj.valid[mem.number] = 0xFF
             return mem
         elif (_valid != MEM_VALID) & ((_mem.rxfreq != 0xFFFFFFFF) and
                                       (_mem.rxfreq != 0x00000000)):
             mem.empty = False
+            self._memobj.valid[mem.number] = MEM_VALID
         else:
             mem.empty = False
         mem.freq = int(_mem.rxfreq) * 10
@@ -1122,9 +1139,8 @@ class KG980PRadio(chirp_common.CloneModeRadio,
 
         if mem.empty:
             self._memobj.valid[number] = 0xFF
-            _mem.rxfreq = 0xFFFFFFFF
-            _mem.txfreq = 0xFFFFFFFF
-            self._memobj.names[number].set_raw("\xFF" * (_nam.size() // 8))
+            _mem.set_raw(b"\xFF" * (_mem.size() // 8))
+            self._memobj.names[number].set_raw(b"\xFF" * (_nam.size() // 8))
         else:
             if len(mem.name) > 0:
                 _mem.named = True
@@ -1168,18 +1184,15 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             _mem.scrambler = 0
             _mem.compander = 0
             # set the power
-            if mem.power:
-                _mem.power = self.POWER_LEVELS.index(mem.power)
-            else:
-                _mem.power = True
-            # pwr_index= mem.power
+            # Updated to resolve "Illegal set on attribute power" Warning
             if str(mem.power) == "None":
-                mem.power = self.POWER_LEVELS[1]
-            index = self.POWER_LEVELS.index(mem.power)
-            if index == 2:
-                _mem.power = 0b11
+                _mem.power = 0  # Default to Low power
             else:
-                _mem.power = self.POWER_LEVELS.index(mem.power)
+                index = self.POWER_LEVELS.index(mem.power)
+                if index == 2:
+                    _mem.power = 0b11  # Force H to value of binary 3
+                else:
+                    _mem.power = index
             # Not sure what this bit does yet but it causes
             # the radio to display
             # MED power when the CPS shows Low Power.
@@ -1197,6 +1210,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             #  set to mute mode to QT (not QT+DTMF or QT*DTMF) by default
             #  This changes them in the channel memory
             _mem.mute_mode = 1
+            self._memobj.valid[number] = MEM_VALID
 
     def _get_settings(self):
         _settings = self._memobj.settings
@@ -1350,8 +1364,8 @@ class KG980PRadio(chirp_common.CloneModeRadio,
 
         rs = RadioSetting("roger", "Roger Beep",
                           RadioSettingValueList(ROGER_LIST,
-                                                ROGER_LIST[_settings.
-                                                           roger]))
+                                                current_index=_settings.
+                                                roger))
         cfg1_grp.append(rs)
 
         rs = RadioSetting("beep", "Keypad Beep",
@@ -1382,7 +1396,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         if self.MODEL != "KG-1000G Plus":
             rs = RadioSetting("toa", "Timeout Alarm (TOA)",
                               RadioSettingValueList(
-                                  TOA_LIST, TOA_LIST[_settings.toa]))
+                                  TOA_LIST, current_index=_settings.toa))
         else:
             rs = RadioSetting("toa", "Overtime Alarm (TOA)",
                               RadioSettingValueMap(
@@ -1398,7 +1412,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("ring", "Ring Time (Sec)",
                               RadioSettingValueList(
                                   RING_LIST,
-                                  RING_LIST[_settings.ring]))
+                                  current_index=_settings.ring))
         else:
             rs = RadioSetting("ring", "Ring Time (Sec)",
                               RadioSettingValueMap(
@@ -1408,7 +1422,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("dtmfsf", dtmflabel,
                           RadioSettingValueList(
                               dtmflist,
-                              dtmflist[_settings.dtmfsf]))
+                              current_index=_settings.dtmfsf))
         cfg1_grp.append(rs)
 
         rs = RadioSetting("ptt_id", pttidlabel,
@@ -1418,26 +1432,26 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("wt_led", "Standby / WT LED",
                           RadioSettingValueList(
                               BACKLIGHT_LIST,
-                              BACKLIGHT_LIST[_settings.wt_led]))
+                              current_index=_settings.wt_led))
         cfg1_grp.append(rs)
 
         rs = RadioSetting("tx_led", "TX LED",
                           RadioSettingValueList(
                               BACKLIGHT_LIST,
-                              BACKLIGHT_LIST[_settings.tx_led]))
+                              current_index=_settings.tx_led))
         cfg1_grp.append(rs)
 
         rs = RadioSetting("rx_led", "Rx LED",
                           RadioSettingValueList(
                               BACKLIGHT_LIST,
-                              BACKLIGHT_LIST[_settings.rx_led]))
+                              current_index=_settings.rx_led))
         cfg1_grp.append(rs)
 
         if self.MODEL == "KG-1000G Plus":
             rs = RadioSetting("prich_sw", "Priority Scan",
                               RadioSettingValueList(
                                   PRI_CH_SCAN_LIST,
-                                  PRI_CH_SCAN_LIST[_settings.prich_sw]))
+                                  current_index=_settings.prich_sw))
             cfg1_grp.append(rs)
         else:
             rs = RadioSetting("prich_sw", "Priority Channel Scan",
@@ -1461,13 +1475,13 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("fan", fanlabel,
                           RadioSettingValueList(
                               FAN_MODE_LIST,
-                              FAN_MODE_LIST[_settings.fan]))
+                              current_index=_settings.fan))
         cfg1_grp.append(rs)
 
         rs = RadioSetting("apo_time", "Auto Power-Off (Min)",
                           RadioSettingValueList(
                               APO_TIME_LIST,
-                              APO_TIME_LIST[_settings.apo_time]))
+                              current_index=_settings.apo_time))
         cfg1_grp.append(rs)
 
         rs = RadioSetting("alert", alerttonelabel,
@@ -1482,7 +1496,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("rpt_set_model", "Model (RPT-SET)",
                               RadioSettingValueList(
                                   RPT_MODE_LIST,
-                                  RPT_MODE_LIST[_settings.rpt_set_model]))
+                                  current_index=_settings.rpt_set_model))
         else:
             rs = RadioSetting("rpt_set_model", "Repeater Mode",
                               RadioSettingValueMap(
@@ -1501,12 +1515,12 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("dtmf_time", "DTMF Tx Duration (ms)",
                           RadioSettingValueList(
                               DTMF_TIMES,
-                              DTMF_TIMES[_settings.dtmf_time]))
+                              current_index=_settings.dtmf_time))
         cfg2_grp.append(rs)
         rs = RadioSetting("dtmf_int", "DTMF Interval (ms)",
                           RadioSettingValueList(
                               DTMF_INTERVALS,
-                              DTMF_INTERVALS[_settings.dtmf_int]))
+                              current_index=_settings.dtmf_int))
         cfg2_grp.append(rs)
 
         rs = RadioSetting("sc_qt", tonescanlabel,
@@ -1543,7 +1557,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("hold_time_rpt", holdtimrptlabel,
                           RadioSettingValueList(
                               HOLD_TIMES,
-                              HOLD_TIMES[_settings.hold_time_rpt]))
+                              current_index=_settings.hold_time_rpt))
         cfg2_grp.append(rs)
 
         rs = RadioSetting("auto_am", "Auto AM",
@@ -1557,7 +1571,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("pf1_set", "PF1 setting",
                           RadioSettingValueList(
                               pf1set,
-                              pf1set[_settings.pf1_set]))
+                              current_index=_settings.pf1_set))
         cfg2_grp.append(rs)
 
         rs = RadioSetting("settings.thr_vol_lvl", thrvollvllabel,
@@ -1592,30 +1606,30 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("ABR", "Backlight On Time (ABR)",
                           RadioSettingValueList(
                               ABR_LIST,
-                              ABR_LIST[_settings.ABR]))
+                              current_index=_settings.ABR))
         cfg2_grp.append(rs)
 
         rs = RadioSetting("KeyA", "Key A",
                           RadioSettingValueList(
                               key_l,
-                              key_l[_settings.KeyA]))
+                              current_index=_settings.KeyA))
         cfg2_grp.append(rs)
         rs = RadioSetting("KeyB", "Key B",
                           RadioSettingValueList(
                               key_l,
-                              key_l[_settings.KeyB]))
+                              current_index=_settings.KeyB))
         cfg2_grp.append(rs)
         rs = RadioSetting("KeyC", "Key C",
                           RadioSettingValueList(
                               key_l,
-                              key_l[_settings.KeyC]))
+                              current_index=_settings.KeyC))
         cfg2_grp.append(rs)
 
         if self.MODEL == "KG-1000G Plus":
             rs = RadioSetting("KeyD", "Key D",
                               RadioSettingValueList(
                                   KEY_LIST_1000GPLUS,
-                                  KEY_LIST_1000GPLUS[_settings.KeyD]))
+                                  current_index=_settings.KeyD))
             cfg2_grp.append(rs)
 
         rs = RadioSetting("key_lock", "Key Lock Active",
@@ -1625,12 +1639,12 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("act_area", "Active Area (BAND)",
                           RadioSettingValueList(
                               ACTIVE_AREA_LIST,
-                              ACTIVE_AREA_LIST[_settings.act_area]))
+                              current_index=_settings.act_area))
         cfg2_grp.append(rs)
         rs = RadioSetting("tdr_off", "TDR",
                           RadioSettingValueList(
                               TDR_LIST,
-                              TDR_LIST[_settings.tdr_off]))
+                              current_index=_settings.tdr_off))
         cfg2_grp.append(rs)
 
         # Freq Limits settings
@@ -1642,48 +1656,42 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_144M_ChA_rx_start",
                           "144M Area A Rx Lower Limit (MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_144M_ChA_rx_stop) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_144M_ChA_rx_stop",
                           "144M Area A Rx Upper Limit (+ .9975 MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_144M_ChB_rx_start) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_144M_ChB_rx_start",
                           "144M Area B Rx Lower Limit (MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_144M_ChB_rx_stop) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_144M_ChB_rx_stop",
                           "144M Area B Rx Upper Limit (+ .9975 MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_70cm_rx_start) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_70cm_rx_start",
                           "450M Rx Lower Limit (MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_70cm_rx_stop) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_70cm_rx_stop",
                           "450M Rx Upper Limit (+ .9975 MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         if self.MODEL == "KG-UV980P":
@@ -1691,96 +1699,84 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_10m_rx_start",
                               "20M Rx Lower Limit (MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             rxlim_grp.append(rs)
 
             _temp = int(s.bandlimits.limit_10m_rx_stop) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_10m_rx_stop",
                               "20M Rx Upper Limit (+ .9975 MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_6m_rx_start) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_6m_rx_start",
                           "50M Rx Lower Limit (MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_6m_rx_stop) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_6m_rx_stop",
                           "50M Rx Upper Limit (+ .9975 MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_350M_rx_start) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_350M_rx_start",
                           "350M Rx Lower Limit (MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_350M_rx_stop) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_350M_rx_stop",
                           "350M Rx Upper Limit (+ .9975 MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_850M_rx_start) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_850M_rx_start",
                           "850M Rx Lower Limit (MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
 
         _temp = int(s.bandlimits.limit_850M_rx_stop) // 10
         val = RadioSettingValueInteger(0, 999, _temp)
         rs = RadioSetting("bandlimits.limit_850M_rx_stop",
                           "850M Rx Upper Limit (+ .9975 MHz)",
-                          RadioSettingValueInteger(0, 999,
-                                                   val))
+                          val)
         rxlim_grp.append(rs)
         if self.MODEL == "KG-UV980P":
             _temp = int(s.bandlimits.limit_144M_tx_start) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_144M_tx_start",
                               "144M Tx Lower Limit (MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             txlim_grp.append(rs)
 
             _temp = int(s.bandlimits.limit_144M_tx_stop) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_144M_tx_stop",
                               "144M Tx Upper Limit (+ .9975 MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             txlim_grp.append(rs)
 
             _temp = int(s.bandlimits.limit_70cm_tx_start) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_70cm_tx_start",
                               "450M Tx Lower Limit (MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             txlim_grp.append(rs)
 
             _temp = int(s.bandlimits.limit_70cm_tx_stop) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_70cm_tx_stop",
                               "450M tx Upper Limit (+ .9975 MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             txlim_grp.append(rs)
 
             if self.MODEL == "KG-UV980P":
@@ -1788,32 +1784,28 @@ class KG980PRadio(chirp_common.CloneModeRadio,
                 val = RadioSettingValueInteger(0, 999, _temp)
                 rs = RadioSetting("bandlimits.limit_10m_tx_start",
                                   "20M tx Lower Limit (MHz)",
-                                  RadioSettingValueInteger(0, 999,
-                                                           val))
+                                  val)
                 txlim_grp.append(rs)
 
                 _temp = int(s.bandlimits.limit_10m_tx_stop) // 10
                 val = RadioSettingValueInteger(0, 999, _temp)
                 rs = RadioSetting("bandlimits.limit_10m_tx_stop",
                                   "20M tx Upper Limit (+ .9975 MHz)",
-                                  RadioSettingValueInteger(0, 999,
-                                                           val))
+                                  val)
                 txlim_grp.append(rs)
 
             _temp = int(s.bandlimits.limit_6m_tx_start) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_6m_tx_start",
                               "50M tx Lower Limit (MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             txlim_grp.append(rs)
 
             _temp = int(s.bandlimits.limit_6m_tx_stop) // 10
             val = RadioSettingValueInteger(0, 999, _temp)
             rs = RadioSetting("bandlimits.limit_6m_tx_stop",
                               "50M tx Upper Limit (+ .9975 MHz)",
-                              RadioSettingValueInteger(0, 999,
-                                                       val))
+                              val)
             txlim_grp.append(rs)
 
         # VFO Settings
@@ -1840,7 +1832,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("vfostep_a", "Step",
                           RadioSettingValueList(
                             STEP_LIST,
-                            STEP_LIST[_settings.vfostep_a]))
+                            current_index=_settings.vfostep_a))
         vfoa_grp.append(rs)
 
         # #####################
@@ -1893,7 +1885,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("shft_dir1", "150M Shift Direction",
                               RadioSettingValueList(
                                 DUPLEX_LIST,
-                                DUPLEX_LIST[_settings.shft_dir1]))
+                                current_index=_settings.shft_dir1))
         vfo150_grp.append(rs)
 
         rs = RadioSetting("compander1", "150M Compander",
@@ -1904,7 +1896,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scrambler1", scram1label,
                           RadioSettingValueList(
                             SCRAMBLER_LIST,
-                            SCRAMBLER_LIST[_settings.scrambler1]))
+                            current_index=_settings.scrambler1))
         vfo150_grp.append(rs)
         rs = RadioSetting("am_mode1", "150M AM Mode",
                           RadioSettingValueBoolean(
@@ -1961,7 +1953,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("shft_dir2", "450M Shift Direction",
                               RadioSettingValueList(
                                 DUPLEX_LIST,
-                                DUPLEX_LIST[_settings.shft_dir2]))
+                                current_index=_settings.shft_dir2))
         vfo450_grp.append(rs)
 
         rs = RadioSetting("compander2", "450M Compander",
@@ -1972,7 +1964,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scrambler2", scram2label,
                           RadioSettingValueList(
                             SCRAMBLER_LIST,
-                            SCRAMBLER_LIST[_settings.scrambler2]))
+                            current_index=_settings.scrambler2))
         vfo450_grp.append(rs)
 
         rs = RadioSetting("am_mode2", "450M AM Mode",
@@ -2030,7 +2022,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
                 rs = RadioSetting("shft_dir3", "20M Shift Direction",
                                   RadioSettingValueList(
                                     DUPLEX_LIST,
-                                    DUPLEX_LIST[_settings.shft_dir3]))
+                                    current_index=_settings.shft_dir3))
             vfo20_grp.append(rs)
 
             rs = RadioSetting("compander3", "20M Compander",
@@ -2041,7 +2033,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("scrambler3", scram3label,
                               RadioSettingValueList(
                                 SCRAMBLER_LIST,
-                                SCRAMBLER_LIST[_settings.scrambler3]))
+                                current_index=_settings.scrambler3))
             vfo20_grp.append(rs)
 
             rs = RadioSetting("am_mode3", "20M AM Mode",
@@ -2099,7 +2091,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("shft_dir4", "50M Shift Direction",
                               RadioSettingValueList(
                                 DUPLEX_LIST,
-                                DUPLEX_LIST[_settings.shft_dir4]))
+                                current_index=_settings.shft_dir4))
         vfo50_grp.append(rs)
 
         rs = RadioSetting("compander4", "50M Compander",
@@ -2110,7 +2102,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scrambler4", scram4label,
                           RadioSettingValueList(
                             SCRAMBLER_LIST,
-                            SCRAMBLER_LIST[_settings.scrambler4]))
+                            current_index=_settings.scrambler4))
         vfo50_grp.append(rs)
 
         rs = RadioSetting("am_mode4", "50M AM Mode",
@@ -2166,7 +2158,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("shft_dir5", "350M Shift Direction",
                               RadioSettingValueList(
                                 DUPLEX_LIST,
-                                DUPLEX_LIST[_settings.shft_dir5]))
+                                current_index=_settings.shft_dir5))
         vfo350_grp.append(rs)
 
         rs = RadioSetting("compander5", "350M Compander",
@@ -2177,7 +2169,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scrambler5", scram5label,
                           RadioSettingValueList(
                             SCRAMBLER_LIST,
-                            SCRAMBLER_LIST[_settings.scrambler5]))
+                            current_index=_settings.scrambler5))
         vfo350_grp.append(rs)
 
         rs = RadioSetting("am_mode5", "350M AM Mode",
@@ -2233,7 +2225,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("shft_dir6", "850M Shift Direction",
                               RadioSettingValueList(
                                 DUPLEX_LIST,
-                                DUPLEX_LIST[_settings.shft_dir6]))
+                                current_index=_settings.shft_dir6))
         vfo850_grp.append(rs)
 
         rs = RadioSetting("compander6", "850M Compander",
@@ -2244,7 +2236,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scrambler6", scram6label,
                           RadioSettingValueList(
                             SCRAMBLER_LIST,
-                            SCRAMBLER_LIST[_settings.scrambler6]))
+                            current_index=_settings.scrambler6))
         vfo850_grp.append(rs)
 
         rs = RadioSetting("am_mode6", "850M AM Mode",
@@ -2309,7 +2301,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
             rs = RadioSetting("shft_dir7", "Shift Direction",
                               RadioSettingValueList(
                                 DUPLEX_LIST,
-                                DUPLEX_LIST[_settings.shft_dir7]))
+                                current_index=_settings.shft_dir7))
         vfob_grp.append(rs)
         rs = RadioSetting("compander7", "Compander",
                           RadioSettingValueBoolean(
@@ -2319,7 +2311,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scrambler7", scram7label,
                           RadioSettingValueList(
                             SCRAMBLER_LIST,
-                            SCRAMBLER_LIST[_settings.scrambler7]))
+                            current_index=_settings.scrambler7))
         vfob_grp.append(rs)
 
         rs = RadioSetting("vfosquelch_b", "Squelch",
@@ -2329,7 +2321,7 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("vfostep_b", "Step",
                           RadioSettingValueList(
                             STEP_LIST,
-                            STEP_LIST[_settings.vfostep_b]))
+                            current_index=_settings.vfostep_b))
         vfob_grp.append(rs)
 
         # Scan Group Settings
@@ -2342,17 +2334,17 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("scan_a_act", "Scan A Active Group",
                           RadioSettingValueList(
                             SCAN_GROUP_LIST,
-                            SCAN_GROUP_LIST[_settings.scan_a_act]))
+                            current_index=_settings.scan_a_act))
         scan_grp.append(rs)
         rs = RadioSetting("scan_b_act", "Scan B Active Group",
                           RadioSettingValueList(
                              SCAN_GROUP_LIST,
-                             SCAN_GROUP_LIST[_settings.scan_b_act]))
+                             current_index=_settings.scan_b_act))
         scan_grp.append(rs)
 
         for i in range(1, 11):
             x = str(i)
-            _str = _decode(eval("_settings.scanname"+x))
+            _str = _decode(getattr(_settings, 'scanname%s' % x))
             LOG.debug("ScanName %s", i)
             LOG.debug("is %s", _str)
             # CPS treats PPPPPP as a blank name as it is the factory reset
@@ -2382,25 +2374,19 @@ class KG980PRadio(chirp_common.CloneModeRadio,
                               RadioSettingValueString(0, 8, _str))
             scanname_grp.append(rs)
 
-            scngrp = str(i)
-            rs = RadioSetting("scanlower"+scngrp, "Scan Lower "+scngrp,
-                              RadioSettingValueInteger(1, 999,
-                                                       eval(
-                                                        "_settings.\
-                                                        scanlower" +
-                                                        scngrp)))
+            val = getattr(_settings, 'scanlower%i' % i)
+            rs = RadioSetting("scanlower%i" % i, "Scan Lower %i" % i,
+                              RadioSettingValueInteger(1, 999, val))
             scan_grp.append(rs)
-            rs = RadioSetting("scanupper"+scngrp, "Scan Upper "+scngrp,
-                              RadioSettingValueInteger(1, 999,
-                                                       eval(
-                                                        "_settings.scanupper" +
-                                                        scngrp)))
+            val = getattr(_settings, 'scanupper%i' % i)
+            rs = RadioSetting("scanupper%i" % i, "Scan Upper %i" % i,
+                              RadioSettingValueInteger(1, 999, val))
             scan_grp.append(rs)
 # remote settings
         rs = RadioSetting("rc_power", "RC Power",
                           RadioSettingValueList(
                            RC_POWER_LIST,
-                           RC_POWER_LIST[_settings.rc_power]))
+                           current_index=_settings.rc_power))
         remote_grp.append(rs)
 
         def decode_remote_vals(self, setting):
@@ -2472,17 +2458,17 @@ class KG980PRadio(chirp_common.CloneModeRadio,
         # FM RADIO PRESETS
 
         # memory stores raw integer value like 7600
-        # radio will divide 7600 by 100 and interpret correctly at 76.0Mhz
+        # radio will divide 7600 by 100 and interpret correctly at 76.0 MHz
 
         for i in range(1, 21):
             # chan = str(i)
             fmname = "FM_radio%i" % i
             fmlabel = "FM Preset %i" % i
             fmvalue = getattr(_settings, fmname)
-            # some CPS versions store values with .01 Mhz in error
-            # eg 99.5 Mhz is stored as 0x26df = 9951 dec = 99.51 Mhz
+            # some CPS versions store values with .01 MHz in error
+            # eg 99.5 MHz is stored as 0x26df = 9951 dec = 99.51 MHz
             # even though the radio properly displays 99.5
-            # this will drop the 0.01 Mhz for Chirp Displayed values
+            # this will drop the 0.01 MHz for Chirp Displayed values
             fmvalue = fmvalue // 10 / 10
             rs = RadioSetting(fmname, fmlabel,
                               RadioSettingValueFloat(76.0, 108.0,

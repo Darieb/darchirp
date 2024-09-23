@@ -100,8 +100,16 @@ def get_exceptions(f):
 
 
 if args.files:
+    old_files = cpep8_manifest
     cpep8_manifest = []
-    flake8_manifest = args.files
+    flake8_manifest = []
+    for fn in args.files:
+        if not fn.startswith('./'):
+            fn = './' + fn
+        if fn in old_files:
+            cpep8_manifest.append(fn)
+        else:
+            flake8_manifest.append(fn)
 
 # read the blacklisted source files
 blacklist = file_to_lines(blacklist_filename)
@@ -130,7 +138,7 @@ for i in range(0, len(flake8_manifest), 10):
     files = flake8_manifest[i:i + 10]
     if args.verbose:
         print('Checking %s' % files)
-    r = subprocess.call(['flake8', '--builtins=_'] + files)
+    r = subprocess.call(['flake8', '--builtins=_,ngettext'] + files)
     if r != 0:
         total_errors += r
 

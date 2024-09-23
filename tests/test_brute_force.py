@@ -1,4 +1,3 @@
-import copy
 import logging
 
 from chirp import chirp_common
@@ -92,8 +91,7 @@ class TestCaseBruteForce(base.DriverTest):
         if 'duplex' in m.immutable:
             self.skipTest('Test memory has immutable duplex')
         for duplex in self.rf.valid_duplexes:
-            if duplex not in ["", "-", "+", "split"]:
-                continue
+            assert duplex in ["", "-", "+", "split", "off"]
             if duplex == 'split':
                 self.assertTrue(self.rf.can_odd_split,
                                 'Radio supports split but does not set '
@@ -158,7 +156,7 @@ class TestCaseBruteForce(base.DriverTest):
         for mode in self.rf.valid_modes:
             self.assertIn(mode, chirp_common.MODES,
                           'Radio exposes non-standard mode')
-            tmp = copy.deepcopy(m)
+            tmp = m.dupe()
             if mode == "DV" and \
                 isinstance(self.radio,
                            chirp_common.IcomDstarSupport):

@@ -30,6 +30,8 @@ from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueList, RadioSettingValueString, RadioSettings
 
 LOG = logging.getLogger(__name__)
+COMM_DIRECTION_FROM = 0
+COMM_DIRECTION_TO = 1
 
 
 # Layout of Radio memory image.
@@ -54,10 +56,12 @@ struct slot {
  u8 rx_ctcss;   //see ctcss table, but radio code = CHIRP code+1. 0==off
  u8 tx_dcs;     //see dcs table, but radio code = CHIRP code+1. 0==off
  u8 rx_dcs;     //see dcs table, but radio code = CHIRP code+1. 0==off
- u8 duplex;     //(auto,offset). (0,2,4,5)= (+,-,0, auto)
+ u8 unknown1:5,
+    duplex:3;   //(auto,offset). (0,2,4,5)= (+,-,0, auto)
  ul16 offset;   //little-endian binary * scaler, +- per duplex
                    //scaler is 25 kHz for FT-4, 50 kHz for FT-65.
- u8 tx_width;   //0=wide, 1=narrow
+ u8 unknown2:7,
+    tx_width:1;  //0=wide, 1=narrow
  u8 step;       //STEPS (0-9)=(auto,5,6.25,10,12.5,15,20,25,50,100) kHz
  u8 sql_type;   //(0-6)==(off,r-tone,t-tone,tsql,rev tn,dcs,pager)
  u8 unused;
@@ -244,7 +248,7 @@ def variable_len_resp(pipe):
     return response
 
 
-def sendcmd(pipe, cmd, response_len):
+def sendcmd(pipe, cmd, response_len, retry=0):
     """
     send a command bytelist to radio,receive and return the resulting bytelist.
     Input: pipe         - serial port object to use
@@ -272,8 +276,13 @@ def sendcmd(pipe, cmd, response_len):
         response = b""
     ack = pipe.read(1)
     if ack != b'\x06':
-        LOG.debug("missing ack: expected 0x06, got" + util.hexprint(ack))
-        raise errors.RadioError("Incorrect ACK on serial port.")
+        if retry < 5:
+            LOG.debug("retry: " + str(retry))
+            retry += 1
+            return sendcmd(pipe, cmd, response_len, retry)
+        else:
+            LOG.debug("missing ack: expected 0x06, got" + util.hexprint(ack))
+            raise errors.RadioError("Incorrect ACK on serial port.")
     return response
 
 
@@ -294,7 +303,7 @@ def enter_clonemode(radio):
     raise errors.RadioError("expected QX from radio.")
 
 
-def startcomms(radio, way):
+def startcomms(radio, direction):
     """
     For either upload or download, put the radio into PROGRAM mode
     and check the radio's ID. In this preliminary version of the driver,
@@ -303,8 +312,23 @@ def startcomms(radio, way):
         send "PROGRAM" to command the radio into clone mode
         read the initial string (version?)
     """
+
+    progress_messages = {
+        COMM_DIRECTION_FROM: _("Cloning from radio"),
+        COMM_DIRECTION_TO: _("Cloning to radio")
+    }
+
     progressbar = chirp_common.Status()
-    progressbar.msg = "Cloning " + way + " radio"
+    if direction in progress_messages:
+        progressbar.msg = progress_messages[direction]
+    else:
+        LOG.debug(
+            f"direction parameter value is not recognised: {direction}"
+            )
+        raise errors.InvalidValueError(
+            f"Unexpected parameter received: {direction}"
+            )
+
     progressbar.max = radio.numblocks
     enter_clonemode(radio)
     id_response = sendcmd(radio.pipe, b'\x02', None)
@@ -365,7 +389,7 @@ def do_download(radio):
     """
     image = bytearray(radio.get_memsize())
     pipe = radio.pipe  # Get the serial port connection
-    progressbar = startcomms(radio, "from")
+    progressbar = startcomms(radio, COMM_DIRECTION_FROM)
     for blocknum in range(radio.numblocks):
         for i in range(0, 3):
             if getblock(pipe, 16 * blocknum, image):
@@ -376,7 +400,7 @@ def do_download(radio):
         progressbar.cur = blocknum
         radio.status_fn(progressbar)
     sendcmd(pipe, b"END", 0)
-    return memmap.MemoryMap(bytes(image))
+    return memmap.MemoryMapBytes(bytes(image))
 
 
 def putblock(pipe, addr, data):
@@ -397,7 +421,7 @@ def do_upload(radio):
       send "END"
     """
     pipe = radio.pipe  # Get the serial port connection
-    progressbar = startcomms(radio, "to")
+    progressbar = startcomms(radio, COMM_DIRECTION_TO)
     data = get_mmap_data(radio)
     for _i in range(1, radio.numblocks):
         putblock(pipe, 16*_i, data[16*_i:16*(_i+1)])
@@ -510,7 +534,8 @@ POWER_LEVELS = [
 # these steps encode to 0-9 on all radios, but encoding #2 is disallowed
 # on the US versions (FT-4XR)
 STEP_CODE = [0, 5.0, 6.25, 10.0, 12.5, 15.0, 20.0, 25.0, 50.0, 100.0]
-US_LEGAL_STEPS = list(STEP_CODE)  # copy to pass to UI on US radios
+VALID_STEPS = [x for x in STEP_CODE if x]
+US_LEGAL_STEPS = list(VALID_STEPS)  # copy to pass to UI on US radios
 US_LEGAL_STEPS.remove(6.25)       # euro radios just use STEP_CODE
 
 # Map the radio image sql_type (0-6) to the CHIRP mem values.
@@ -520,7 +545,7 @@ US_LEGAL_STEPS.remove(6.25)       # euro radios just use STEP_CODE
 # is 6 (PAGER). Each row is a tuple. Its first member is a list of
 # [tmode,cross] or [tmode, cross, suppress]. "Suppress" is used only when
 # encoding UI-->radio. When decoding radio-->UI, two of the sql_types each
-# result in 5 possibible UI decodings depending on the tx and rx codes, and the
+# result in 5 possible UI decodings depending on the tx and rx codes, and the
 # list in each of these rows has five members. These two row tuples each have
 # two additional members to specify which of the radio fields to examine.
 # The map from CHIRP UI to radio image types is also built from this table.
@@ -555,7 +580,7 @@ TONE_DICT = {}          # encode sql_type.
 CROSS_DICT = {}         # encode sql_type.
 
 for sql_type in reversed(range(0, len(RADIO_TMODES))):
-    sql_type_row = RADIO_TMODES[sql_type]
+    sql_type_row: list = RADIO_TMODES[sql_type]
     for decode_row in sql_type_row[0]:
         suppress = None
         if len(decode_row) == 3:
@@ -669,7 +694,7 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
     MODEL = "SCU-35Generic"  # No radio directly uses the base class
     BAUD_RATE = 9600
     MAX_MEM_SLOT = 200
-    NEEDS_COMPAT_SERIAL = False
+    DUPLEX_OFF_VIA_OFFSET = False
 
     # These settings are common to all radios in this family.
     _valid_chars = chirp_common.CHARSET_ASCII
@@ -691,16 +716,15 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
     @classmethod
     def get_prompts(cls):
         rp = chirp_common.RadioPrompts()
-        rp.experimental = (
-            'Tested and mostly works, but may give you issues\n'
-            'when using lesser common radio variants.\n'
-            'Proceed at your own risk, and let us know about issues!'
+        rp.experimental = _(
+            "Tested and mostly works, but may give you issues\n"
+            "when using lesser common radio variants.\n"
+            "Proceed at your own risk, and let us know about issues!"
             )
 
-        rp.pre_download = "".join([
-            "1. Connect programming cable to MIC jack.\n",
+        rp.pre_download = _(
+            "1. Connect programming cable to MIC jack.\n"
             "2. Press OK."
-            ]
             )
         rp.pre_upload = rp.pre_download
         return rp
@@ -837,7 +861,7 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
     # A param is a tuple:
     #  for a simple param: (paramname, paramtitle,[valuename list])
     #  for a handler param: (paramname, paramtitle,( handler,[handler params]))
-    # This is a class variable. subclasses msut create a variable named
+    # This is a class variable. subclasses must create a variable named
     # class_group_descs. The FT-4 classes simply equate this, but the
     # FT-65 classes must copy and modify this.
     group_descriptions = [
@@ -868,8 +892,8 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
          ("bell", "Bell Repetitions", ["OFF", "1T", "3T", "5T", "8T", "CONT"]),
          ("dtmf_mode", "DTMF Mode", ["Manual", "Auto"]),
          ("dtmf_delay", "DTMF Autodialer Delay Time",
-          ["50 MS", "100 MS", "250 MS", "450 MS", "750 MS", "1000 MS"]),
-         ("dtmf_speed", "DTMF Autodialer Sending Speed", ["50 MS", "100 MS"]),
+          ["50 ms", "100 ms", "250 ms", "450 ms", "750 ms", "1000 ms"]),
+         ("dtmf_speed", "DTMF Autodialer Sending Speed", ["50 ms", "100 ms"]),
          ("dtmf", "DTMF Autodialer Memory ",  (get_dtmfs, []))  # handler
          ]),
         ("switch", "Switch/Knob Settings", [  # switch
@@ -887,7 +911,7 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
          ]),
         ("power", "Power Saver Settings", [  # power
          ("battsave", "Receive Mode Battery Save Interval",
-          ["OFF", "200 MS", "300 MS", "500 MS", "1 S", "2 S"]),
+          ["OFF", "200 ms", "300 ms", "500 ms", "1 s", "2 s"]),
          ("tx_save", "Transmitter Battery Saver", ["OFF", "ON"])
          ]),
         ("eai", "EAI/EPCS Settings", [  # eai
@@ -1007,7 +1031,7 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
         if mem.tmode == "TSQL":
             chan.tx_ctcss = chan.rx_ctcss  # CHIRP uses ctone for TSQL
         if mem.tmode == "DTCS":
-            chan.tx_dcs = chan.rx_dcs     # CHIRP uses rx_dtcs for DTCS
+            chan.rx_dcs = chan.tx_dcs     # CHIRP uses rx_dtcs for DTCS
         # select the correct internal dictionary and key
         mode_dict, key = [
             (TONE_DICT, mem.tmode),
@@ -1142,11 +1166,33 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
                 mem.offset = txfreq
             else:
                 mem.offset = int(_mem.offset) * 25000 * freq_offset_factor
+            if self.DUPLEX_OFF_VIA_OFFSET and mem.duplex in ['+', '-']:
+                band = self.band_for_freq(mem.freq)
+                if band is not None and self.DUPLEX_OFF_VIA_OFFSET[band]:
+                    sign = 1 if mem.duplex == "+" else -1
+                    tx = mem.freq + (sign * mem.offset)
+                    if self.band_for_freq(tx) is None:
+                        mem.duplex = "off"
+                        mem.offset = 0
             self.decode_sql(mem, _mem)
             mem.power = POWER_LEVELS[2 - _mem.tx_pwr]
             mem.mode = ["FM", "NFM"][_mem.tx_width]
             mem.tuning_step = STEP_CODE[_mem.step]
         return mem
+
+    def band_for_freq(self, freq):
+        """
+        We need to find the valid_bands list index a frequency falls
+        within, if any, to help determine if DUPLEX_OFF_VIA_OFFSET
+        logic is required
+        """
+        band_index = None
+        for i, limits in enumerate(self.valid_bands):
+            lo, hi = limits
+            if lo <= freq <= hi:
+                band_index = i
+                break
+        return band_index
 
     def enforce_band(self, memloc, freq, mem_num, sname):
         """
@@ -1182,20 +1228,26 @@ class YaesuSC35GenericRadio(chirp_common.CloneModeRadio,
         _mem.tx_width = mem.mode == "NFM"
         _mem.step = STEP_CODE.index(mem.tuning_step)
 
+        duplex = mem.duplex
+        offset = mem.offset
+        if self.DUPLEX_OFF_VIA_OFFSET and duplex == "off":
+            band = self.band_for_freq(mem.freq)
+            if band is not None and self.DUPLEX_OFF_VIA_OFFSET[band]:
+                duplex, offset = self.DUPLEX_OFF_VIA_OFFSET[band]
+
         freq_offset_factor = self.freq_offset_factor
         # FT-25R/65R Asia version (US version is 0)?
         if self.subtype == 3 and freq_offset_factor == 2:
             freq_offset_factor = 1  # 25000 scaler
-        _mem.offset = mem.offset / (25000 * freq_offset_factor)
-        duplex = mem.duplex
+        _mem.offset = offset / (25000 * freq_offset_factor)
         if regtype in ["memory", "pms"]:
             ndx = num - 1
             store_bit(self._memobj.enable, ndx, True)
             store_bit(self._memobj.scan, ndx, SKIPS.index(mem.skip))
             nametrim = (mem.name + "        ")[:8]
             self._memobj.names[ndx].chrs = bytearray(nametrim, "ascii")
-            if mem.duplex == "split":
-                txfreq = mem.offset / 10
+            if duplex == "split":
+                txfreq = offset / 10
             self._memobj.txfreqs[num-1].freq = txfreq
         _mem.duplex = DUPLEX.index(duplex)
         if regtype in ["vfo", "home"]:
@@ -1282,7 +1334,7 @@ class YaesuFT4XERadio(YaesuFT4GenericRadio):
     id_str = b'IFT-35R\x00\x00V100\x00\x00'
     valid_bands = VALID_BANDS_DUAL
     DUPLEX_AUTO = DUPLEX_AUTO_EU
-    legal_steps = STEP_CODE
+    legal_steps = VALID_STEPS
     BAND_ASSIGNMENTS = BAND_ASSIGNMENTS_DUALBAND
 
 
@@ -1322,8 +1374,13 @@ class YaesuFT65RRadio(YaesuFT65GenericRadio):
     id_str = b'IH-420\x00\x00\x00V100\x00\x00'
     valid_bands = VALID_BANDS_DUAL
     DUPLEX_AUTO = DUPLEX_AUTO_US
-    legal_steps = STEP_CODE
+    legal_steps = VALID_STEPS
     BAND_ASSIGNMENTS = BAND_ASSIGNMENTS_DUALBAND
+    DUPLEX_OFF_VIA_OFFSET = [  # matches the order of valid_bands
+        None,  # Don't modify broadcast FM memories
+        ("-", 99_950_000),
+        ("+", 99_950_000),
+        ]
 
 
 @directory.register
@@ -1335,7 +1392,7 @@ class YaesuFT65ERadio(YaesuFT65GenericRadio):
     id_str = b'IH-420\x00\x00\x00V100\x00\x00'
     valid_bands = VALID_BANDS_DUAL
     DUPLEX_AUTO = DUPLEX_AUTO_EU
-    legal_steps = STEP_CODE
+    legal_steps = VALID_STEPS
     BAND_ASSIGNMENTS = BAND_ASSIGNMENTS_DUALBAND
 
 

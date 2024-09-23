@@ -3,6 +3,9 @@ Abbree:
   model: AR-F3
 - alt: Wouxun KG-UV8D
   model: AR-F8
+Anysecu:
+- alt: Quansheng UV-K5
+  model: UV-K5
 Arcshell:
 - alt: Radtel T18
   model: AR-7
@@ -10,6 +13,12 @@ Baiston:
 - alt: Baofeng BF-888
   model: BST-2100
 Baofeng/Pofung:
+- alt: 5RM
+  model: Baofeng AR-5RM
+- alt: BF-1901
+  model: Baofeng BF-1902
+- alt: BF-1901
+  model: Baofeng BF-1903
 - alt: Baofeng BF-888
   model: Baofeng BF-777S
 - alt: UV-5R
@@ -18,6 +27,10 @@ Baofeng/Pofung:
   model: AR-152
 - alt: UV-5R
   model: B-580T
+- alt: UV-25
+  model: BF-18H
+- alt: UV-25
+  model: BF-18L
 - alt: BF-888
   model: BF-88E
   #- alt: BF/T1
@@ -76,6 +89,8 @@ Baofeng/Pofung:
   model: GT-5
 - alt: UV-82HP
   model: GT-5TP
+- alt: 5RX
+  model: M-5R
   #- alt: BF-T1
   #  model: Mini
 - alt: Radioddity UV-5G
@@ -86,6 +101,8 @@ Baofeng/Pofung:
   model: P11UV
 - alt: Radioddity UV-5G
   model: UV-5G
+- alt: Baofeng GM-5RH
+  model: UV-5G Plus
 - alt: BF-F8HP
   model: UV-5R HTQ
 - alt: BF-F8HP
@@ -112,6 +129,8 @@ Baofeng/Pofung:
   model: UV-5RE, UV-5RE+
 - alt: UV-5R
   model: UV-5RG, RK, RQ, RS, RT, RU
+- alt: Baofeng 5RM
+  model: UV-5RH Pro Max
 - alt: BF-F8HP
   model: UV-5RHP
 - alt: Radioddity UV-5RX3
@@ -132,8 +151,6 @@ Baofeng/Pofung:
   model: UV-5X (GMRS version)
 - alt: UV-82HP
   model: UV-8R
-- alt: Radioddity GA-510
-  model: UV-9R Pro (BF-H6 variant)
 - alt: Radioddity UV-5RX3
   model: UV-9S
 - alt: UV-82HP
@@ -159,8 +176,8 @@ Baofeng/Pofung:
 - alt: BF-F8HP
   model: UV-S9
   variant: 'tri-power: '
-- alt: Radioddity UV-5RX3
-  model: UV-S9/S9T/S9X3
+- alt: UV-S9X3
+  model: UV-S9/S9T
   variant: 'tri-band: '
 - alt: UV-82HP
   model: UV-X9
@@ -169,6 +186,9 @@ Cignus:
   model: UV-85
 - alt: TYT TH-UV88
   model: UV-87
+CRT:
+- alt: QYT KT8900D
+  model: CRT 279 UV
 Hesenate:
 - alt: Radioddity UV-5RX3
   model: HT-5RX3
@@ -185,12 +205,18 @@ Jianpai:
   model: FT-UV78
 - alt: Abbree AR-63
   model: G63
+KSUN:
+- alt: Quansheng UV-K5
+  model: UV60D
 Marui:
 - alt: TYT TH-UV88
   model: MR-UV1
 Midland:
 - alt: Puxing PX-777
   model: CT-210
+My Emergency Radio:
+- alt: TYT TH-UV88
+  model: MYEMR1
 NKTech:
 - alt: Retevis RT6
   model: UV-7RX
@@ -203,9 +229,23 @@ R&L Electronics:
 Radioddity:
 - alt: Radioddity UV-5G
   model: UV-5X
+- alt: AnyTone 5888UV
+  model: DB50
 Radtel:
 - alt: Retevis RT22
   model: RT-10
+- alt: Abbree AR-730
+  model: RT-420
+- alt: Quansheng UV-K5
+  model: RT-590
+- alt: Quansheng UV-K5
+  model: RT-600
+- alt: Abbree AR-F5
+  model: RT-610
+- alt: Abbree AR-518
+  model: RT-850
+- alt: Ruyage UV58Plus
+  model: RT-890
 Retevis:
 - alt: Retevis H777 Plus
   model: H777 (FRS)
@@ -213,9 +253,12 @@ Retevis:
   model: RT5 with 2 power levels
 - alt: Baofeng UV-B5
   model: RT-B6
-Rugged Radios:
-- alt: Baofeng UV-5R
-  model: RH5R, RH5R-V2
+- alt: Retevis RB27
+  model: RB27B (full band support)
+- alt: Retevis RB27
+  model: RB27V (full band support)
+- alt: Retevis RB27
+  model: RB627B (full band support)
 Ruyage:
 - alt: Abbree AR-518
   model: UV58
@@ -270,6 +313,8 @@ Wurui:
 Yaesu:
 - alt: FTM-3200DR
   model: FTM-3100
+- alt: VX-170
+  model: FT-270
 Zastone:
 - alt: QYT KT8900D
   model: MP-380
@@ -293,3 +338,14 @@ youRUSH:
 Quansheng:
 - alt: TG-UV2+
   model: TG-UV2
+- alt: UV-K5
+  model: UV-K6
+- alt: UV-K5
+  model: UV-K5(8)
+- alt: UV-K5
+  model: UV-K5(99)
+- alt: UV-K5
+  model: UV-5R Plus
+Powerful:
+- alt: Quansheng UV-K5
+  model: UV-S5

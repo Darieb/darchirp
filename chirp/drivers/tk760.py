@@ -17,8 +17,7 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
-    RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettings
+    RadioSettingValueString, RadioSettings
 
 import time
 import struct
@@ -176,7 +175,6 @@ def recv(radio):
     if len(rxdata) != 12:
         raise errors.RadioError(
             "Received a length of data that is not possible")
-        return
 
     cmd, addr, length = struct.unpack(">BHB", rxdata[0:4])
     data = ""
@@ -226,7 +224,7 @@ def open_radio(radio):
     # validate the input
     if len(ident) != 8:
         LOG.debug("Wrong ID, get only %s bytes, we expect 8" % len(ident))
-        LOG.debug(hexprint(ident))
+        LOG.debug(util.hexprint(ident))
         msg = "Bad ID received, just %s bytes, we want 8" % len(ident)
         raise errors.RadioError(msg)
 
@@ -333,7 +331,6 @@ class Kenwood_M60_Radio(chirp_common.CloneModeRadio,
     _upper = 32
     VARIANT = ""
     MODEL = ""
-    NEEDS_COMPAT_SERIAL = False
 
     @classmethod
     def get_prompts(cls):
@@ -418,7 +415,7 @@ class Kenwood_M60_Radio(chirp_common.CloneModeRadio,
         to the correct variant of the radio"""
         rid = get_rid(self._mmap)
 
-        # identify the radio variant and set the environment to it's values
+        # identify the radio variant and set the environment to its values
         try:
             self._upper, low, high, self._kind = self.VARIANTS[rid]
 
@@ -472,7 +469,7 @@ class Kenwood_M60_Radio(chirp_common.CloneModeRadio,
     def decode_tone(self, val):
         """Parse the tone data to decode from mem, it returns:
         Mode (''|DTCS|Tone), Value (None|###), Polarity (None,N,R)"""
-        if val.get_raw() == "\xFF\xFF":
+        if val.get_raw(asbytes=False) == "\xFF\xFF":
             return '', None, None
 
         val = int(val)
@@ -558,9 +555,10 @@ class Kenwood_M60_Radio(chirp_common.CloneModeRadio,
         # Memory number
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xFF" or not self.get_active(number - 1):
+        if (_mem.get_raw(asbytes=False)[0] == "\xFF" or
+                not self.get_active(number - 1)):
             mem.empty = True
-            # but is not enough, you have to crear the memory in the mmap
+            # but is not enough, you have to clear the memory in the mmap
             # to get it ready for the sync_out process
             _mem.set_raw("\xFF" * 8)
             return mem
@@ -568,7 +566,7 @@ class Kenwood_M60_Radio(chirp_common.CloneModeRadio,
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        if _mem.get_raw()[4] == "\xFF":
+        if _mem.get_raw(asbytes=False)[4] == "\xFF":
             # TX freq not set
             mem.offset = 0
             mem.duplex = "off"

@@ -23,8 +23,8 @@ import serial
 from chirp import chirp_common, directory, bitwise, memmap, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
                 RadioSettingValueBoolean, RadioSettingValueList, \
-                RadioSettingValueInteger, RadioSettingValueString, \
-                RadioSettingValueFloat, RadioSettingValueMap, RadioSettings
+                RadioSettingValueInteger, RadioSettingValueFloat, \
+                RadioSettingValueMap, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -114,9 +114,7 @@ struct name names[200];
 """
 
 
-def do_ident(radio):
-    radio.pipe.timeout = 3
-    radio.pipe.stopbits = serial.STOPBITS_TWO
+def do_program_mode(radio):
     radio.pipe.write(b"\x02PnOGdAM")
     for x in range(10):
         ack = radio.pipe.read(1)
@@ -124,11 +122,23 @@ def do_ident(radio):
             break
     else:
         raise errors.RadioError("Radio did not ack programming mode")
-    radio.pipe.write(b"\x40\x02")
+
+
+def do_ident(radio):
+    radio.pipe.timeout = 3
+    radio.pipe.stopbits = serial.STOPBITS_TWO
+    do_program_mode(radio)
+    radio.pipe.write(b"\x4D\x02")
     ident = radio.pipe.read(8)
     LOG.debug(util.hexprint(ident))
     if not ident.startswith(b'P5555'):
-        raise errors.RadioError("Unsupported model")
+        LOG.debug("First ident attempt (x4D, x02) failed trying 0x40,x02")
+        do_program_mode(radio)
+        radio.pipe.write(b"\x40\x02")
+        ident = radio.pipe.read(8)
+        LOG.debug(util.hexprint(ident))
+        if not ident.startswith(b'P5555'):
+            raise errors.RadioError("Unsupported model")
     radio.pipe.write(b"\x06")
     ack = radio.pipe.read(1)
     if ack != b"\x06":
@@ -209,7 +219,6 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
     VENDOR = "Quansheng"
     MODEL = "TG-UV2+"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     _memsize = 0x2000
 
@@ -342,13 +351,14 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
         else:
             mem.number = number
 
-        if (_mem.freq.get_raw()[0] == "\xFF") or (_bf.band == "\x0F"):
+        if ((_mem.freq.get_raw(asbytes=False)[0] == "\xFF") or
+                (_bf.band == "\x0F")):
             mem.empty = True
             return mem
 
         mem.freq = int(_mem.freq) * 10
 
-        if _mem.offset.get_raw()[0] == "\xFF":
+        if _mem.offset.get_raw(asbytes=False)[0] == "\xFF":
             mem.offset = 0
         else:
             mem.offset = int(_mem.offset) * 10
@@ -450,14 +460,14 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
         options = ["Off"] + ["%s min" % x for x in range(1, 10)]
         rs = RadioSetting("time_out_timer", "TX Time Out Timer",
                           RadioSettingValueList(
-                              options, options[_settings.time_out_timer]))
+                              options, current_index=_settings.time_out_timer))
         cfg_grp.append(rs)
 
         # Display mode
         options = ["Frequency", "Channel", "Name"]
         rs = RadioSetting("display", "Channel Display Mode",
                           RadioSettingValueList(
-                              options, options[_settings.display]))
+                              options, current_index=_settings.display))
         cfg_grp.append(rs)
 
         # Squelch level
@@ -489,7 +499,7 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
             _rxmode = _settings.rxmode
         rs = RadioSetting("rxmode", "Dual Watch/CrossBand Monitor",
                           RadioSettingValueList(
-                            options, options[_rxmode]))
+                            options, current_index=_rxmode))
         cfg_grp.append(rs)
 
         # Busy channel lock
@@ -572,7 +582,7 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
             tempvar = 0 if (vfo_mem[idx].current < 200) else 1
             rs = RadioSetting(vfo_lower[idx] + "_mode", vfo_upper[idx]+" Mode",
                               RadioSettingValueList(
-                                  options, options[tempvar]))
+                                  options, current_index=tempvar))
             vfo_group.append(rs)
 
             if tempvar == 0:
@@ -604,11 +614,10 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
                                       resolution=0.005))
                 vfo_group.append(rs)
 
-                rs = RadioSetting(vfo_lower[idx] + "_duplex",
-                                  vfo_upper[idx] + " Shift",
-                                  RadioSettingValueList(
-                                      DUPLEX,
-                                      DUPLEX[_bandsettings[band_num].duplex]))
+                rs = RadioSetting(
+                    vfo_lower[idx] + "_duplex", vfo_upper[idx] + " Shift",
+                    RadioSettingValueList(
+                        DUPLEX, current_index=_bandsettings[band_num].duplex))
                 vfo_group.append(rs)
 
                 rs = RadioSetting(
@@ -625,14 +634,14 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
                     vfo_upper[idx] + " Power",
                     RadioSettingValueList(
                         POWER_LEVELS_STR,
-                        POWER_LEVELS_STR[_bandsettings[band_num].power]))
+                        current_index=_bandsettings[band_num].power))
                 vfo_group.append(rs)
 
                 options = ["None", "Tone", "DTCS-N", "DTCS-I"]
                 rs = RadioSetting(vfo_lower[idx] + "_ttmode",
                                   vfo_upper[idx]+" TX tone mode",
                                   RadioSettingValueList(
-                                      options, options[txtmode]))
+                                      options, current_index=txtmode))
                 vfo_group.append(rs)
                 if txtmode == 1:
                     rs = RadioSetting(
@@ -656,7 +665,7 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
                 rs = RadioSetting(vfo_lower[idx] + "_rtmode",
                                   vfo_upper[idx] + " RX tone mode",
                                   RadioSettingValueList(options,
-                                                        options[rxtmode]))
+                                                        current_index=rxtmode))
                 vfo_group.append(rs)
 
                 if rxtmode == 1:
@@ -682,7 +691,8 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
                     vfo_lower[idx] + "_fm",
                     vfo_upper[idx] + " FM BW ",
                     RadioSettingValueList(
-                        options, options[_bandsettings[band_num].isnarrow]))
+                        options,
+                        current_index=_bandsettings[band_num].isnarrow))
                 vfo_group.append(rs)
 
         return group
@@ -691,7 +701,8 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
         if ch_num == 0xFF:
             return True
         _mem, _bf, _nam = self._get_memobjs(ch_num)
-        if (_mem.freq.get_raw()[0] == "\xFF") or (_bf.band == "\x0F"):
+        if ((_mem.freq.get_raw(asbytes=False)[0] == "\xFF") or
+                (_bf.band == "\x0F")):
             return False
         elif _bf.band == 0x00:
             return False
@@ -762,12 +773,12 @@ class QuanshengTGUV2P(chirp_common.CloneModeRadio,
                             raise errors.InvalidValueError(
                                 "Please select a valid priority channel:\n"
                                 "A used memory channel which is not "
-                                "in the Broadcast FM band (88-108MHz),\n"
+                                "in the Broadcast FM band (88-108 MHz),\n"
                                 "Or select 'Not Used'")
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

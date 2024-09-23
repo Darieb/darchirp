@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import division
-
 import struct
 import logging
 from math import floor
@@ -256,7 +254,6 @@ class Th350Radio(BaofengUVB5):
     VENDOR = "TYT"
     MODEL = "TH-350"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     SPECIALS = {
         "VFO1": -3,
         "VFO2": -2,

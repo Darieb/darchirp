@@ -82,7 +82,6 @@ class HF90StyleRadio(chirp_common.CloneModeRadio,
     MODES = ["LSB", "USB"]
     DUPLEX = ["", "+", "-", "split", "off"]
     BAUD_RATE = 4800
-    NEEDS_COMPAT_SERIAL = False
 
     HF90_POWER_LEVELS = ["Low", "High"]
 
@@ -348,7 +347,7 @@ class HF90StyleRadio(chirp_common.CloneModeRadio,
         rs = RadioSetting("type", "Type",
                           RadioSettingValueList(
                               self.HF90_TYPES,
-                              self.HF90_TYPES[_settings.type]))
+                              current_index=_settings.type))
         rs.set_apply_callback(self.apply_type, _settings)
         grp.append(rs)
 
@@ -382,7 +381,7 @@ class HF90StyleRadio(chirp_common.CloneModeRadio,
         hp = int(_settings.tx_power == 3)
         rs = RadioSetting("tx_power", "Tx Power",
                           RadioSettingValueList(self.HF90_POWER_LEVELS,
-                                                self.HF90_POWER_LEVELS[hp]))
+                                                current_index=hp))
         rs.set_apply_callback(self.apply_txpower, _settings)
         grp.append(rs)
 

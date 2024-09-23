@@ -27,7 +27,7 @@ DESC = {
 # Bands are broken up like this so that other plans can import bits.
 
 BANDS_2100M = (
-  bandplan.Band((135700, 137800), "137khz Band", mode="CW"),
+  bandplan.Band((135700, 137800), "137 kHz Band", mode="CW"),
 )
 
 BANDS_160M = (
@@ -143,8 +143,8 @@ BANDS_10M = (
   bandplan.Band((29520000, 29700000), "Wide band", step_khz=10, mode="NFM"),
 )
 
-BANDS = BANDS_2100M + BANDS_160M + BANDS_80M + BANDS_40M + BANDS_30M
-BANDS = BANDS + BANDS_20M + BANDS_17M + BANDS_15M + BANDS_12M + BANDS_10M
+BANDS = BANDS_2100M + BANDS_160M + BANDS_80M + BANDS_40M + BANDS_30M + \
+        BANDS_20M + BANDS_17M + BANDS_15M + BANDS_12M + BANDS_10M
 
 
 # EU Analogue/DMR PMR446 Frequencies

@@ -1,5 +1,4 @@
 # Latest update: April, 2021 Add hasattr test at line 564
-import serial
 import struct
 import logging
 from chirp.drivers import icf
@@ -143,6 +142,103 @@ bbcd ctone_tx[2];             // 15-17 tone rx squelch setting
 char name[10];             // 18-27 Callsign
 """
 
+MEM_IC9700_FORMAT = """
+u8 bank;
+bbcd number[2];
+u8 select_memory;
+lbcd freq[5];
+bbcd mode;
+u8 filter;
+bbcd data_mode;
+u8 duplex:4,
+   tmode:4;
+u8 dig_sql:4,
+   unused1:4;
+bbcd rtone[3];
+bbcd ctone[3];
+u8 dtcs_polarity;
+bbcd dtcs[2];
+u8 dig_code;
+lbcd duplexOffset[3];
+char urcall[8];
+char rpt1call[8];
+char rpt2call[8];
+char name[16];
+"""
+
+MEM_IC9700_SAT_FORMAT = """
+bbcd number[2];
+lbcd freq[5];
+bbcd mode;
+u8 filter;
+bbcd data_mode;
+u8 unused1:4,
+   tmode:4;
+u8 unused2:4,
+   dig_sql:4;
+bbcd rtone[3];
+bbcd ctone[3];
+u8 dtcs_polarity;
+bbcd dtcs[2];
+u8 dig_code;
+char urcall[8];
+char rpt1call[8];
+char rpt2call[8];
+struct {
+  lbcd freq[5];
+  bbcd mode;
+  u8 filter;
+  bbcd data_mode;
+  u8 unused1:4,
+     tmode:4;
+  u8 unused2:4,
+     dig_sql:4;
+     bbcd rtone[3];
+     bbcd ctone[3];
+     u8 dtcs_polarity;
+     bbcd dtcs[2];
+     u8 dig_code;
+     char urcall[8];
+     char rpt1call[8];
+     char rpt2call[8];
+  } tx;
+char name[16];
+"""
+
+MEM_IC7400_FORMAT = """
+bbcd number[2];
+u8   unknown1;
+lbcd freq[5];
+u8   mode;
+u8   filter;
+u8   unknown2:7,
+     dig:1;
+u8   unknown3:2,
+     duplex:2,
+     unknown4:1,
+     tmode:3;
+bbcd rtone[3];
+bbcd ctone[3];
+u8   dtcs_polarity;
+bbcd dtcs[2];
+// As with IC-7300 it seems the following are duplicated parameters save for
+// `dig` which seem to be zeroed in unknown5
+lbcd freq_tx[5];
+u8   mode_tx;
+u8   filter_tx;
+u8 unknown5;
+u8   unknown6:2,
+     duplex_tx:2,
+     unknown7:1,
+     tmode_tx:3;
+bbcd rtone_tx[3];
+bbcd ctone_tx[3];
+u8   dtcs_polarity_tx;
+bbcd dtcs_tx[2];
+// End TX duplicate block
+char name[8];
+"""
+
 MEM_IC7610_FORMAT = """
 bbcd number[2];            // 1,2
 u8   spl:4,                // 3 split and select memory settings
@@ -165,12 +261,12 @@ SPLIT = ["", "spl"]
 class Frame:
     """Base class for an ICF frame"""
     _cmd = 0x00
-    _sub = 0x00
+    _sub: int | None = 0x00
 
     def __init__(self):
         self._data = b""
 
-    def set_command(self, cmd, sub):
+    def set_command(self, cmd, sub=None):
         """Set the command number (and optional subcommand)"""
         self._cmd = cmd
         self._sub = sub
@@ -185,7 +281,10 @@ class Frame:
 
     def send(self, src, dst, serial, willecho=True):
         """Send the frame over @serial, using @src and @dst addresses"""
-        hdr = struct.pack("BBBBBB", 0xFE, 0xFE, src, dst, self._cmd, self._sub)
+        hdr = struct.pack("BBBBB", 0xFE, 0xFE, src, dst, self._cmd)
+        # Some commands have no subcommand
+        if self._sub is not None:
+            hdr += bytes([self._sub])
         raw = bytearray(hdr)
         if isinstance(self._data, MemoryMapBytes):
             data = self._data.get_packed()
@@ -222,8 +321,14 @@ class Frame:
         LOG.debug("%02x <- %02x:\n%s" % (dst, src, util.hexprint(bytes(data))))
 
         self._cmd = data[4]
-        self._sub = data[5]
-        self._data = data[6:-1]
+        # If we've been set with a None subcommand, assume we don't expect
+        # it from the radio
+        if self._sub is None:
+            dataidx = 5
+        else:
+            self._sub = data[5]
+            dataidx = 6
+        self._data = data[dataidx:-1]
 
         return src, dst
 
@@ -259,8 +364,7 @@ class MemFrame(Frame):
 
     def initialize(self):
         """Initialize to sane values"""
-        self._data = MemoryMapBytes(
-            bytes(b'\x00' * (self.get_obj().size() / 8)))
+        self._data = bytes(b'\x00' * (self.get_obj().size() // 8))
 
 
 class BankMemFrame(MemFrame):
@@ -300,12 +404,27 @@ class DupToneMemFrame(MemFrame):
         return bitwise.parse(mem_duptone_format, self._data)
 
 
+class IC7400MemFrame(MemFrame):
+    def get_obj(self):
+        self._data = MemoryMapBytes(bytes(self._data))
+        return bitwise.parse(MEM_IC7400_FORMAT, self._data)
+
+
 class IC7300MemFrame(MemFrame):
     FORMAT = MEM_IC7300_FORMAT
 
 
 class IC7610MemFrame(MemFrame):
     FORMAT = MEM_IC7610_FORMAT
+
+
+class IC9700MemFrame(BankMemFrame):
+    FORMAT = MEM_IC9700_FORMAT
+
+
+class IC9700SatMemFrame(MemFrame):
+    _sub = 0x07
+    FORMAT = MEM_IC9700_SAT_FORMAT
 
 
 class SpecialChannel(object):
@@ -336,7 +455,6 @@ class BankSpecialChannel(SpecialChannel):
 class IcomCIVRadio(icf.IcomLiveRadio):
     """Base class for ICOM CIV-based radios"""
     BAUD_RATE = 19200
-    NEEDS_COMPAT_SERIAL = False
     MODEL = "CIV Radio"
     # RTS is interpreted as "transmit now" on some interface boxes for these
     WANTS_RTS = False
@@ -347,7 +465,7 @@ class IcomCIVRadio(icf.IcomLiveRadio):
     # each radio supports a subset
     # WARNING: "S-AM" and "PSK" are not valid (yet) for chirp
     _MODES = [
-        "LSB", "USB", "AM", "CW", "RTTY", "FM", "WFM", "CWR"
+        "LSB", "USB", "AM", "CW", "RTTY", "FM", "WFM", "CWR",
         "RTTYR", "S-AM", "PSK", None, None, None, None, None,
         None, None, None, None, None, None, None, None,
         "DV",
@@ -411,8 +529,7 @@ class IcomCIVRadio(icf.IcomLiveRadio):
             self._willecho = self._detect_echo()
             LOG.debug("Interface echo: %s" % self._willecho)
             try:
-                f = self._get_template_memory()
-                print('Chew: %i' % len(self.pipe.read(128)))
+                self._get_template_memory()
                 LOG.info('Detected %i baud' % baud)
                 break
             except errors.RadioError:
@@ -568,7 +685,9 @@ class IcomCIVRadio(icf.IcomLiveRadio):
 
         mem.freq = int(memobj.freq)
         try:
-            mem.mode = self._MODES[memobj.mode]
+            # Note that memobj.mode could be a bcd on some radios, so we must
+            # coerce it to an int for the index operation.
+            mem.mode = self._MODES[int(memobj.mode)]
 
             # We do not know what a variety of the positions between
             # PSK and DV mean, so let's behave as if those values
@@ -655,7 +774,7 @@ class IcomCIVRadio(icf.IcomLiveRadio):
                 fil = RadioSetting(
                     "filter", "Filter",
                     RadioSettingValueList(options,
-                                          options[memobj.filter - 1]))
+                                          current_index=memobj.filter - 1))
             except AttributeError:
                 pass
             else:
@@ -902,6 +1021,44 @@ class Icom746Radio(IcomCIVRadio):
 
 
 @directory.register
+class Icom7400Radio(IcomCIVRadio):
+    """Icom IC-7400"""
+    MODEL = "IC-7400"
+    BAUD_RATE = 9600
+    _model = "\x66"
+    _template = 102
+
+    _num_banks = 1		# Banks not supported
+
+    def _initialize(self):
+        self._classes["mem"] = IC7400MemFrame
+        self._rf.has_bank = False
+        self._rf.has_dtcs_polarity = True
+        self._rf.has_dtcs = True
+        self._rf.has_ctone = True
+        self._rf.has_offset = False
+        self._rf.has_name = True
+        self._rf.has_tuning_step = False
+        self._rf.valid_modes = [
+            "LSB", "USB", "AM", "CW", "RTTY", "FM", "USB", "CWR", "RTTYR"
+        ]
+        self._rf.valid_tmodes = ["", "Tone", "TSQL", "DTCS"]
+        self._rf.valid_duplexes = ["", "-", "+"]
+        self._rf.valid_bands = [(30000, 174000000)]
+        self._rf.valid_tuning_steps = []
+        self._rf.valid_skips = []
+        self._rf.valid_name_length = 8
+        self._rf.valid_characters = " !#$%&'()*+,-./" \
+            "0123456789" \
+            ":;<=>?" \
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ" \
+            "[\\]^_" \
+            "abcdefghijklmnopqrstuvwxyz" \
+            "{|}~"
+        self._rf.memory_bounds = (1, 99)
+
+
+@directory.register
 class Icom910Radio(IcomCIVRadio):
     """Icom IC-910"""
     MODEL = "IC-910"
@@ -1068,6 +1225,268 @@ class Icom7610Radio(Icom7300Radio):
     def _initialize(self):
         super()._initialize()
         self._classes['mem'] = IC7610MemFrame
+
+
+@directory.register
+class Icom9700Radio(IcomCIVRadio):
+    MODEL = 'IC-9700'
+    _model = '\xA2'
+    _template = 100
+    BANDS = {
+        1: (144, 148),
+        2: (430, 450),
+        3: (1240, 1300),
+    }
+    _MODES = [
+        "LSB", "USB", "AM", "CW", "RTTY", "FM", "CWR",
+        "RTTY-R", None, None, None, None, None, None, None, None, None,
+        "DV", None, None, None, None, "DD", None, None, None, None, None,
+    ]
+
+    def get_sub_devices(self):
+        return [Icom9700RadioBand(self, 1),
+                Icom9700RadioBand(self, 2),
+                Icom9700RadioBand(self, 3),
+                Icom9700SatelliteBand(self)]
+
+    def _initialize(self):
+        super()._initialize()
+        self._rf.has_sub_devices = True
+        self._rf.memory_bounds = (1, 99)
+        self._classes['mem'] = IC9700MemFrame
+
+
+class Icom9700RadioBand(Icom9700Radio):
+    _SPECIAL_CHANNELS = {
+        "1A": 100,
+        "1B": 101,
+        "2A": 102,
+        "2B": 103,
+        "3A": 104,
+        "4B": 105,
+        "C1": 106,
+        "C2": 107,
+    }
+    _SPECIAL_CHANNELS_REV = dict(zip(_SPECIAL_CHANNELS.values(),
+                                     _SPECIAL_CHANNELS.keys()))
+
+    def _detect_echo(self):
+        self._parent._willecho
+
+    def _is_special(self, number):
+        return isinstance(number, str) or number > 99
+
+    def _get_special_info(self, number):
+        info = BankSpecialChannel()
+        info.bank = self._band
+        if isinstance(number, str):
+            info.name = number
+            info.channel = self._SPECIAL_CHANNELS[number]
+            info.location = info.channel
+        else:
+            info.location = number
+            info.name = self._SPECIAL_CHANNELS_REV[number]
+            info.channel = info.location
+        return info
+
+    def __init__(self, parent, band):
+        self._parent = parent
+        self._band = band
+        self.VARIANT = '%i band' % (self.BANDS[band][0])
+        super().__init__(parent.pipe)
+
+    def mem_to_ch_bnk(self, mem):
+        return mem, self._band
+
+    def _initialize(self):
+        super()._initialize()
+        self._rf.has_name = True
+        self._rf.valid_tmodes = ['', 'Tone', 'TSQL', 'DTCS']
+        self._rf.has_dtcs = True
+        self._rf.has_dtcs_polarity = True
+        self._rf.has_bank = True
+        self._rf.has_tuning_step = False
+        self._rf.has_nostep_tuning = True
+        self._rf.can_odd_split = False
+        self._rf.memory_bounds = (1, 99)
+        self._rf.valid_bands = [(x * 1000000, y * 1000000) for x, y in
+                                [self.BANDS[self._band]]]
+        self._rf.valid_name_length = 16
+        self._rf.valid_characters = (chirp_common.CHARSET_ALPHANUMERIC +
+                                     '!#$%&\\?"\'`^+-*/.,:=<>()[]{}|_~@')
+        self._rf.valid_special_chans = sorted(self._SPECIAL_CHANNELS.keys())
+        # Last item is RPS for DD mode
+        self._rf.valid_duplexes = ['', '-', '+']
+        self._rf.valid_modes = [x for x in self._MODES if x]
+        if self._band != 3:
+            self._rf.valid_modes.remove('DD')
+        self._classes['mem'] = IC9700MemFrame
+
+
+class Icom9700SatelliteBand(Icom9700Radio):
+    VARIANT = 'Satellite'
+
+    def __init__(self, parent):
+        self._parent = parent
+        super().__init__(parent.pipe)
+
+    def _detect_echo(self):
+        self._parent._willecho
+
+    def _initialize(self):
+        super()._initialize()
+        self._rf.has_name = True
+        self._rf.valid_tmodes = ['', 'Tone', 'TSQL', 'DTCS']
+        self._rf.has_dtcs = True
+        self._rf.has_dtcs_polarity = True
+        self._rf.has_bank = False
+        self._rf.has_tuning_step = False
+        self._rf.has_nostep_tuning = True
+        self._rf.can_odd_split = True
+        self._rf.memory_bounds = (1, 99)
+        self._rf.valid_bands = [(x * 1000000, y * 1000000) for x, y in
+                                self.BANDS.values()]
+        self._rf.valid_name_length = 16
+        self._rf.valid_characters = (chirp_common.CHARSET_ALPHANUMERIC +
+                                     '!#$%&\\?"\'`^+-*/.,:=<>()[]{}|_~@')
+        # Last item is RPS for DD mode
+        self._rf.valid_duplexes = ['split']
+        self._rf.valid_modes = [x for x in self._MODES if x]
+        self._rf.valid_modes.remove('DD')
+        self._classes['mem'] = IC9700SatMemFrame
+
+    def _get_template_memory(self):
+        f = self._classes["mem"]()
+        f.initialize()
+        return f
+
+    def get_memory(self, number):
+        self._detect_baudrate()
+        LOG.debug("Getting %s" % number)
+        f = self._classes["mem"]()
+        mem = chirp_common.Memory()
+        f.set_location(number)
+        mem.number = number
+        self._send_frame(f)
+
+        f = self._recv_frame(f)
+        if len(f.get_data()) == 0:
+            raise errors.RadioError("Radio reported error")
+        if f.get_data() and f.get_data()[-1] == 0xFF:
+            mem.empty = True
+            mem.duplex = 'split'
+            LOG.debug("Found %i empty" % mem.number)
+            return mem
+
+        memobj = f.get_obj()
+        LOG.debug(repr(memobj))
+
+        mem.freq = int(memobj.freq)
+        mem.mode = self._MODES[int(memobj.mode)]
+        mem.name = str(memobj.name).rstrip()
+        mem.tmode = self._rf.valid_tmodes[memobj.tmode]
+
+        if memobj.dtcs_polarity == 0x11:
+            mem.dtcs_polarity = "RR"
+        elif memobj.dtcs_polarity == 0x10:
+            mem.dtcs_polarity = "RN"
+        elif memobj.dtcs_polarity == 0x01:
+            mem.dtcs_polarity = "NR"
+        else:
+            mem.dtcs_polarity = "NN"
+
+        mem.dtcs = bitwise.bcd_to_int(memobj.dtcs)
+        mem.rtone = int(memobj.rtone) / 10.0
+        mem.ctone = int(memobj.ctone) / 10.0
+        mem.duplex = 'split'
+        mem.offset = int(memobj.tx.freq)
+        mem.immutable = ["duplex"]
+
+        try:
+            dig = RadioSetting("dig", "Digital",
+                               RadioSettingValueBoolean(bool(memobj.dig)))
+        except AttributeError:
+            pass
+        else:
+            dig.set_doc("Enable digital mode")
+            if not mem.extra:
+                mem.extra = RadioSettingGroup("extra", "Extra")
+            mem.extra.append(dig)
+
+        options = ["Wide", "Mid", "Narrow"]
+        fil = RadioSetting(
+            "filter", "Filter",
+            RadioSettingValueList(options,
+                                  current_index=memobj.filter - 1))
+        fil.set_doc("Filter settings")
+        if not mem.extra:
+            mem.extra = RadioSettingGroup("extra", "Extra")
+        mem.extra.append(fil)
+
+        return mem
+
+    def set_memory(self, mem):
+        self._detect_baudrate()
+        LOG.debug("Setting %s(%s)" % (mem.number, mem.extd_number))
+        f = self._get_template_memory()
+        ch = mem.number
+        if mem.empty:
+            LOG.debug("Making %i empty" % mem.number)
+            f.set_location(ch)
+            f.make_empty()
+            self._send_frame(f)
+            f = self._recv_frame()
+            LOG.debug("Result (%r):\n%s",
+                      f._cmd, util.hexprint(bytes(f.get_data())))
+            return
+
+        memobj = f.get_obj()
+        memobj.number = ch
+        memobj.freq = int(mem.freq)
+        mode = mem.mode
+        memobj.mode = self._MODES.index(mode)
+        name_length = len(memobj.name.get_value())
+        memobj.name = mem.name.ljust(name_length)[:name_length]
+        memobj.tmode = self._rf.valid_tmodes.index(mem.tmode)
+        memobj.ctone = int(mem.ctone * 10)
+        memobj.rtone = int(mem.rtone * 10)
+
+        if mem.dtcs_polarity == "RR":
+            memobj.dtcs_polarity = 0x11
+        elif mem.dtcs_polarity == "RN":
+            memobj.dtcs_polarity = 0x10
+        elif mem.dtcs_polarity == "NR":
+            memobj.dtcs_polarity = 0x01
+        else:
+            memobj.dtcs_polarity = 0x00
+
+        bitwise.int_to_bcd(memobj.dtcs, mem.dtcs)
+
+        memobj.tx.freq = int(mem.offset)
+        memobj.tx.tmode = memobj.tmode
+        memobj.tx.ctone = memobj.ctone
+        memobj.tx.rtone = memobj.rtone
+        memobj.tx.dtcs_polarity = memobj.dtcs_polarity
+        memobj.tx.dtcs = memobj.dtcs
+
+        memobj.urcall = memobj.rpt1call = memobj.rpt2call = ' ' * 8
+        memobj.tx.urcall = memobj.tx.rpt1call = memobj.tx.rpt2call = ' ' * 8
+        memobj.filter = memobj.tx.filter = 1
+
+        for setting in mem.extra:
+            if setting.get_name() == "filter":
+                setattr(memobj, setting.get_name(), int(setting.value) + 1)
+            else:
+                setattr(memobj, setting.get_name(), setting.value)
+
+        LOG.debug(repr(memobj))
+        self._send_frame(f)
+
+        f = self._recv_frame()
+        LOG.debug("Result (%r):\n%s",
+                  f._cmd, util.hexprint(bytes(f.get_data())))
+        if f._cmd == 0xFA:
+            LOG.error('Radio refused memory')
 
 
 def probe_model(ser):

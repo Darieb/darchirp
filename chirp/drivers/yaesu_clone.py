@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from builtins import bytes
 import time
 import logging
 
@@ -90,6 +89,8 @@ def __clone_in(radio):
             pipe.write(bytes([CMD_ACK]))
         if not chunk:
             raise errors.RadioError("No response from radio")
+        if blocks == 1:
+            LOG.debug('ID block: %s' % util.hexprint(chunk))
         if radio.status_fn:
             status.cur = len(data)
             radio.status_fn(status)
@@ -229,7 +230,6 @@ class YaesuCloneModeRadio(chirp_common.CloneModeRadio):
     _block_size = 8
 
     VENDOR = "Yaesu"
-    NEEDS_COMPAT_SERIAL = False
     _model = b"ABCDE"
 
     @classmethod

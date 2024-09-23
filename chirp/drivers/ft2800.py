@@ -33,7 +33,12 @@ def _send(s, data):
             raise Exception("Failed to read echo chunk")
 
 
-IDBLOCK = b"\x0c\x01\x41\x33\x35\x02\x00\xb8"
+# The IDBLOCK is the first thing sent during an upload or download
+# and indicates the radio subtype:
+#   USA Unmodified:            b"\x0c\x01\x41\x33\x35\x02\x00\xb8"
+#   USA With extended TX mod:  b"\x0c\x01\x41\x33\x35\x03\x00\xb9"
+SUPPORTED_IDBLOCKS = [b"\x0c\x01\x41\x33\x35\x02\x00\xb8",
+                      b"\x0c\x01\x41\x33\x35\x03\x00\xb9"]
 TRAILER = b"\x0c\x02\x41\x33\x35\x00\x00\xb7"
 ACK = b"\x0C\x06\x00"
 
@@ -43,7 +48,8 @@ def _download(radio):
     attempts = 30
     for _i in range(0, attempts):
         data = radio.pipe.read(8)
-        if data == IDBLOCK:
+        if data in SUPPORTED_IDBLOCKS:
+            radio.subtype = data
             break
         LOG.debug('Download attempt %i received %i: %s',
                   _i, len(data), util.hexprint(data))
@@ -103,7 +109,7 @@ def _upload(radio):
             break
         LOG.debug("What is this garbage?\n%s" % util.hexprint(data))
 
-    _send(radio.pipe, IDBLOCK)
+    _send(radio.pipe, radio.subtype)
     time.sleep(1)
     ack = radio.pipe.read(300)
     LOG.debug("Ack was (%i):\n%s" % (len(ack), util.hexprint(ack)))
@@ -181,6 +187,17 @@ class FT2800Radio(YaesuCloneModeRadio):
 
     _block_sizes = [8, 7680]
     _memsize = 7680
+
+    @property
+    def subtype(self):
+        # If our image is from before the subtype was stashed, assume
+        # the default unmodified US ID block
+        return bytes(self.metadata.get('subtype_idblock',
+                                       SUPPORTED_IDBLOCKS[0]))
+
+    @subtype.setter
+    def subtype(self, value):
+        self.metadata = {'subtype_idblock': [x for x in value]}
 
     @classmethod
     def get_prompts(cls):
@@ -269,7 +286,7 @@ class FT2800Radio(YaesuCloneModeRadio):
 
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw(asbytes=False)[0] == "\xFF":
             mem.empty = True
             return mem
 
@@ -294,9 +311,15 @@ class FT2800Radio(YaesuCloneModeRadio):
             _mem.set_raw("\xFF" * (_mem.size() // 8))
             return
 
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw(asbytes=False)[0] == "\xFF":
             # Empty -> Non-empty, so initialize
             _mem.set_raw("\x00" * (_mem.size() // 8))
+
+        # initializing unknowns
+        _mem.unknown1 = (0xFF, 0xFF, 0xFF, 0xFF)
+        _mem.unknown2 = (0x00, 0x00)
+        _mem.unknown3 = 0x01
+        _mem.unknown4 = 0x3C
 
         _mem.freq = mem.freq / 10
         _mem.offset = mem.offset / 100000

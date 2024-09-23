@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: CHIRP\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-13 18:59-0700\n"
+"POT-Creation-Date: 2024-09-19 15:48-0700\n"
 "PO-Revision-Date: 2023-02-11 15:12+0200\n"
 "Last-Translator: Sokratis Alichanidis <sv2hzs@posteo.net>\n"
 "Language-Team: Greek\n"
@@ -21,7 +21,7 @@ msgstr ""
 "X-Poedit-Basepath: .\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: ../drivers/ft2d.py:100
+#: ../drivers/ft2d.py:97
 msgid ""
 " 1. Turn radio off.\n"
 " 2. Connect cable to DATA terminal.\n"
@@ -32,36 +32,70 @@ msgid ""
 "5. Finally, press OK button below.\n"
 msgstr ""
 
-#: ../wxui/query_sources.py:58
+#: ../wxui/query_sources.py:60
 #, python-format
 msgid "%(value)s must be between %(min)i and %(max)i"
 msgstr ""
 
-#: ../wxui/memedit.py:1466
-#, fuzzy, python-format
-msgid "%i Memories"
-msgstr "Μνήμες"
-
-#: ../wxui/memedit.py:1473
+#: ../wxui/memedit.py:1739
 #, fuzzy, python-format
 msgid "%i Memories and shift all up"
-msgstr "Διαγραφή %i μνημών και μετακίνηση όλων προς τα επάνω"
+msgid_plural "%i Memories and shift all up"
+msgstr[0] "Διαγραφή %i μνημών και μετακίνηση όλων προς τα επάνω"
+msgstr[1] "Διαγραφή %i μνημών και μετακίνηση όλων προς τα επάνω"
 
-#: ../wxui/memedit.py:1469
+#: ../wxui/memedit.py:1730
 #, fuzzy, python-format
-msgid "%i Memories and shift block up"
-msgstr "Διαγραφή %i μνημών και μετακίνηση ομάδας προς τα επάνω"
+msgid "%i Memory"
+msgid_plural "%i Memories"
+msgstr[0] "Μνήμες"
+msgstr[1] "Μνήμες"
 
-#: ../wxui/main.py:1233
+#: ../wxui/memedit.py:1734
+#, fuzzy, python-format
+msgid "%i Memory and shift block up"
+msgid_plural "%i Memories and shift block up"
+msgstr[0] "Διαγραφή %i μνημών και μετακίνηση ομάδας προς τα επάνω"
+msgstr[1] "Διαγραφή %i μνημών και μετακίνηση ομάδας προς τα επάνω"
+
+#: ../wxui/main.py:1388
 #, python-format
 msgid "%s has not been saved. Save before closing?"
 msgstr ""
 
-#: ../wxui/radioinfo.py:48
+#: ../wxui/bugreport.py:426
+msgid "(Describe what actually happened instead)"
+msgstr ""
+
+#: ../wxui/bugreport.py:424
+msgid "(Describe what you expected to happen)"
+msgstr ""
+
+#: ../wxui/bugreport.py:422
+msgid "(Describe what you were doing)"
+msgstr ""
+
+#: ../wxui/bugreport.py:428
+msgid ""
+"(Has this ever worked before? New radio? Does it work with OEM software?)"
+msgstr ""
+
+#: ../wxui/radioinfo.py:50
 msgid "(none)"
 msgstr "(καμία)"
 
-#: ../drivers/alinco.py:606 ../drivers/alinco.py:615
+#: ../wxui/memedit.py:2092
+#, python-format
+msgid "...and %i more"
+msgstr ""
+
+#: ../drivers/ft4.py:726
+msgid ""
+"1. Connect programming cable to MIC jack.\n"
+"2. Press OK."
+msgstr ""
+
+#: ../drivers/alinco.py:605 ../drivers/alinco.py:614
 msgid ""
 "1. Ensure your firmware version is 4_10 or higher\n"
 "2. Turn radio off\n"
@@ -73,7 +107,7 @@ msgid ""
 "7. Click OK\n"
 msgstr ""
 
-#: ../drivers/ft2900.py:1228
+#: ../drivers/ft2900.py:1253
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
@@ -81,7 +115,7 @@ msgid ""
 "4. <b>After clicking OK</b>, press \"SET MHz\" to send image.\n"
 msgstr ""
 
-#: ../drivers/ft2900.py:1233
+#: ../drivers/ft2900.py:1258
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
@@ -94,7 +128,24 @@ msgid ""
 "      radio, then start back at step 1.\n"
 msgstr ""
 
-#: ../drivers/ft7100.py:1126
+#: ../drivers/ft8100.py:94
+msgid ""
+"1. Turn Radio off.\n"
+"2. Connect data cable.\n"
+"3. While holding \"F/W\" button, turn radio on.\n"
+"4. <b>After clicking OK</b>, press \"RPT\" to send image.\n"
+msgstr ""
+
+#: ../drivers/ft8100.py:99
+msgid ""
+"1. Turn Radio off.\n"
+"2. Connect data cable.\n"
+"3. While holding \"F/W\" button, turn radio on.\n"
+"4. Press \"REV\" to receive image.\n"
+"5. Click OK to start transfer.\n"
+msgstr ""
+
+#: ../drivers/ft7100.py:1130
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
@@ -102,7 +153,7 @@ msgid ""
 "4. <b>After clicking OK</b>, press \"TONE\" to send image.\n"
 msgstr ""
 
-#: ../drivers/ft7100.py:1131
+#: ../drivers/ft7100.py:1135
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
@@ -112,7 +163,7 @@ msgid ""
 "6. Click OK to start transfer.\n"
 msgstr ""
 
-#: ../drivers/ft2800.py:189
+#: ../drivers/ft2800.py:206
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable\n"
@@ -123,7 +174,7 @@ msgid ""
 "    (\"TX\" will appear on the LCD). \n"
 msgstr ""
 
-#: ../drivers/ft2800.py:199
+#: ../drivers/ft2800.py:216
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable\n"
@@ -134,7 +185,7 @@ msgid ""
 "6. Click OK."
 msgstr ""
 
-#: ../drivers/ft450d.py:384
+#: ../drivers/ft450d.py:430
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -145,7 +196,7 @@ msgid ""
 "    send image.\n"
 msgstr ""
 
-#: ../drivers/ft817.py:283
+#: ../drivers/ft817.py:281
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -155,7 +206,7 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [A] key to send image.\n"
 msgstr ""
 
-#: ../drivers/ft450d.py:393
+#: ../drivers/ft450d.py:439
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -176,7 +227,7 @@ msgid ""
 "4. Press the [A](RCV) key (\"receiving\" will appear on the LCD).\n"
 msgstr ""
 
-#: ../drivers/ft817.py:291
+#: ../drivers/ft817.py:289
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -197,7 +248,7 @@ msgid ""
 "     press the [C](SEND) key to send image.\n"
 msgstr ""
 
-#: ../drivers/ft7800.py:839
+#: ../drivers/ft7800.py:857
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -210,7 +261,7 @@ msgid ""
 "     send image.\n"
 msgstr ""
 
-#: ../drivers/ft7800.py:849
+#: ../drivers/ft7800.py:867
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -241,7 +292,7 @@ msgid ""
 "4. Press the [MODE] key (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
 
-#: ../drivers/ft7800.py:287
+#: ../drivers/ft7800.py:282
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -254,7 +305,7 @@ msgid ""
 "6. Press the [LOW(ACC)] key (\"--RX--\" will appear on the display).\n"
 msgstr ""
 
-#: ../drivers/ft7800.py:276
+#: ../drivers/ft7800.py:271
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -267,7 +318,7 @@ msgid ""
 "6. <b>After clicking OK</b>, press the [V/M(MW)] key to send image.\n"
 msgstr ""
 
-#: ../drivers/ft2d.py:93
+#: ../drivers/ft2d.py:90
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -277,7 +328,7 @@ msgid ""
 "     press the [Send] screen button.\n"
 msgstr ""
 
-#: ../drivers/ft1d.py:666
+#: ../drivers/ft1d.py:891
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -286,7 +337,7 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [BAND] key to send image.\n"
 msgstr ""
 
-#: ../drivers/ft1d.py:673
+#: ../drivers/ft1d.py:898
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -295,7 +346,7 @@ msgid ""
 "4. Press the [Dx] key (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
 
-#: ../drivers/ftm3200d.py:83
+#: ../drivers/ftm3200d.py:84
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -305,7 +356,7 @@ msgid ""
 "     to send image.\n"
 msgstr ""
 
-#: ../drivers/ftm3200d.py:91
+#: ../drivers/ftm3200d.py:92
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -375,7 +426,7 @@ msgid ""
 "5. Press OK.\n"
 msgstr ""
 
-#: ../drivers/vx6.py:369 ../drivers/vx3.py:374
+#: ../drivers/vx6.py:370 ../drivers/vx3.py:373
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -384,7 +435,7 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [BAND] key to send image.\n"
 msgstr ""
 
-#: ../drivers/vx6.py:376 ../drivers/vx3.py:381
+#: ../drivers/vx6.py:377 ../drivers/vx3.py:380
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -411,7 +462,7 @@ msgid ""
 "4. Press the [V/M] key (\"CLONE WAIT\" will appear on the LCD).\n"
 msgstr ""
 
-#: ../drivers/ft60.py:355
+#: ../drivers/ft60.py:354
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -423,7 +474,7 @@ msgid ""
 "     for one second to send image.\n"
 msgstr ""
 
-#: ../drivers/ft60.py:364
+#: ../drivers/ft60.py:363
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -479,7 +530,7 @@ msgid ""
 "4. Press the [D/MR(MW)] key (\"--WAIT--\" will appear on the LCD).\n"
 msgstr ""
 
-#: ../drivers/uv5r.py:777
+#: ../drivers/uv5r.py:834
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -489,7 +540,7 @@ msgid ""
 "6. Click OK to download image from device.\n"
 msgstr ""
 
-#: ../drivers/uv5r.py:785
+#: ../drivers/uv5r.py:842
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -499,7 +550,7 @@ msgid ""
 "6. Click OK to upload image to device.\n"
 msgstr ""
 
-#: ../drivers/uvb5.py:288 ../drivers/wouxun.py:214 ../drivers/tg_uv2p.py:223
+#: ../drivers/uvb5.py:287 ../drivers/wouxun.py:213 ../drivers/tg_uv2p.py:232
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -509,7 +560,7 @@ msgid ""
 "6. Click OK to download image from device.\n"
 msgstr ""
 
-#: ../drivers/uvb5.py:296 ../drivers/wouxun.py:222 ../drivers/tg_uv2p.py:231
+#: ../drivers/uvb5.py:295 ../drivers/wouxun.py:221 ../drivers/tg_uv2p.py:240
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -535,7 +586,7 @@ msgid ""
 "4. Press the key to receive the image.\n"
 msgstr ""
 
-#: ../drivers/ft90.py:196
+#: ../drivers/ft90.py:194
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect mic and hold [ACC] on mic while powering on.\n"
@@ -544,7 +595,7 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [SET] key to send image.\n"
 msgstr ""
 
-#: ../drivers/ft90.py:203
+#: ../drivers/ft90.py:201
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect mic and hold [ACC] on mic while powering on.\n"
@@ -554,7 +605,7 @@ msgid ""
 "    (\"R\" will appear on the lower left of LCD).\n"
 msgstr ""
 
-#: ../drivers/bj9900.py:106
+#: ../drivers/bj9900.py:102
 msgid ""
 "1. Turn radio off.\n"
 "2. Remove front head.\n"
@@ -572,7 +623,18 @@ msgid ""
 "5. Press the [moni] key (\"-RX-\" will appear on the LCD).\n"
 msgstr ""
 
-#: ../drivers/ft70.py:552
+#: ../drivers/ft70.py:545
+msgid ""
+"1. Turn radio on.\n"
+"2. Connect cable to DATA terminal.\n"
+"3. Unclip battery.\n"
+"4. Press and hold in the [AMS] key and power key while clipping \n"
+" in back battery the (\"ADMS\" will appear on the display).\n"
+"5. Press the [MODE] key (\"-WAIT-\" will appear on the LCD).\n"
+"<b>Then click OK</b>"
+msgstr ""
+
+#: ../drivers/ft70.py:537
 msgid ""
 "1. Turn radio on.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -582,18 +644,28 @@ msgid ""
 "5. <b>After clicking OK</b>, press the [BAND] key.\n"
 msgstr ""
 
-#: ../drivers/ft70.py:560
+#: ../drivers/uvk5.py:658
 msgid ""
 "1. Turn radio on.\n"
-"2. Connect cable to DATA terminal.\n"
-"3. Unclip battery.\n"
-"4. Press and hold in the [AMS] key and power key while clipping \n"
-" in back battery the(\"ADMS\" will appear on the display).\n"
-"5. Press the [MODE] key (\"-WAIT-\" will appear on the LCD). OK</b>\n"
-" click <b>Then"
+"2. Connect cable to mic/spkr connector.\n"
+"3. Make sure connector is firmly connected.\n"
+"4. Click OK to download image from device.\n"
+"\n"
+"It will may not work if you turn on the radio with the cable already "
+"attached\n"
 msgstr ""
 
-#: ../wxui/main.py:1617
+#: ../drivers/uvk5.py:665
+msgid ""
+"1. Turn radio on.\n"
+"2. Connect cable to mic/spkr connector.\n"
+"3. Make sure connector is firmly connected.\n"
+"4. Click OK to upload the image to device.\n"
+"\n"
+"It will may not work if you turn on the radio with the cable already attached"
+msgstr ""
+
+#: ../wxui/main.py:1889
 msgid ""
 "A new CHIRP version is available. Please visit the website as soon as "
 "possible to download it!"
@@ -601,109 +673,142 @@ msgstr ""
 "Μία νέα έκδοση του CHIRP είναι διαθέσιμη. Παρακαλούμε επισκεφθείτε την "
 "ιστοσελίδα το συντομότερο δυνατό για να την κατεβάσετε!"
 
-#: ../wxui/main.py:817
+#: ../drivers/ga510.py:1068
+msgid "AM mode does not allow duplex or tone"
+msgstr ""
+
+#: ../wxui/main.py:925
 msgid "About"
 msgstr "Σχετικά"
 
-#: ../wxui/main.py:1479
+#: ../wxui/main.py:1738
 msgid "About CHIRP"
 msgstr "Σχετικά με το CHIRP"
 
-#: ../wxui/query_sources.py:353
+#: ../wxui/query_sources.py:367
 msgid "All"
 msgstr "Όλες"
 
-#: ../wxui/main.py:1100
+#: ../wxui/main.py:1218
 msgid "All Files"
 msgstr "Όλα τα αρχεία"
 
-#: ../wxui/main.py:1111
+#: ../wxui/main.py:1229
 msgid "All supported formats|"
 msgstr "Όλοι οι τύποι αρχείων|"
 
-#: ../wxui/query_sources.py:281 ../wxui/query_sources.py:345
+#: ../wxui/query_sources.py:284 ../wxui/query_sources.py:359
 msgid "Amateur"
 msgstr "Ραδιοερασιτέχνη"
 
-#: ../wxui/common.py:463 ../wxui/common.py:501
+#: ../wxui/bugreport.py:284 ../wxui/bugreport.py:393 ../wxui/common.py:609
+#: ../wxui/common.py:636
 msgid "An error has occurred"
 msgstr "Παρουσιάστηκε ένα σφάλμα"
 
-#: ../wxui/clone.py:109
+#: ../wxui/clone.py:126
 msgid "Applying settings"
 msgstr "Εφαρμογή ρυθμίσεων"
 
-#: ../wxui/developer.py:471
+#: ../wxui/main.py:1484
+msgid "Automatic from system"
+msgstr ""
+
+#: ../wxui/developer.py:556
 msgid "Available modules"
 msgstr ""
 
-#: ../wxui/main.py:1563
+#: ../wxui/main.py:1831
 msgid "Bandplan"
 msgstr "Χάρτης συχνοτήτων"
 
-#: ../wxui/query_sources.py:375
+#: ../wxui/query_sources.py:389 ../wxui/query_sources.py:606
 msgid "Bands"
 msgstr "Μπάντες"
 
-#: ../wxui/main.py:196
+#: ../wxui/main.py:209
 msgid "Banks"
 msgstr "Ομάδες μνημών"
 
-#: ../wxui/developer.py:216
+#: ../wxui/developer.py:224
 msgid "Bin"
 msgstr "Bin"
 
-#: ../wxui/main.py:207
+#: ../wxui/main.py:220
 msgid "Browser"
 msgstr "Περιηγητής"
 
-#: ../wxui/developer.py:403
+#: ../wxui/bugreport.py:392
+#, fuzzy
+msgid "Bug number not found"
+msgstr "Αριθμός"
+
+#: ../wxui/bugreport.py:369
+#, fuzzy
+msgid "Bug number:"
+msgstr "Αριθμός"
+
+#: ../wxui/bugreport.py:324
+msgid "Bug subject:"
+msgstr ""
+
+#: ../wxui/developer.py:415
 msgid "Building Radio Browser"
 msgstr "Δημιουργία Περιηγητή Πομποδεκτών"
 
-#: ../wxui/query_sources.py:525
+#: ../wxui/main.py:1513
+msgid "CHIRP must be restarted for the new selection to take effect"
+msgstr ""
+
+#: ../wxui/query_sources.py:699
 msgid "Canada"
 msgstr "Καναδάς"
 
-#: ../wxui/memedit.py:1164
+#: ../wxui/common.py:479
+msgid ""
+"Changing this setting requires refreshing the settings from the image, which "
+"will happen now."
+msgstr ""
+
+#: ../wxui/memedit.py:1390
 #, python-format
 msgid ""
 "Channels with equivalent TX and RX %s are represented by tone mode of \"%s\""
 msgstr ""
 
-#: ../wxui/main.py:1099
+#: ../wxui/main.py:1217
 msgid "Chirp Image Files"
 msgstr "Αρχεία ειδώλου CHIRP"
 
-#: ../wxui/memedit.py:341
+#: ../wxui/memedit.py:422
 msgid "Choice Required"
 msgstr "Απαιτείται επιλογή"
 
-#: ../wxui/memedit.py:1143
+#: ../wxui/memedit.py:1369
 #, python-format
 msgid "Choose %s DTCS Code"
 msgstr "Επιλέξτε κωδικό DTCS %s"
 
-#: ../wxui/memedit.py:1140
+#: ../wxui/memedit.py:1366
 #, python-format
 msgid "Choose %s Tone"
 msgstr "Επιλέξτε τόνο %s"
 
-#: ../wxui/memedit.py:1174
+#: ../wxui/memedit.py:1400
 msgid "Choose Cross Mode"
 msgstr ""
 
-#: ../wxui/memedit.py:1204
+#: ../wxui/memedit.py:1430
 #, fuzzy
 msgid "Choose duplex"
 msgstr "Επιλογή duplex"
 
-#: ../wxui/developer.py:470
+#: ../wxui/developer.py:555
 #, python-format
 msgid "Choose the module to load from issue %i:"
 msgstr ""
 
-#: ../wxui/query_sources.py:451
+#: ../wxui/query_sources.py:469
 msgid "City"
 msgstr "Πόλη"
 
@@ -717,70 +822,100 @@ msgid ""
 "Ignore the beeps from the radio on upload and download.\n"
 msgstr ""
 
-#: ../drivers/ft817.py:360
+#: ../drivers/ft817.py:358
 msgid "Clone completed, checking for spurious bytes"
 msgstr ""
 
-#: ../wxui/common.py:96
+#: ../wxui/common.py:121
 msgid "Cloning"
 msgstr "Αντιγραφή"
 
-#: ../drivers/bj9900.py:137 ../drivers/ft450d.py:442 ../drivers/ft817.py:343
+#: ../drivers/bj9900.py:133 ../drivers/ft450d.py:507 ../drivers/ft4.py:317
+#: ../drivers/ft817.py:341
 msgid "Cloning from radio"
 msgstr "Λήψη από πομποδέκτη"
 
-#: ../drivers/bj9900.py:164 ../drivers/ft450d.py:471 ../drivers/ft817.py:381
+#: ../drivers/bj9900.py:165 ../drivers/ft450d.py:536 ../drivers/ft4.py:318
+#: ../drivers/ft817.py:379
 msgid "Cloning to radio"
 msgstr "Αποστολή σε πομποδέκτη"
 
-#: ../wxui/main.py:895
+#: ../wxui/main.py:1017
 msgid "Close"
 msgstr "Κλείσιμο"
 
-#: ../wxui/main.py:896
+#: ../wxui/main.py:1018
 msgid "Close file"
 msgstr "Κλείσιμο αρχείου"
 
-#: ../wxui/memedit.py:1526
+#: ../wxui/memedit.py:1798
 #, fuzzy, python-format
-msgid "Cluster %i memories"
-msgstr "Διαγραφή %i Μνημών"
+msgid "Cluster %i memory"
+msgid_plural "Cluster %i memories"
+msgstr[0] "Διαγραφή %i Μνημών"
+msgstr[1] "Διαγραφή %i Μνημών"
 
-#: ../wxui/memedit.py:531
+#: ../wxui/memedit.py:618
 msgid "Comment"
 msgstr "Σχόλιο"
 
-#: ../wxui/clone.py:215
+#: ../wxui/clone.py:291
 msgid "Communicate with radio"
 msgstr "Επικοινωνία με πομποδέκτη"
 
-#: ../wxui/clone.py:117
+#: ../wxui/clone.py:134
 msgid "Complete"
 msgstr "Ολοκληρωμένη"
 
-#: ../drivers/tmd710.py:194 ../drivers/tmd710.py:197
+#: ../wxui/memedit.py:137
+msgid ""
+"Complex or non-standard tone squelch mode (starts the tone mode selection "
+"wizard)"
+msgstr ""
+
+#: ../drivers/tmd710.py:185 ../drivers/tmd710.py:188
 msgid ""
 "Connect your interface cable to the PC Port on the\n"
 "back of the 'TX/RX' unit. NOT the Com Port on the head.\n"
 msgstr ""
 
-#: ../wxui/query_sources.py:279 ../wxui/query_sources.py:457
+#: ../wxui/query_sources.py:337
+msgid "Convert to FM"
+msgstr ""
+
+#: ../wxui/memedit.py:1715
+msgid "Copy"
+msgstr ""
+
+#: ../wxui/query_sources.py:282 ../wxui/query_sources.py:475
+#: ../wxui/query_sources.py:565
 msgid "Country"
 msgstr "Χώρα"
 
-#: ../wxui/memedit.py:523
-msgid "Cross mode"
-msgstr ""
+#: ../wxui/memedit.py:604
+#, fuzzy
+msgid "Cross Mode"
+msgstr "Τύπος τόνου"
 
-#: ../wxui/clone.py:319 ../wxui/clone.py:394
+#: ../wxui/clone.py:513
+#, fuzzy
+msgid "Custom Port"
+msgstr "Εισάγετε προσαρμοσμένη θύρα:"
+
+#: ../wxui/clone.py:41
 msgid "Custom..."
 msgstr "Προσαρμοσμένη..."
 
-#: ../wxui/memedit.py:454
+#: ../wxui/memedit.py:1711
+#, fuzzy
+msgid "Cut"
+msgstr "Χώρα"
+
+#: ../wxui/memedit.py:535
 msgid "DTCS"
 msgstr "DTCS"
 
-#: ../wxui/memedit.py:500
+#: ../wxui/memedit.py:581
 msgid ""
 "DTCS\n"
 "Polarity"
@@ -788,106 +923,147 @@ msgstr ""
 "Πολικότητα\n"
 "DTCS"
 
-#: ../wxui/memedit.py:1996
+#: ../drivers/uvk5.py:881
+msgid "DTMF decode"
+msgstr ""
+
+#: ../wxui/memedit.py:2358
 msgid "DV Memory"
 msgstr "Μνήμη DV"
 
-#: ../wxui/main.py:1493
+#: ../wxui/main.py:1752
 msgid "Danger Ahead"
 msgstr ""
 
-#: ../wxui/developer.py:215
+#: ../wxui/developer.py:223
 msgid "Dec"
 msgstr "Dec"
 
-#: ../wxui/memedit.py:1460
+#: ../wxui/memedit.py:1724
 msgid "Delete"
 msgstr "Διαγραφή"
 
-#: ../wxui/main.py:822
+#: ../wxui/bugreport.py:469
+#, fuzzy
+msgid "Detailed information"
+msgstr "Πληροφορίες πομποδέκτη"
+
+#: ../wxui/main.py:930
 msgid "Developer Mode"
 msgstr "Λειτουργία προγραμματιστή"
 
-#: ../wxui/main.py:1499
+#: ../wxui/main.py:1758
 #, python-format
 msgid "Developer state is now %s. CHIRP must be restarted to take effect"
 msgstr ""
 
-#: ../wxui/memedit.py:1560
+#: ../wxui/memedit.py:1834 ../wxui/developer.py:88
 msgid "Diff Raw Memories"
 msgstr ""
 
-#: ../wxui/memedit.py:1921
+#: ../wxui/memedit.py:2283
 #, fuzzy
 msgid "Digital Code"
 msgstr "Ψηφιακός Κωδικός"
 
-#: ../wxui/main.py:1510
+#: ../wxui/query_sources.py:341
+#, fuzzy
+msgid "Digital Modes"
+msgstr "Ψηφιακός Κωδικός"
+
+#: ../wxui/main.py:1770
 #, fuzzy
 msgid "Disable reporting"
 msgstr "Αναφορές απενεργοποιημένες"
 
-#: ../wxui/memedit.py:430
+#: ../wxui/memedit.py:511
 msgid "Disabled"
 msgstr ""
 
-#: ../wxui/query_sources.py:310
+#: ../wxui/query_sources.py:100 ../wxui/query_sources.py:313
+#: ../wxui/query_sources.py:588
 msgid "Distance"
 msgstr "Απόσταση"
 
-#: ../wxui/clone.py:165
+#: ../wxui/clone.py:186
 #, python-format
 msgid "Do not prompt again for %s"
 msgstr "Να μην ερωτηθώ ξανά για %s"
+
+#: ../wxui/clone.py:183
+msgid "Do you accept the risk?"
+msgstr ""
 
 #: ../wxui/bankedit.py:190
 msgid "Double-click to change bank name"
 msgstr "Κάντε διπλό κλικ για μετονομασία της ομάδας μνημών"
 
-#: ../wxui/main.py:897
+#: ../wxui/main.py:1019
 msgid "Download"
 msgstr "Λήψη"
 
-#: ../wxui/main.py:734 ../wxui/main.py:898
+#: ../wxui/main.py:1020
 msgid "Download from radio"
 msgstr "Λήψη Από Πομποδέκτη"
 
-#: ../wxui/clone.py:502
+#: ../wxui/main.py:837
+#, fuzzy
+msgid "Download from radio..."
+msgstr "Λήψη Από Πομποδέκτη"
+
+#: ../wxui/clone.py:647
 msgid "Download instructions"
 msgstr "Οδηγίες λήψης"
 
-#: ../wxui/memedit.py:393
+#: ../wxui/radioinfo.py:62
+#, fuzzy
+msgid "Driver"
+msgstr "Επαναφόρτωση Οδηγού"
+
+#: ../drivers/uvk5.py:1299
+msgid "Driver information"
+msgstr ""
+
+#: ../wxui/main.py:553
+msgid "Driver messages"
+msgstr ""
+
+#: ../wxui/query_sources.py:339
+msgid "Dual-mode digital repeaters that support analog will be shown as FM"
+msgstr ""
+
+#: ../wxui/memedit.py:474
 msgid "Duplex"
 msgstr ""
 
-#: ../wxui/memedit.py:1951
+#: ../wxui/memedit.py:2313
 #, python-format
 msgid "Edit details for %i memories"
 msgstr "Επεξεργασία λεπτομερειών για %i μνήμες"
 
-#: ../wxui/memedit.py:1949
+#: ../wxui/memedit.py:2311
 #, python-format
 msgid "Edit details for memory %i"
 msgstr "Επεξεργασία λεπτομερειών για τη μνήμη %i"
 
-#: ../wxui/main.py:766
+#: ../wxui/main.py:874
 #, fuzzy
 msgid "Enable Automatic Edits"
 msgstr "Ενεργοποίηση αυτόματης επεξεργασίας"
 
-#: ../wxui/memedit.py:430
+#: ../wxui/memedit.py:511
 msgid "Enabled"
 msgstr ""
 
-#: ../wxui/memedit.py:249
+#: ../wxui/memedit.py:333
 msgid "Enter Frequency"
 msgstr "Εισάγετε συχνότητα"
 
-#: ../wxui/memedit.py:1191
+#: ../wxui/memedit.py:1417
 msgid "Enter Offset (MHz)"
 msgstr ""
 
-#: ../wxui/memedit.py:1183
+#: ../wxui/memedit.py:1409
 msgid "Enter TX Frequency (MHz)"
 msgstr "Εισάγετε συχνότητα εκπομπής (MHz)"
 
@@ -896,74 +1072,145 @@ msgstr "Εισάγετε συχνότητα εκπομπής (MHz)"
 msgid "Enter a new name for bank %s:"
 msgstr "Εισάγετε ένα νέο όνομα για την ομάδα μνημών %s:"
 
-#: ../wxui/clone.py:395
+#: ../wxui/clone.py:512
 msgid "Enter custom port:"
 msgstr "Εισάγετε προσαρμοσμένη θύρα:"
 
-#: ../wxui/common.py:282
+#: ../wxui/bugreport.py:407
+msgid ""
+"Enter details about this update. Be descriptive about what you were doing, "
+"what you expected to happen, and what actually happened."
+msgstr ""
+
+#: ../wxui/bugreport.py:310
+msgid ""
+"Enter information about the bug including a short but meaningful subject and "
+"information about the radio model (if applicable) in question. In the next "
+"step you will have a chance to add more details about the problem."
+msgstr ""
+
+#: ../wxui/bugreport.py:414
+msgid "Enter information to add to the bug here"
+msgstr ""
+
+#: ../wxui/bugreport.py:360
+msgid "Enter the bug number that should be updated"
+msgstr ""
+
+#: ../wxui/bugreport.py:188
+msgid ""
+"Enter your username and password for chirpmyradio.com. If you do not have an "
+"account click below to create one before proceeding."
+msgstr ""
+
+#: ../wxui/common.py:329
 #, python-format
 msgid "Erased memory %s"
 msgstr "Διεγράφη η μνήμη %s"
 
-#: ../wxui/settingsedit.py:114
+#: ../wxui/settingsedit.py:140
 msgid "Error applying settings"
 msgstr "Σφάλμα εφαρμογής ρυθμίσεων"
 
-#: ../wxui/clone.py:439
+#: ../wxui/clone.py:572
 msgid "Error communicating with radio"
 msgstr "Σφάλμα επικοινωνίας με τον πομποδέκτη"
 
-#: ../wxui/clone.py:470
+#: ../wxui/query_sources.py:334
+msgid "Exclude private and closed repeaters"
+msgstr ""
+
+#: ../wxui/clone.py:605
 msgid "Experimental driver"
 msgstr "Πειραματικός οδηγός"
 
-#: ../wxui/memedit.py:1881
+#: ../wxui/memedit.py:2236
 msgid "Export can only write CSV files"
 msgstr "Η εξαγωγή είναι δυνατή μόνο σε αρχεία CSV"
 
-#: ../wxui/main.py:630 ../wxui/main.py:1218
+#: ../wxui/main.py:1373
 msgid "Export to CSV"
 msgstr "Εξαγωγή σε αρχείο μορφής .CSV"
 
-#: ../wxui/memedit.py:1985
+#: ../wxui/main.py:712
+#, fuzzy
+msgid "Export to CSV..."
+msgstr "Εξαγωγή σε αρχείο μορφής .CSV"
+
+#: ../wxui/memedit.py:2347
 msgid "Extra"
 msgstr "Περισσότερα"
 
-#: ../wxui/developer.py:411
+#: ../drivers/uvk5.py:1297
+msgid "FM Radio"
+msgstr ""
+
+#: ../wxui/query_sources.py:620
+msgid ""
+"FREE repeater database, which provides most up-to-date\n"
+"information about repeaters in Europe. No account is\n"
+"required."
+msgstr ""
+
+#: ../wxui/developer.py:423
 msgid "Failed to load radio browser"
 msgstr "Αδυναμία φόρτωσης περιηγητή πομποδεκτών"
 
-#: ../wxui/radioinfo.py:43
+#: ../sources/przemienniki.py:57
+#, fuzzy
+msgid "Failed to parse result"
+msgstr "Αδυναμία φόρτωσης περιηγητή πομποδεκτών"
+
+#: ../wxui/bugreport.py:597
+#, fuzzy
+msgid "Failed to send bug report:"
+msgstr "Αδυναμία φόρτωσης περιηγητή πομποδεκτών"
+
+#: ../wxui/radioinfo.py:45
 msgid "Features"
 msgstr "Δυνατότητες"
 
-#: ../wxui/main.py:498
+#: ../wxui/bugreport.py:152
+msgid "File a new bug"
+msgstr ""
+
+#: ../wxui/main.py:559
 #, python-format
 msgid "File does not exist: %s"
 msgstr "Το αρχείο δεν υπάρχει: %s"
 
-#: ../wxui/main.py:1103 ../wxui/main.py:1175 ../wxui/main.py:1185
-#: ../wxui/main.py:1214 ../wxui/main.py:1445 ../wxui/main.py:1446
+#: ../wxui/main.py:1221 ../wxui/main.py:1301 ../wxui/main.py:1311
+#: ../wxui/main.py:1369 ../wxui/main.py:1704 ../wxui/main.py:1705
 msgid "Files"
 msgstr "Αρχεία"
 
-#: ../wxui/query_sources.py:316
+#: ../wxui/bugreport.py:467
+#, fuzzy
+msgid "Files:"
+msgstr "Αρχεία"
+
+#: ../wxui/query_sources.py:319
 msgid "Filter"
 msgstr "Φίλτρο"
 
-#: ../wxui/query_sources.py:314
+#: ../wxui/query_sources.py:317
 msgid "Filter results with location matching this string"
 msgstr "Φιλτράρισμα αποτελεσμάτων με τοποθεσία σύμφωνη με αυτό το λεκτικό"
 
-#: ../wxui/main.py:1296
+#: ../wxui/main.py:1443
 msgid "Find"
 msgstr "Εύρεση"
 
-#: ../wxui/main.py:688
+#: ../wxui/main.py:780
 msgid "Find Next"
 msgstr "Εύρεση επόμενου"
 
-#: ../wxui/common.py:284
+#: ../wxui/main.py:766
+#, fuzzy
+msgid "Find..."
+msgstr "Εύρεση"
+
+#: ../wxui/common.py:331
 #, python-format
 msgid "Finished radio job %s"
 msgstr "Τελείωσε η εργασία %s"
@@ -986,16 +1233,16 @@ msgid ""
 "3 - Disconnect your interface cable\n"
 msgstr ""
 
-#: ../drivers/th_uv8000.py:533
+#: ../drivers/th_uv8000.py:517
 msgid ""
 "Follow these instructions to download the radio memory:\n"
 "1 - Turn off your radio\n"
 "2 - Connect your interface cable\n"
 "3 - Turn on your radio, volume @ 50%\n"
-"4 - Radio > Download from radio\n"
+"4 - CHIRP Menu - Radio - Download from radio\n"
 msgstr ""
 
-#: ../drivers/ic2730.py:313
+#: ../drivers/ic2730.py:306
 msgid ""
 "Follow these instructions to download your config:\n"
 "1 - Turn off your radio\n"
@@ -1006,10 +1253,11 @@ msgid ""
 "    no right-side audio!\n"
 msgstr ""
 
-#: ../drivers/mursv1.py:343 ../drivers/baofeng_wp970i.py:326
-#: ../drivers/btech.py:689 ../drivers/gmrsuv1.py:392
-#: ../drivers/tdxone_tdq8a.py:456 ../drivers/uv6r.py:342
-#: ../drivers/uv5x3.py:418 ../drivers/gmrsv2.py:364 ../drivers/bf_t1.py:483
+#: ../drivers/mursv1.py:341 ../drivers/baofeng_wp970i.py:327
+#: ../drivers/btech.py:689 ../drivers/gmrsuv1.py:391
+#: ../drivers/tdxone_tdq8a.py:456 ../drivers/uv6r.py:339
+#: ../drivers/uv5x3.py:417 ../drivers/gmrsv2.py:363
+#: ../drivers/baofeng_uv17Pro.py:440 ../drivers/bf_t1.py:482
 msgid ""
 "Follow these instructions to download your info:\n"
 "1 - Turn off your radio\n"
@@ -1018,7 +1266,7 @@ msgid ""
 "4 - Do the download of your radio data\n"
 msgstr ""
 
-#: ../drivers/tk760g.py:684
+#: ../drivers/tk760g.py:683
 msgid ""
 "Follow these instructions to download your radio:\n"
 "1 - Turn off your radio\n"
@@ -1027,7 +1275,7 @@ msgid ""
 "4 - Click OK to start\n"
 msgstr ""
 
-#: ../drivers/tk760.py:344
+#: ../drivers/tk760.py:341
 msgid ""
 "Follow these instructions to read your radio:\n"
 "1 - Turn off your radio\n"
@@ -1054,16 +1302,16 @@ msgid ""
 "3 - Disconnect your interface cable\n"
 msgstr ""
 
-#: ../drivers/th_uv8000.py:539
+#: ../drivers/th_uv8000.py:523
 msgid ""
 "Follow these instructions to upload the radio memory:\n"
 "1 - Turn off your radio\n"
 "2 - Connect your interface cable\n"
 "3 - Turn on your radio, volume @ 50%\n"
-"4 - Radio > Upload to radio\n"
+"4 - CHIRP Menu - Radio - Upload to radio\n"
 msgstr ""
 
-#: ../drivers/ic2730.py:321
+#: ../drivers/ic2730.py:314
 msgid ""
 "Follow these instructions to upload your config:\n"
 "1 - Turn off your radio\n"
@@ -1075,7 +1323,7 @@ msgid ""
 "6 - Cycle power on the radio to exit clone mode\n"
 msgstr ""
 
-#: ../drivers/btech.py:695 ../drivers/bf_t1.py:489
+#: ../drivers/btech.py:695 ../drivers/bf_t1.py:488
 msgid ""
 "Follow these instructions to upload your info:\n"
 "1 - Turn off your radio\n"
@@ -1084,7 +1332,7 @@ msgid ""
 "4 - Do the upload of your radio data\n"
 msgstr ""
 
-#: ../drivers/tk760g.py:690
+#: ../drivers/tk760g.py:689
 msgid ""
 "Follow these instructions to upload your radio:\n"
 "1 - Turn off your radio\n"
@@ -1093,7 +1341,7 @@ msgid ""
 "4 - Click OK to start\n"
 msgstr ""
 
-#: ../drivers/tk760.py:350
+#: ../drivers/tk760.py:347
 msgid ""
 "Follow these instructions to write your radio:\n"
 "1 - Turn off your radio\n"
@@ -1102,7 +1350,7 @@ msgid ""
 "4 - Click OK to start\n"
 msgstr ""
 
-#: ../drivers/vgc.py:599 ../drivers/lt725uv.py:522
+#: ../drivers/vgc.py:598 ../drivers/lt725uv.py:496
 msgid ""
 "Follow this instructions to download your info:\n"
 "1 - Turn off your radio\n"
@@ -1111,7 +1359,7 @@ msgid ""
 "4 - Do the download of your radio data\n"
 msgstr ""
 
-#: ../drivers/tk270.py:341
+#: ../drivers/tk270.py:340
 msgid ""
 "Follow this instructions to read your radio:\n"
 "1 - Turn off your radio\n"
@@ -1120,10 +1368,11 @@ msgid ""
 "4 - Do the download of your radio data\n"
 msgstr ""
 
-#: ../drivers/vgc.py:605 ../drivers/mursv1.py:349
-#: ../drivers/baofeng_wp970i.py:332 ../drivers/gmrsuv1.py:398
-#: ../drivers/lt725uv.py:528 ../drivers/tdxone_tdq8a.py:462
-#: ../drivers/uv6r.py:348 ../drivers/uv5x3.py:424 ../drivers/gmrsv2.py:370
+#: ../drivers/vgc.py:604 ../drivers/mursv1.py:347
+#: ../drivers/baofeng_wp970i.py:333 ../drivers/gmrsuv1.py:397
+#: ../drivers/lt725uv.py:502 ../drivers/tdxone_tdq8a.py:462
+#: ../drivers/uv6r.py:345 ../drivers/uv5x3.py:423 ../drivers/gmrsv2.py:369
+#: ../drivers/baofeng_uv17Pro.py:446
 msgid ""
 "Follow this instructions to upload your info:\n"
 "1 - Turn off your radio\n"
@@ -1132,7 +1381,7 @@ msgid ""
 "4 - Do the upload of your radio data\n"
 msgstr ""
 
-#: ../drivers/tk270.py:347
+#: ../drivers/tk270.py:346
 msgid ""
 "Follow this instructions to write your radio:\n"
 "1 - Turn off your radio\n"
@@ -1141,171 +1390,278 @@ msgid ""
 "4 - Do the upload of your radio data\n"
 msgstr ""
 
-#: ../wxui/memedit.py:124
+#: ../wxui/memedit.py:208
 #, python-format
 msgid "Found empty list value for %(name)s: %(value)r"
 msgstr ""
 
-#: ../wxui/memedit.py:210
+#: ../wxui/memedit.py:294
 msgid "Frequency"
 msgstr "Συχνότητα"
 
-#: ../wxui/query_sources.py:282 ../wxui/query_sources.py:336
-#: ../wxui/query_sources.py:427
+#: ../import_logic.py:76
+#, python-format
+msgid "Frequency %s is out of supported range"
+msgstr ""
+
+#: ../wxui/memedit.py:141
+msgid "Frequency granularity in kHz"
+msgstr ""
+
+#: ../drivers/ga510.py:1072 ../drivers/mml_jc8810.py:1368
+#: ../drivers/tdh8.py:2482
+msgid "Frequency in this range must not be AM mode"
+msgstr ""
+
+#: ../drivers/ga510.py:1065 ../drivers/mml_jc8810.py:1365
+#: ../drivers/tdh8.py:2479
+msgid "Frequency in this range requires AM mode"
+msgstr ""
+
+#: ../drivers/tdh8.py:2486
+msgid "Frequency outside TX bands must be duplex=off"
+msgstr ""
+
+#: ../wxui/query_sources.py:285 ../wxui/query_sources.py:350
+#: ../wxui/query_sources.py:443
 msgid "GMRS"
 msgstr "GMRS"
 
-#: ../wxui/settingsedit.py:54
+#: ../wxui/settingsedit.py:60
 msgid "Getting settings"
 msgstr "Λήψη ρυθμίσεων"
 
-#: ../wxui/memedit.py:742
-msgid "Goto"
-msgstr "Μετάβαση σε"
-
-#: ../wxui/memedit.py:774
+#: ../wxui/memedit.py:970
 msgid "Goto Memory"
 msgstr "Μετάβαση σε Μνήμη"
 
-#: ../wxui/memedit.py:773
+#: ../wxui/memedit.py:969
 msgid "Goto Memory:"
 msgstr "Μετάβαση σε Μνήμη:"
 
-#: ../wxui/clone.py:319 ../wxui/clone.py:401
+#: ../wxui/memedit.py:938
+#, fuzzy
+msgid "Goto..."
+msgstr "Μετάβαση σε"
+
+#: ../wxui/main.py:985
+msgid "Help"
+msgstr ""
+
+#: ../wxui/clone.py:40
 msgid "Help Me..."
 msgstr "Βοήθεια..."
 
-#: ../wxui/developer.py:214
+#: ../wxui/developer.py:222
 msgid "Hex"
 msgstr "Hex"
 
-#: ../wxui/memedit.py:751
+#: ../wxui/memedit.py:947
 #, fuzzy
 msgid "Hide empty memories"
 msgstr "Αντικατάσταση μνημών;"
 
-#: ../wxui/memedit.py:683
-#, python-format
-msgid "Hold %(key)s to drag multiple memories"
+#: ../wxui/memedit.py:144
+msgid "Human-readable comment (not stored in radio)"
 msgstr ""
 
-#: ../wxui/query_sources.py:293 ../wxui/query_sources.py:299
+#: ../wxui/query_sources.py:296 ../wxui/query_sources.py:302
+#: ../wxui/query_sources.py:572 ../wxui/query_sources.py:578
 msgid "If set, sort results by distance from these coordinates"
+msgstr ""
+
+#: ../wxui/main.py:1356
+msgid "Import"
+msgstr ""
+
+#: ../wxui/main.py:706
+msgid "Import from file..."
+msgstr ""
+
+#: ../wxui/main.py:1360
+msgid "Import messages"
+msgstr ""
+
+#: ../wxui/main.py:1354
+msgid "Import not recommended"
 msgstr ""
 
 #: ../wxui/bankedit.py:62
 msgid "Index"
 msgstr ""
 
-#: ../wxui/main.py:209
+#: ../wxui/main.py:222
 msgid "Info"
 msgstr "Πληροφορίες"
 
-#: ../wxui/memedit.py:1166
+#: ../wxui/memedit.py:1392
 msgid "Information"
 msgstr "Πληροφορίες"
 
-#: ../wxui/memedit.py:1453
+#: ../wxui/memedit.py:1705
 msgid "Insert Row Above"
 msgstr "Εισαγωγή γραμμής επάνω"
 
-#: ../wxui/__init__.py:38
+#: ../wxui/__init__.py:59
 msgid "Install desktop icon?"
 msgstr ""
 
-#: ../wxui/main.py:806
+#: ../wxui/main.py:914
 #, fuzzy
 msgid "Interact with driver"
 msgstr "Αλληλεπίδραση με οδηγό"
 
-#: ../wxui/query_sources.py:56
+#: ../wxui/clone.py:669
+#, fuzzy
+msgid "Internal driver error"
+msgstr "Αλληλεπίδραση με οδηγό"
+
+#: ../wxui/query_sources.py:58
 #, python-format
 msgid "Invalid %(value)s (use decimal degrees)"
 msgstr ""
 
-#: ../wxui/query_sources.py:109
+#: ../wxui/query_sources.py:66 ../wxui/memedit.py:1553
+#, fuzzy
+msgid "Invalid Entry"
+msgstr "Μη έγκυρη τιμή: %s"
+
+#: ../wxui/query_sources.py:111
 msgid "Invalid ZIP code"
 msgstr "Μη έγκυρος ΤΚ"
 
-#: ../wxui/memedit.py:1308 ../wxui/memedit.py:2076
+#: ../wxui/memedit.py:1552 ../wxui/memedit.py:2438
 #, python-format
 msgid "Invalid edit: %s"
 msgstr "Μη έγκυρη τιμή: %s"
 
-#: ../wxui/main.py:1442
+#: ../wxui/main.py:1701
 msgid "Invalid or unsupported module file"
 msgstr ""
 
-#: ../wxui/memedit.py:179 ../wxui/memedit.py:185
+#: ../wxui/memedit.py:263 ../wxui/memedit.py:269
 #, python-format
 msgid "Invalid value: %r"
 msgstr "Μη έγκυρη τιμή: %r"
 
-#: ../wxui/developer.py:481
+#: ../wxui/developer.py:577
 msgid "Issue number:"
 msgstr ""
 
-#: ../wxui/main.py:327
+#: ../wxui/main.py:340
 #, fuzzy
 msgid "LIVE"
 msgstr "LIVE"
 
-#: ../wxui/query_sources.py:301
+#: ../wxui/main.py:823 ../wxui/main.py:1498
+msgid "Language"
+msgstr ""
+
+#: ../wxui/query_sources.py:88 ../wxui/query_sources.py:304
+#: ../wxui/query_sources.py:580
 msgid "Latitude"
 msgstr "Γεωγραφικό πλάτος"
 
-#: ../wxui/developer.py:195
+#: ../wxui/developer.py:203
 #, python-format
 msgid "Length must be %i"
 msgstr "Το μήκος πρέπει να είναι %i"
 
-#: ../wxui/query_sources.py:322
+#: ../wxui/query_sources.py:325 ../wxui/query_sources.py:540
 msgid "Limit Bands"
 msgstr "Περιορισμός Μπαντών"
 
-#: ../wxui/query_sources.py:327
+#: ../wxui/query_sources.py:330
 msgid "Limit Modes"
 msgstr ""
 
-#: ../wxui/query_sources.py:308
+#: ../wxui/query_sources.py:555
+#, fuzzy
+msgid "Limit Status"
+msgstr "Περιορισμός Μπαντών"
+
+#: ../wxui/query_sources.py:311 ../wxui/query_sources.py:586
 msgid "Limit results to this distance (km) from coordinates"
 msgstr ""
 
-#: ../wxui/main.py:636
-msgid "Load Module"
+#: ../wxui/query_sources.py:335
+#, fuzzy
+msgid "Limit use"
+msgstr "Περιορισμός Μπαντών"
+
+#: ../wxui/main.py:1582
+#, fuzzy
+msgid "Live Radio"
+msgstr "Πομποδέκτης"
+
+#: ../wxui/main.py:718
+#, fuzzy
+msgid "Load Module..."
 msgstr "Φόρτωση Module"
 
-#: ../wxui/main.py:854 ../wxui/developer.py:482
+#: ../wxui/developer.py:578
 #, fuzzy
 msgid "Load module from issue"
 msgstr "Φόρτωση Module"
 
-#: ../wxui/main.py:1449
+#: ../wxui/main.py:967
+#, fuzzy
+msgid "Load module from issue..."
+msgstr "Φόρτωση Module"
+
+#: ../wxui/main.py:1806
+msgid ""
+"Loading a module will not affect open tabs. It is recommended (unless "
+"instructed otherwise) to close all tabs before loading a module."
+msgstr ""
+
+#: ../wxui/main.py:1708
 msgid ""
 "Loading modules can be extremely dangerous, leading to damage to your "
 "computer, radio, or both. NEVER load a module from a source you do not "
 "trust, and especially not from anywhere other than the main CHIRP website "
-"(chirp.danplanet.com). Loading a module from another source is akin to "
-"giving them direct access to your computer and everything on it! Proceed "
-"despite this risk?"
+"(chirpmyradio.com). Loading a module from another source is akin to giving "
+"them direct access to your computer and everything on it! Proceed despite "
+"this risk?"
 msgstr ""
 
-#: ../wxui/clone.py:111
+#: ../wxui/clone.py:128
 msgid "Loading settings"
 msgstr "Φόρτωση ρυθμίσεων"
 
-#: ../wxui/query_sources.py:302
+#: ../wxui/bugreport.py:282
+msgid "Login failed: Check your username and password"
+msgstr ""
+
+#: ../drivers/uvk5.py:1800
+msgid "Logo string 1 (12 characters)"
+msgstr ""
+
+#: ../drivers/uvk5.py:1807
+msgid "Logo string 2 (12 characters)"
+msgstr ""
+
+#: ../wxui/query_sources.py:94 ../wxui/query_sources.py:305
+#: ../wxui/query_sources.py:581
 msgid "Longitude"
 msgstr "Γεωγραφικό μήκος"
 
-#: ../wxui/main.py:188
+#: ../wxui/main.py:201
 msgid "Memories"
 msgstr "Μνήμες"
 
-#: ../wxui/memedit.py:1347
+#: ../drivers/uvk5.py:2098
+msgid "Memories are read-only due to unsupported firmware version"
+msgstr ""
+
+#: ../wxui/memedit.py:1592
 #, python-format
 msgid "Memory %i is not deletable"
 msgstr "Η μνήμη %i δεν μπορεί να διαγραφεί"
+
+#: ../wxui/memedit.py:129
+msgid "Memory label (stored in radio)"
+msgstr ""
 
 #: ../wxui/bankedit.py:233
 msgid "Memory must be in a bank to be edited"
@@ -1316,135 +1672,162 @@ msgstr "Η μνήμη πρέπει να βρίσκεται σε ομάδα γι�
 msgid "Memory {num} not in bank {bank}"
 msgstr "Η μνήμη {num} δεν βρίσκεται στην ομάδα μνημών {bank}"
 
-#: ../wxui/memedit.py:509
+#: ../wxui/query_sources.py:532 ../wxui/memedit.py:590
 #, fuzzy
 msgid "Mode"
 msgstr "Λειτουργία"
 
-#: ../wxui/clone.py:243
+#: ../wxui/clone.py:322
 msgid "Model"
 msgstr "Μοντέλο"
 
-#: ../wxui/query_sources.py:396
+#: ../wxui/query_sources.py:410
 msgid "Modes"
 msgstr ""
 
-#: ../wxui/main.py:1446
+#: ../wxui/main.py:1705
 msgid "Module"
 msgstr "Module"
 
-#: ../wxui/main.py:1418
+#: ../wxui/main.py:1677
 #, fuzzy
 msgid "Module Loaded"
 msgstr "Module"
 
-#: ../wxui/main.py:1549
+#: ../wxui/main.py:1817
 msgid "Module loaded successfully"
 msgstr ""
 
-#: ../wxui/clone.py:366
+#: ../wxui/clone.py:470
 #, python-format
 msgid "More than one port found: %s"
 msgstr "Βρέθηκαν περισσότερες από μία θύρες: %s"
 
-#: ../wxui/memedit.py:738
+#: ../wxui/memedit.py:934
 msgid "Move Down"
 msgstr ""
 
-#: ../wxui/memedit.py:728
+#: ../wxui/memedit.py:924
 msgid "Move Up"
 msgstr ""
 
-#: ../wxui/main.py:577
+#: ../wxui/memedit.py:2148
+msgid "Move operations are disabled while the view is sorted"
+msgstr ""
+
+#: ../wxui/main.py:664
 msgid "New Window"
 msgstr ""
 
-#: ../wxui/main.py:1619
+#: ../wxui/main.py:1891
 msgid "New version available"
 msgstr "Διαθέσιμη νέα έκδοση"
 
-#: ../wxui/memedit.py:1596
+#: ../wxui/memedit.py:1871
 msgid "No empty rows below!"
 msgstr "Καμία κενή σειρά από κάτω!"
 
-#: ../wxui/developer.py:497
+#: ../wxui/developer.py:593
 msgid "No modules found"
 msgstr ""
 
-#: ../wxui/developer.py:496
+#: ../wxui/developer.py:592
 #, python-format
 msgid "No modules found in issue %i"
 msgstr ""
 
-#: ../sources/repeaterbook.py:284
+#: ../wxui/memedit.py:2030
+msgid "No more space available; some memories were not applied"
+msgstr ""
+
+#: ../sources/przemienniki.py:53
+#, fuzzy
+msgid "No results"
+msgstr "Κανένα αποτέλεσμα!"
+
+#: ../sources/repeaterbook.py:300
 msgid "No results!"
 msgstr "Κανένα αποτέλεσμα!"
 
-#: ../wxui/memedit.py:773
+#: ../wxui/query_sources.py:41 ../wxui/memedit.py:969
 msgid "Number"
 msgstr "Αριθμός"
 
-#: ../wxui/memedit.py:208
+#: ../wxui/memedit.py:292
 msgid "Offset"
 msgstr ""
 
-#: ../wxui/query_sources.py:320
+#: ../wxui/query_sources.py:323 ../wxui/query_sources.py:538
 msgid "Only certain bands"
 msgstr "Μόνο ορισμένες μπάντες"
 
-#: ../wxui/query_sources.py:325
+#: ../wxui/query_sources.py:328
 msgid "Only certain modes"
 msgstr ""
 
-#: ../wxui/main.py:309
+#: ../wxui/main.py:322
 msgid "Only memory tabs may be exported"
 msgstr "Μόνο οι καρτέλες μνημών μπορούν να εξαχθούν"
 
-#: ../wxui/main.py:891
+#: ../wxui/query_sources.py:549
+msgid "Only working repeaters"
+msgstr ""
+
+#: ../wxui/main.py:1013 ../wxui/main.py:1356
 msgid "Open"
 msgstr "Άνοιγμα"
 
-#: ../wxui/main.py:617
+#: ../wxui/main.py:693
 msgid "Open Recent"
 msgstr "Άνοιγμα πρόσφατου"
 
-#: ../wxui/main.py:588
+#: ../wxui/main.py:675
 msgid "Open Stock Config"
 msgstr "Άνοιγμα προεπιλεγμένων ρυθμίσεων"
 
-#: ../wxui/main.py:892 ../wxui/main.py:1114
+#: ../wxui/main.py:1014 ../wxui/main.py:1232
 msgid "Open a file"
 msgstr "Άνοιγμα αρχείου"
 
-#: ../wxui/main.py:1464
+#: ../wxui/main.py:1723
 msgid "Open a module"
 msgstr "Άνοιγμα αρθρώματος"
 
-#: ../wxui/main.py:843
+#: ../wxui/main.py:951
 msgid "Open debug log"
 msgstr "Άνοιγμα αρχείου καταγραφής αποσφαλμάτωσης"
 
-#: ../wxui/main.py:468
+#: ../wxui/main.py:524
 msgid "Open in new window"
 msgstr ""
 
-#: ../wxui/query_sources.py:298
+#: ../wxui/query_sources.py:332
+msgid "Open repeaters only"
+msgstr ""
+
+#: ../wxui/main.py:622
+#, fuzzy
+msgid "Open stock config directory"
+msgstr "Άνοιγμα προεπιλεγμένων ρυθμίσεων"
+
+#: ../wxui/query_sources.py:301 ../wxui/query_sources.py:577
 msgid "Optional: -122.0000"
 msgstr "Προαιρετικό: -122.0000"
 
-#: ../wxui/query_sources.py:307
+#: ../wxui/query_sources.py:310 ../wxui/query_sources.py:585
 msgid "Optional: 100"
 msgstr "Προαιρετικό: 100"
 
-#: ../wxui/query_sources.py:292
+#: ../wxui/query_sources.py:295 ../wxui/query_sources.py:571
 msgid "Optional: 45.0000"
 msgstr "Προαιρετικό: 45.0000"
 
-#: ../wxui/query_sources.py:313
-msgid "Optional: County, Hospital, etc"
+#: ../wxui/query_sources.py:316
+#, fuzzy
+msgid "Optional: County, Hospital, etc."
 msgstr "Προαιρετικό: Επαρχία, Νοσοκομείο κλπ"
 
-#: ../wxui/memedit.py:1704
+#: ../wxui/memedit.py:2010
 msgid "Overwrite memories?"
 msgstr "Αντικατάσταση μνημών;"
 
@@ -1455,33 +1838,45 @@ msgid ""
 "are supported in this release.\n"
 msgstr ""
 
-#: ../wxui/memedit.py:1698
-#, python-format
-msgid "Pasted memories will overwrite %i existing memories"
+#: ../sources/przemienniki.py:48
+msgid "Parsing"
 msgstr ""
 
-#: ../wxui/memedit.py:1701
+#: ../wxui/bugreport.py:215
+msgid "Password"
+msgstr ""
+
+#: ../wxui/memedit.py:1719
+msgid "Paste"
+msgstr ""
+
+#: ../wxui/memedit.py:2004
+#, python-format
+msgid "Pasted memories will overwrite %s existing memories"
+msgstr ""
+
+#: ../wxui/memedit.py:2007
 #, python-format
 msgid "Pasted memories will overwrite memories %s"
 msgstr ""
 
-#: ../wxui/memedit.py:1695
+#: ../wxui/memedit.py:2001
 #, python-format
-msgid "Pasted memories will overwrite memory %i"
+msgid "Pasted memories will overwrite memory %s"
 msgstr ""
 
-#: ../wxui/memedit.py:1692
+#: ../wxui/memedit.py:1998
 #, python-format
-msgid "Pasted memory will overwrite memory %i"
+msgid "Pasted memory will overwrite memory %s"
 msgstr ""
 
-#: ../wxui/main.py:1623
+#: ../wxui/main.py:1895
 msgid "Please be sure to quit CHIRP before installing the new version!"
 msgstr ""
 "Παρακαλούμε βεβαιωθείτε ότι έχετε κλείσει το CHIRP πριν εγκαταστήσετε την "
 "νέα έκδοση!"
 
-#: ../drivers/ftlx011.py:303
+#: ../drivers/ftlx011.py:302
 msgid ""
 "Please follow this steps carefully:\n"
 "1 - Turn on your radio\n"
@@ -1496,7 +1891,7 @@ msgid ""
 "get into normal mode.\n"
 msgstr ""
 
-#: ../drivers/ftlx011.py:294
+#: ../drivers/ftlx011.py:293
 msgid ""
 "Please follow this steps carefully:\n"
 "1 - Turn on your radio\n"
@@ -1507,7 +1902,7 @@ msgid ""
 "    (At the end radio will beep)\n"
 msgstr ""
 
-#: ../wxui/main.py:1487
+#: ../wxui/main.py:1746
 msgid ""
 "Please note that developer mode is intended for use by developers of the "
 "CHIRP project, or under the direction of a developer. It enables behaviors "
@@ -1515,27 +1910,27 @@ msgid ""
 "EXTREME care. You have been warned! Proceed anyway?"
 msgstr ""
 
-#: ../wxui/common.py:165
+#: ../wxui/common.py:194
 msgid "Please wait"
 msgstr "Παρακαλώ περιμένετε"
 
-#: ../wxui/clone.py:344
+#: ../wxui/clone.py:447
 msgid "Plug in your cable and then click OK"
 msgstr "Συνδέστε το καλώδιο σας και πατήστε OK"
 
-#: ../wxui/clone.py:236
+#: ../wxui/clone.py:314
 msgid "Port"
 msgstr "Θύρα"
 
-#: ../wxui/memedit.py:273
+#: ../wxui/memedit.py:354
 msgid "Power"
 msgstr "Ισχύς"
 
-#: ../wxui/developer.py:133
+#: ../wxui/developer.py:140
 msgid "Press enter to set this in memory"
 msgstr "Πατήστε enter για καταχώρηση στη μνήμη"
 
-#: ../wxui/main.py:647
+#: ../wxui/main.py:729
 msgid "Print Preview"
 msgstr "Προεπισκόπηση εκτύπωσης"
 
@@ -1543,57 +1938,86 @@ msgstr "Προεπισκόπηση εκτύπωσης"
 msgid "Printing"
 msgstr "Εκτύπωση"
 
-#: ../wxui/memedit.py:1446
+#: ../wxui/clone.py:481
+msgid "Prolific USB device"
+msgstr ""
+
+#: ../wxui/memedit.py:1698
 msgid "Properties"
 msgstr "Ιδιότητες"
 
-#: ../wxui/main.py:1577
+#: ../wxui/main.py:1846
 #, python-format
 msgid "Query %s"
 msgstr "Ερώτημα %s"
 
-#: ../wxui/main.py:748
+#: ../wxui/main.py:851
 msgid "Query Source"
 msgstr "Ερώτημα Πηγής"
 
-#: ../wxui/memedit.py:456
+#: ../wxui/memedit.py:537
 msgid "RX DTCS"
 msgstr "DTCS Λήψης"
 
-#: ../wxui/main.py:862
+#: ../wxui/main.py:984
 msgid "Radio"
 msgstr "Πομποδέκτης"
 
-#: ../drivers/ft60.py:86 ../drivers/ft450d.py:495 ../drivers/ft817.py:408
+#: ../drivers/ft60.py:85 ../drivers/ft450d.py:568 ../drivers/ft817.py:406
 #, python-format
 msgid "Radio did not ack block %i"
 msgstr "Ο πομποδέκτης δεν επιβεβαίωσε το μπλοκ %i"
 
-#: ../wxui/clone.py:494 ../wxui/clone.py:559
+#: ../wxui/clone.py:639 ../wxui/clone.py:731
 msgid "Radio information"
 msgstr "Πληροφορίες πομποδέκτη"
 
-#: ../drivers/ft817.py:365
+#: ../wxui/bugreport.py:333
+msgid "Radio model:"
+msgstr ""
+
+#: ../drivers/ft817.py:363
 msgid ""
 "Radio sent data after the last awaited block, this happens when the selected "
 "model is a non-US but the radio is a US one. Please choose the correct model "
 "and try again."
 msgstr ""
 
-#: ../wxui/query_sources.py:665
+#: ../wxui/query_sources.py:846
 msgid "RadioReference Canada requires a login before you can query"
 msgstr ""
 
-#: ../wxui/common.py:274
+#: ../wxui/query_sources.py:657
+msgid ""
+"RadioReference.com is the world's largest\n"
+"radio communications data provider\n"
+"<small>Premium account required</small>"
+msgstr ""
+
+#: ../wxui/memedit.py:135
+msgid "Receive DTCS code"
+msgstr ""
+
+#: ../wxui/memedit.py:128
+#, fuzzy
+msgid "Receive frequency"
+msgstr "Εισάγετε συχνότητα"
+
+#: ../wxui/common.py:481
+#, fuzzy
+msgid "Refresh required"
+msgstr "Απαιτείται επανεκκίνηση"
+
+#: ../wxui/common.py:321
 #, python-format
 msgid "Refreshed memory %s"
 msgstr "Ανανεώθηκε η μνήμη %s"
 
-#: ../wxui/main.py:783
+#: ../wxui/main.py:891
 msgid "Reload Driver"
 msgstr "Επαναφόρτωση Οδηγού"
 
-#: ../wxui/main.py:792
+#: ../wxui/main.py:900
 msgid "Reload Driver and File"
 msgstr "Επαναφόρτωση Οδηγού και Αρχείου"
 
@@ -1601,130 +2025,217 @@ msgstr "Επαναφόρτωση Οδηγού και Αρχείου"
 msgid "Rename bank"
 msgstr "Μετονομασία ομάδας μνημών"
 
-#: ../wxui/main.py:831
+#: ../wxui/query_sources.py:259
+msgid ""
+"RepeaterBook is Amateur Radio's most comprehensive,\n"
+"worldwide, FREE repeater directory."
+msgstr ""
+
+#: ../wxui/main.py:973
+msgid "Report or update a bug..."
+msgstr ""
+
+#: ../wxui/bugreport.py:464
+#, fuzzy, python-format
+msgid "Reporting a new bug: %r"
+msgstr "Αναφορές ενεργοποιημένες"
+
+#: ../wxui/main.py:939
 #, fuzzy
 msgid "Reporting enabled"
 msgstr "Αναφορές ενεργοποιημένες"
 
-#: ../wxui/main.py:1506
+#: ../wxui/main.py:1766
 msgid ""
 "Reporting helps the CHIRP project know which radio models and OS platforms "
 "to spend our limited efforts on. We would really appreciate if you left it "
 "enabled. Really disable reporting?"
 msgstr ""
 
-#: ../wxui/main.py:1501
+#: ../wxui/main.py:1515 ../wxui/main.py:1760
 msgid "Restart Required"
 msgstr "Απαιτείται επανεκκίνηση"
 
-#: ../wxui/main.py:598
-#, python-format
-msgid "Restore %i tabs"
+#: ../wxui/main.py:687
+#, fuzzy, python-format
+msgid "Restore %i tab"
+msgid_plural "Restore %i tabs"
+msgstr[0] "Επαναφορά %i καρτελών"
+msgstr[1] "Επαναφορά %i καρτελών"
+
+#: ../wxui/main.py:816
+#, fuzzy
+msgid "Restore tabs on start"
 msgstr "Επαναφορά %i καρτελών"
 
-#: ../wxui/common.py:278
+#: ../wxui/common.py:325
 msgid "Retrieved settings"
 msgstr "Ρυθμίσεις ανακτήθηκαν"
 
-#: ../wxui/main.py:893
+#: ../wxui/main.py:1015
 msgid "Save"
 msgstr "Αποθήκευση"
 
-#: ../wxui/main.py:1235
+#: ../wxui/main.py:1390
 msgid "Save before closing?"
 msgstr "Αποθήκευση πριν το κλείσιμο;"
 
-#: ../wxui/main.py:894 ../wxui/main.py:1189
+#: ../wxui/main.py:1016 ../wxui/main.py:1315
 msgid "Save file"
 msgstr "Αποθήκευση αρχείου"
 
-#: ../wxui/common.py:280
+#: ../wxui/common.py:327
 msgid "Saved settings"
 msgstr "Ρυθμίσεις αποθηκεύθηκαν"
 
-#: ../wxui/main.py:773
-msgid "Select Bandplan"
+#: ../wxui/memedit.py:142
+msgid "Scan control (skip, include, priority, etc)"
+msgstr ""
+
+#: ../drivers/uvk5.py:895
+msgid "Scanlists"
+msgstr ""
+
+#: ../drivers/ksun_m6.py:418 ../drivers/uvk5.py:891
+msgid "Scrambler"
+msgstr ""
+
+#: ../wxui/developer.py:568
+msgid "Security Risk"
+msgstr ""
+
+#: ../wxui/main.py:881
+#, fuzzy
+msgid "Select Bandplan..."
 msgstr "Επιλογή χάρτη συχνοτήτων"
 
-#: ../wxui/query_sources.py:375
+#: ../wxui/query_sources.py:389 ../wxui/query_sources.py:606
 msgid "Select Bands"
 msgstr "Επιλογή Μπαντών"
 
-#: ../wxui/query_sources.py:396
+#: ../wxui/main.py:1498
+#, fuzzy
+msgid "Select Language"
+msgstr "Επιλογή Μπαντών"
+
+#: ../wxui/query_sources.py:410
 msgid "Select Modes"
 msgstr ""
 
-#: ../wxui/main.py:1562
+#: ../wxui/main.py:1830
 msgid "Select a bandplan"
 msgstr "Επιλογή χάρτη συνοτήτων"
 
-#: ../wxui/query_sources.py:284
+#: ../wxui/query_sources.py:287
 msgid "Service"
 msgstr "Υπηρεσία"
 
-#: ../wxui/main.py:201
+#: ../wxui/main.py:214
 msgid "Settings"
 msgstr "Ρυθμίσεις"
 
-#: ../wxui/memedit.py:1552
+#: ../drivers/uvk5.py:2102
+msgid "Settings are read-only due to unsupported firmware version"
+msgstr ""
+
+#: ../wxui/memedit.py:140
+msgid "Shift amount (or transmit frequency) controlled by duplex"
+msgstr ""
+
+#: ../wxui/memedit.py:1827 ../wxui/developer.py:91
 msgid "Show Raw Memory"
 msgstr ""
 
-#: ../wxui/main.py:849
+#: ../wxui/main.py:957
 msgid "Show debug log location"
 msgstr "Εμφάνιση τοποθεσίας αρχείου καταγραφής αποσφαλμάτωσης"
 
-#: ../wxui/memedit.py:747
+#: ../wxui/memedit.py:943
 msgid "Show extra fields"
 msgstr ""
 
-#: ../wxui/memedit.py:1749
+#: ../wxui/main.py:962
+#, fuzzy
+msgid "Show image backup location"
+msgstr "Εμφάνιση τοποθεσίας αρχείου καταγραφής αποσφαλμάτωσης"
+
+#: ../wxui/memedit.py:2096
 msgid "Some memories are incompatible with this radio"
 msgstr "Κάποιες μνήμες δεν είναι συμβατές με αυτόν τον πομποδέκτη"
 
-#: ../wxui/memedit.py:1669
+#: ../wxui/memedit.py:1943
 msgid "Some memories are not deletable"
 msgstr "Κάποιες μνήμες δεν είναι δυνατόν να διαγραφούν"
 
-#: ../wxui/memedit.py:1514
+#: ../wxui/memedit.py:1783
 #, fuzzy, python-format
-msgid "Sort %i memories"
-msgstr "Διαγραφή %i Μνημών"
+msgid "Sort %i memory"
+msgid_plural "Sort %i memories"
+msgstr[0] "Διαγραφή %i Μνημών"
+msgstr[1] "Διαγραφή %i Μνημών"
 
-#: ../wxui/memedit.py:1517
-#, python-format
-msgid "Sort %i memories ascending"
-msgstr ""
+#: ../wxui/memedit.py:1787
+#, fuzzy, python-format
+msgid "Sort %i memory ascending"
+msgid_plural "Sort %i memories ascending"
+msgstr[0] "Διαγραφή %i Μνημών"
+msgstr[1] "Διαγραφή %i Μνημών"
 
-#: ../wxui/memedit.py:1536
-#, python-format
-msgid "Sort %i memories descending"
-msgstr ""
+#: ../wxui/memedit.py:1809
+#, fuzzy, python-format
+msgid "Sort %i memory descending"
+msgid_plural "Sort %i memories descending"
+msgstr[0] "Διαγραφή %i Μνημών"
+msgstr[1] "Διαγραφή %i Μνημών"
 
-#: ../wxui/memedit.py:1423
+#: ../wxui/memedit.py:1675
 msgid "Sort by column:"
 msgstr ""
 
-#: ../wxui/memedit.py:1422
+#: ../wxui/memedit.py:1674
 #, fuzzy
 msgid "Sort memories"
 msgstr "Αντικατάσταση μνημών;"
 
-#: ../wxui/query_sources.py:454
+#: ../sources/przemienniki.py:60
+#, fuzzy
+msgid "Sorting"
+msgstr "Εκτύπωση"
+
+#: ../wxui/query_sources.py:472
 msgid "State"
 msgstr "Πολιτεία"
 
-#: ../wxui/query_sources.py:287
+#: ../wxui/query_sources.py:290
 msgid "State/Province"
 msgstr "Πολιτεία / Επαρχία"
 
-#: ../wxui/main.py:1550
+#: ../wxui/main.py:1818
 msgid "Success"
 msgstr ""
 
-#: ../drivers/ft450d.py:372
+#: ../wxui/bugreport.py:600
+msgid "Successfully sent bug report:"
+msgstr ""
+
+#: ../wxui/memedit.py:136
+msgid "TX-RX DTCS polarity (normal or reversed)"
+msgstr ""
+
+#: ../drivers/ft4.py:720
 msgid ""
-"The FT-450 radio driver loads the 'Special Channels' tab\n"
+"Tested and mostly works, but may give you issues\n"
+"when using lesser common radio variants.\n"
+"Proceed at your own risk, and let us know about issues!"
+msgstr ""
+
+#: ../wxui/query_sources.py:480
+msgid "The DMR-MARC Worldwide Network"
+msgstr ""
+
+#: ../drivers/ft450d.py:416
+msgid ""
+"The FT-450D radio driver loads the 'Special Channels' tab\n"
 "with the PMS scanning range memories (group 11), 60meter\n"
 "channels (group 12), the QMB (STO/RCL) memory, the HF and\n"
 "50m HOME memories and all the A and B VFO memories.\n"
@@ -1734,10 +2245,12 @@ msgid ""
 "This driver also populates the 'Other' tab in the channel\n"
 "memory Properties window. This tab contains values for\n"
 "those channel memory settings that don't fall under the\n"
-"standard Chirp display columns.\n"
+"standard Chirp display columns. With FT450 support, the gui now\n"
+"uses the mode 'DIG' to represent data modes and a new column\n"
+"'DATA MODE' to select USER-U, USER-L and RTTY \n"
 msgstr ""
 
-#: ../drivers/boblov_x3plus.py:118
+#: ../drivers/boblov_x3plus.py:119
 msgid ""
 "The X3Plus driver is currently experimental.\n"
 "There are no known issues but you should proceed with caution.\n"
@@ -1745,27 +2258,94 @@ msgid ""
 "download to a CHIRP Radio Images (*.img) file.\n"
 msgstr ""
 
-#: ../wxui/memedit.py:1476
+#: ../wxui/developer.py:565
+msgid ""
+"The author of this module is not a recognized CHIRP developer. It is "
+"recommended that you not load this module as it could pose a security risk. "
+"Proceed anyway?"
+msgstr ""
+
+#: ../wxui/bugreport.py:169
+msgid ""
+"The debug log file is not available when CHIRP is run interactively from the "
+"command-line. Thus, this tool will not upload what you expect. It is "
+"recommended that you quit now and run CHIRP non-interactively (or with stdin "
+"redirected to /dev/null)"
+msgstr ""
+
+#: ../wxui/bugreport.py:449
+msgid "The following information will be submitted:"
+msgstr ""
+
+#: ../wxui/main.py:1347
+#, python-format
+msgid ""
+"The recommended procedure for importing memories is to open the source file "
+"and copy/paste memories from it into your target image. If you continue with "
+"this import function, CHIRP will replace all memories in your currently-open "
+"file with those in %(file)s. Would you like to open this file to copy/paste "
+"memories across, or proceed with the import?"
+msgstr ""
+
+#: ../wxui/memedit.py:1744
 #, fuzzy
 msgid "This Memory"
 msgstr "Μνήμη DV"
 
-#: ../drivers/id5100.py:333
+#: ../drivers/id5100.py:332
 msgid ""
 "This driver has been tested with v3 of the ID-5100. If your radio is not "
 "fully updated please help by opening a bug report with a debug log so we can "
 "add support for the other revisions."
 msgstr ""
 
-#: ../drivers/th_uv88.py:495
+#: ../drivers/radtel_rt490.py:1345 ../drivers/radtel_rt490.py:1347
+#: ../drivers/radtel_rt490.py:1349
+msgid "This driver is in development and should be considered as experimental."
+msgstr ""
+
+#: ../drivers/uvk5.py:723
+msgid ""
+"This image is missing firmware information. It may have been generated with "
+"an old or modified version of CHIRP. It is advised that you download a fresh "
+"image from your radio and use that going forward for the best safety and "
+"compatibility."
+msgstr ""
+
+#: ../wxui/main.py:1579
+msgid ""
+"This is a live-mode radio, which means changes are sent to the radio in real-"
+"time as you make them. Upload is not necessary!"
+msgstr ""
+
+#: ../wxui/main.py:1585
+msgid ""
+"This is a radio-independent file and cannot be uploaded directly to a radio. "
+"Open a radio image (or download one from a radio) and then copy/paste items "
+"from this tab into that one in order to upload"
+msgstr ""
+
+#: ../drivers/th_uv88.py:560
 msgid "This is an early stage beta driver\n"
 msgstr ""
 
-#: ../drivers/th_uv88.py:497
+#: ../drivers/th_uv88.py:562
 msgid "This is an early stage beta driver - upload at your own risk\n"
 msgstr ""
 
-#: ../drivers/bj9900.py:112
+#: ../drivers/uvk5.py:650
+msgid ""
+"This is an experimental driver for the Quansheng UV-K5. It may harm your "
+"radio, or worse. Use at your own risk.\n"
+"\n"
+"Before attempting to do any changes please download the memory image from "
+"the radio with chirp and keep it. This can be later used to recover the "
+"original settings. \n"
+"\n"
+"some details are not yet implemented"
+msgstr ""
+
+#: ../drivers/bj9900.py:108
 msgid ""
 "This is experimental support for BJ-9900 which is still under development.\n"
 "Please ensure you have a good backup with OEM software.\n"
@@ -1780,17 +2360,31 @@ msgstr ""
 "δυνατοτήτων!\n"
 "Σας προειδοποιήσαμε. Προχωράτε με δική σας ευθύνη!"
 
-#: ../wxui/memedit.py:1480
+#: ../wxui/bugreport.py:374
+msgid ""
+"This is the ticket number for an already-created issue on the chirpmyradio."
+"com website"
+msgstr ""
+
+#: ../wxui/memedit.py:1748
 #, fuzzy
 msgid "This memory and shift all up"
 msgstr "Διαγραφή %i μνημών και μετακίνηση όλων προς τα επάνω"
 
-#: ../wxui/memedit.py:1478
+#: ../wxui/memedit.py:1746
 #, fuzzy
 msgid "This memory and shift block up"
 msgstr "Διαγραφή %i μνημών και μετακίνηση ομάδας προς τα επάνω"
 
-#: ../drivers/fd268.py:302 ../drivers/fd268.py:308
+#: ../drivers/uvk5_egzumer.py:1468
+msgid ""
+"This option may break your radio! Each radio has a unique set of calibration "
+"data and uploading the data from the image will cause physical harm to the "
+"radio if it is from a different piece of hardware. Do not use this unless "
+"you know what you are doing and accept the risk of destroying your radio!"
+msgstr ""
+
+#: ../drivers/fd268.py:303 ../drivers/fd268.py:309
 msgid ""
 "This radio has a tricky way of enter into program mode,\n"
 "even the original software has a few tries to get inside.\n"
@@ -1799,165 +2393,274 @@ msgid ""
 "If you can get into it, please check the radio and cable.\n"
 msgstr ""
 
-#: ../wxui/developer.py:479
+#: ../drivers/uvk5.py:1885
+msgid ""
+"This should only be enabled if you are using modified firmware that supports "
+"wider frequency coverage. Enabling this will cause CHIRP not to enforce OEM "
+"restrictions and may lead to undefined or unregulated behavior. Use at your "
+"own risk!"
+msgstr ""
+
+#: ../wxui/bugreport.py:137
+msgid ""
+"This tool will upload details about your system to an existing issue on the "
+"CHIRP tracker. It requires your username and password for chirpmyradio.com "
+"in order to work. Information about your system, including your debug log, "
+"config file, and any open image files will be uploaded. An attempt will be "
+"made to redact any personal information before it leaves your system."
+msgstr ""
+
+#: ../wxui/developer.py:575
 msgid "This will load a module from a website issue"
 msgstr ""
 
-#: ../wxui/memedit.py:359
+#: ../wxui/memedit.py:440
 msgid "Tone"
 msgstr "Τόνος"
 
-#: ../wxui/memedit.py:807
+#: ../wxui/memedit.py:1004
 msgid "Tone Mode"
 msgstr "Τύπος τόνου"
 
-#: ../wxui/memedit.py:361
+#: ../wxui/memedit.py:442
 msgid "Tone Squelch"
 msgstr "Τόνος Φίμωσης"
 
-#: ../wxui/memedit.py:303
+#: ../wxui/memedit.py:130
+#, fuzzy
+msgid "Tone squelch mode"
+msgstr "Τόνος Φίμωσης"
+
+#: ../wxui/memedit.py:143
+msgid "Transmit Power"
+msgstr ""
+
+#: ../wxui/memedit.py:139
+msgid "Transmit shift, split mode, or transmit inhibit"
+msgstr ""
+
+#: ../wxui/memedit.py:131
+msgid "Transmit tone"
+msgstr ""
+
+#: ../wxui/memedit.py:134
+msgid "Transmit/receive DTCS code for DTCS mode, else transmit code"
+msgstr ""
+
+#: ../wxui/memedit.py:133
+msgid "Transmit/receive modulation (FM, AM, SSB, etc)"
+msgstr ""
+
+#: ../wxui/memedit.py:132
+msgid "Transmit/receive tone for TSQL mode, else receive tone"
+msgstr ""
+
+#: ../wxui/memedit.py:384 ../wxui/memedit.py:1018
 msgid "Tuning Step"
 msgstr "Βήμα συντονισμού"
 
-#: ../wxui/clone.py:338 ../wxui/clone.py:345 ../wxui/clone.py:356
-#: ../wxui/clone.py:363 ../wxui/clone.py:367
+#: ../wxui/clone.py:441 ../wxui/clone.py:448 ../wxui/clone.py:459
+#: ../wxui/clone.py:467 ../wxui/clone.py:471
 msgid "USB Port Finder"
 msgstr "Έυρεση θυρών USB"
 
-#: ../wxui/clone.py:354
+#: ../wxui/clone.py:457
 msgid ""
 "Unable to determine port for your cable. Check your drivers and connections."
 msgstr ""
 
-#: ../wxui/memedit.py:1231
+#: ../wxui/memedit.py:1473
 msgid "Unable to edit memory before radio is loaded"
 msgstr ""
 
-#: ../wxui/main.py:1147
+#: ../wxui/main.py:1273
 #, python-format
 msgid "Unable to find stock config %r"
 msgstr ""
 
-#: ../wxui/main.py:1268
+#: ../wxui/memedit.py:1957
+#, fuzzy
+msgid "Unable to import while the view is sorted"
+msgstr "Αδυναμία ανοίγματος του πρόχειρου"
+
+#: ../wxui/common.py:227
 msgid "Unable to open the clipboard"
 msgstr "Αδυναμία ανοίγματος του πρόχειρου"
 
-#: ../drivers/ft817.py:322
+#: ../sources/przemienniki.py:46
+msgid "Unable to query"
+msgstr ""
+
+#: ../drivers/ft817.py:320
 msgid ""
 "Unable to read last block. This often happens when the selected model is US "
 "but the radio is a non-US one (or widebanded). Please choose the correct "
 "model and try again."
 msgstr ""
 
-#: ../wxui/main.py:1542
+#: ../wxui/common.py:687
 #, python-format
 msgid "Unable to reveal %s on this system"
 msgstr ""
 
-#: ../wxui/memedit.py:160
+#: ../wxui/memedit.py:244
 #, fuzzy, python-format
 msgid "Unable to set %s on this memory"
 msgstr "Πατήστε enter για καταχώρηση στη μνήμη"
 
-#: ../wxui/query_sources.py:524
+#: ../wxui/main.py:1589
+#, fuzzy
+msgid "Unable to upload this file"
+msgstr "Πατήστε enter για καταχώρηση στη μνήμη"
+
+#: ../wxui/query_sources.py:698
 msgid "United States"
 msgstr "Ηνωμένες Πολιτείες"
 
-#: ../wxui/clone.py:337
+#: ../wxui/clone.py:440
 msgid "Unplug your cable (if needed) and then click OK"
 msgstr "Αποσυνδέστε το καλώδιο σας (αν χρειάζεται) και μετά πατήστε OK"
 
-#: ../wxui/clone.py:574
+#: ../drivers/thd74.py:327
+#, python-format
+msgid "Unsupported model %r"
+msgstr ""
+
+#: ../wxui/bugreport.py:158
+msgid "Update an existing bug"
+msgstr ""
+
+#: ../wxui/bugreport.py:466
+#, python-format
+msgid "Updating bug %s"
+msgstr ""
+
+#: ../wxui/clone.py:746
 msgid "Upload instructions"
 msgstr "Οδηγίες αποστολής"
 
-#: ../wxui/main.py:742 ../wxui/main.py:900
+#: ../drivers/uvk5.py:2089
+msgid "Upload is disabled due to unsupported firmware version"
+msgstr ""
+
+#: ../wxui/main.py:1022
 msgid "Upload to radio"
 msgstr "Αποστολή Σε Πομποδέκτη"
 
-#: ../wxui/common.py:276
+#: ../wxui/main.py:845
+#, fuzzy
+msgid "Upload to radio..."
+msgstr "Αποστολή Σε Πομποδέκτη"
+
+#: ../wxui/common.py:323
 #, python-format
 msgid "Uploaded memory %s"
 msgstr "Απεστάλη η μνήμη %s"
 
-#: ../wxui/main.py:710
+#: ../wxui/main.py:801
 msgid "Use fixed-width font"
 msgstr "Χρήση γραμματοσειράς σταθερού πλάτους"
 
-#: ../wxui/main.py:718
+#: ../wxui/main.py:809
 msgid "Use larger font"
 msgstr "Χρήση μεγαλύτερης γραμματοσειράς"
 
-#: ../wxui/developer.py:247
+#: ../wxui/bugreport.py:205
+msgid "Username"
+msgstr ""
+
+#: ../wxui/developer.py:256
 #, python-format
 msgid "Value does not fit in %i bits"
 msgstr "Η τιμή δεν χωράει σε %i bits"
 
-#: ../wxui/common.py:386
+#: ../wxui/common.py:519
 #, python-format
 msgid "Value must be at least %.4f"
 msgstr "Η τιμή πρέπει να είναι τουλάχιστον %.4f"
 
-#: ../wxui/common.py:390
+#: ../wxui/common.py:523
 #, python-format
 msgid "Value must be at most %.4f"
 msgstr "Η τιμή πρέπει να είναι το πολύ  %.4f"
 
-#: ../wxui/developer.py:290
+#: ../wxui/developer.py:300
 #, python-format
 msgid "Value must be exactly %i decimal digits"
 msgstr "Η τιμή πρέπει να έιναι ακριβώς %i δεκαδικά ψηφία"
 
-#: ../wxui/developer.py:245 ../wxui/developer.py:288
+#: ../wxui/developer.py:254 ../wxui/developer.py:298
 msgid "Value must be zero or greater"
 msgstr "Η τιμή πρέπει να είναι μηδέν ή μεγαλύτερη"
 
-#: ../wxui/clone.py:239
+#: ../wxui/memedit.py:2338
+msgid "Values"
+msgstr ""
+
+#: ../wxui/clone.py:317
 msgid "Vendor"
 msgstr "Προμηθευτής"
 
-#: ../wxui/main.py:861
+#: ../wxui/main.py:983
 msgid "View"
 msgstr "Εμφάνιση"
 
-#: ../wxui/memedit.py:1315
+#: ../wxui/common.py:465
+msgid "WARNING!"
+msgstr ""
+
+#: ../wxui/bugreport.py:174 ../wxui/memedit.py:1559 ../wxui/main.py:1810
 msgid "Warning"
 msgstr "Προειδοποίηση"
 
-#: ../wxui/memedit.py:1314
+#: ../wxui/memedit.py:1558
 #, python-format
 msgid "Warning: %s"
 msgstr "Προειδοποίηση: %s"
 
-#: ../wxui/main.py:411
+#: ../wxui/main.py:442
 msgid "Welcome"
 msgstr "Καλωσήρθατε"
 
-#: ../wxui/__init__.py:37
+#: ../wxui/__init__.py:58
 msgid "Would you like CHIRP to install a desktop icon for you?"
 msgstr ""
 
-#: ../wxui/clone.py:361
+#: ../wxui/bugreport.py:265
+msgid ""
+"You have opened multiple issues within the last week. CHIRP limits the "
+"number of issues you can open to avoid abuse. If you really need to open "
+"another, please do so via the website."
+msgstr ""
+
+#: ../wxui/clone.py:478
+msgid ""
+"Your Prolific-based USB device will not work without reverting to an older "
+"version of the driver. Visit the CHIRP website to read more about how to "
+"resolve this?"
+msgstr ""
+
+#: ../wxui/clone.py:465
 msgid "Your cable appears to be on port:"
 msgstr "Το καλώδιο σας φαίνεται να είανι στη θύρα:"
 
-#: ../wxui/developer.py:169
+#: ../wxui/developer.py:176
 msgid "bits"
 msgstr "bits"
 
-#: ../wxui/developer.py:165
+#: ../wxui/developer.py:172
 msgid "bytes"
 msgstr "bytes"
 
-#: ../wxui/developer.py:160
+#: ../wxui/developer.py:167
 msgid "bytes each"
 msgstr "bytes το καθένα"
 
-#: ../wxui/main.py:1484
+#: ../wxui/main.py:1743
 msgid "disabled"
 msgstr ""
 
-#: ../wxui/main.py:1484
+#: ../wxui/main.py:1743
 msgid "enabled"
 msgstr ""
 
@@ -1966,11 +2669,23 @@ msgstr ""
 msgid "{bank} is full"
 msgstr "H {bank} είναι γεμάτη"
 
+#, fuzzy
+#~ msgid "Band"
+#~ msgstr "Μπάντες"
+
 #~ msgid "Delete and shift all up"
 #~ msgstr "Διαγραφή και μετακίνηση όλων προς τα επάνω"
 
 #~ msgid "Delete and shift block up"
 #~ msgstr "Διαγραφή και μετακίνηση ομάδας προς τα επάνω"
+
+#, fuzzy, python-format
+#~ msgid "Failed to upload details: %s"
+#~ msgstr "Αδυναμία φόρτωσης περιηγητή πομποδεκτών"
+
+#, fuzzy, python-format
+#~ msgid "Path %s does not exist"
+#~ msgstr "Το αρχείο δεν υπάρχει: %s"
 
 #~ msgid "Upload"
 #~ msgstr "Αποστολή"

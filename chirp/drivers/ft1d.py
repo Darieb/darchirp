@@ -33,6 +33,16 @@ from chirp import util
 LOG = logging.getLogger(__name__)
 
 MEM_SETTINGS_FORMAT = """
+#seekto 0x047e;
+struct {
+  u8 unknown1;
+  u8 flag;
+  u16 unknown2;
+  struct {
+    u8 padded_yaesu[16];
+  } message;
+} opening_message;
+
 #seekto 0x049a;
 struct {
   u8 vfo_a;
@@ -49,7 +59,7 @@ struct {
   u8 lcd_dimmer;        // 14 DIMMER
   u8 dtmf_delay;        // 18 DT DLY
   u8 unknown0[3];
-  u8 unknown1:4
+  u8 unknown1:4,
      lcd_contrast:4;
   u8 lamp;              // 28 LAMP
   u8 lock;              // 30 LOCK
@@ -76,7 +86,7 @@ struct {
   u8 busy_led:1,
      unknown9:2,
      bclo:1,            // 03 BCLO
-     beep_edge:1        // 06 BEP.EDG
+     beep_edge:1,       // 06 BEP.EDG
      unknown9_1:3;
   u8 unknown10:5,
      password:1,
@@ -91,6 +101,11 @@ struct {
      unknown12_1:2,
      dw_rt:1;           // 23 DW RVT;
 } scan_settings;
+
+#seekto 0x54a;
+struct {
+    u16 in_use;
+} bank_used[24];
 
 #seekto 0x064a;
 struct {
@@ -136,20 +151,16 @@ struct {
   u8 checksum;
 } vfo_info[6];
 
-#seekto 0x047e;
-struct {
-  u8 unknown1;
-  u8 flag;
-  u16 unknown2;
-  struct {
-    u8 padded_yaesu[16];
-  } message;
-} opening_message;
-
 #seekto 0x%(dtmadd)04X; // FT-1D:0e4a, FT2D:094a
 struct {
   u8 memory[16];
 } dtmf[10];
+
+#seekto 0x0EFE;
+struct {
+  u8 unknown[2];
+  u8 name[16];
+} bank_info[24];
 
 #seekto 0x154a;
 // These "channels" seem to actually be a structure:
@@ -164,17 +175,6 @@ struct {
 struct {
     u16 channel[100];
 } bank_members[24];
-
-#seekto 0x54a;
-struct {
-    u16 in_use;
-} bank_used[24];
-
-#seekto 0x0EFE;
-struct {
-  u8 unknown[2];
-  u8 name[16];
-} bank_info[24];
 """
 
 MEM_FORMAT = """
@@ -248,7 +248,7 @@ struct {
   u8 unknown7:1,
      aprs_units_wind_mph:1,
      aprs_units_rain_inch:1,
-     aprs_units_temperature_f:1
+     aprs_units_temperature_f:1,
      aprs_units_altitude_ft:1,
      unknown8:1,
      aprs_units_distance_m:1,
@@ -428,8 +428,15 @@ struct {
     u8 unknown4:6,
         gm_ring:2;              // 24 GM RNG
     u8 temp_cf;               // Placeholder as not found
-    u8 unknown5;
     } first_settings;
+
+#seekto 0x04c0;
+struct {
+    u8 unknown1:5,
+        beep_level:3;           // 05 BEP.LVL
+    u8 unknown2:6,
+        beep_select:2;          // 04 BEEP
+    } beep_settings;
 
 #seekto 0x04ed;
 struct {
@@ -443,13 +450,11 @@ struct {
        unknown8:1;
      } test_bit_field;
 
-#seekto 0x04c0;
+#seekto 0x0ced0;
 struct {
-    u8 unknown1:5,
-        beep_level:3;           // 05 BEP.LVL
-    u8 unknown2:6,
-        beep_select:2;          // 04 BEEP
-    } beep_settings;
+    char callsign[10];              // 63 MYCALL
+    u16 charset;                    // character set ID
+    } my_call;
 
 #seekto 0xCF30;
 struct {
@@ -486,12 +491,6 @@ struct {
     char message[32];
     } GM[10];
 
-#seekto 0x0ced0;
-struct {
-    char callsign[10];              // 63 MYCALL
-    u16 charset;                    // character set ID
-    } my_call;
-
 #seekto 0x1ddca;
 struct {
     struct {
@@ -515,10 +514,7 @@ u8 checksum;
 TMODES = ["", "Tone", "TSQL", "DTCS"]
 DUPLEX = ["", "-", "+", "split"]
 MODES = ["FM", "AM", "WFM"]
-STEPS = list(chirp_common.TUNING_STEPS)
-STEPS.remove(30.0)
-STEPS.append(100.0)
-STEPS.insert(2, 0.0)  # There is a skipped tuning step at index 2 (?)
+STEPS = [5.0, 6.25, 8.33, 10.0, 12.5, 15.0, 20.0, 25.0, 50.0, 100.0, 9.0]
 SKIPS = ["", "S", "P"]
 FT1_DTMF_CHARS = list("0123456789ABCD*#-")
 
@@ -731,7 +727,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _adms_ext = '.ft1d'
 
     _SG_RE = re.compile(r"(?P<sign>[-+NESW]?)(?P<d>[\d]+)[\s\.,]*"
-                        "(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
+                        r"(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
 
     _RX_BAUD = ("off", "1200 baud", "9600 baud")
     _TX_DELAY = ("100ms", "150ms", "200ms", "250ms", "300ms",
@@ -815,7 +811,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _MONI_TCALL = ("Monitor", "Tone-CALL")
     _HOME_REV = ("Home", "Reverse")
     _LOCK = ("KEY", "DIAL", "Key+Dial", "PTT", "Key+PTT", "Dial+PTT", "ALL")
-    _PTT_DELAY = ("Off", "20 MS", "50 MS", "100 MS", "200 MS")
+    _PTT_DELAY = ("Off", "20 ms", "50 ms", "100 ms", "200 ms")
     _BEEP_LEVEL = ("Level %i" % i for i in range(1, 7))
     _SET_MODE = ("Level %i" % i for i in range(1, 8))
     _RX_SAVE = ("OFF", "0.2s", ".3s", ".4s", ".5s", ".6s",
@@ -828,9 +824,6 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _VFO_MODE = ("ALL", "BAND")
     _VFO_SCAN_MODE = ("BAND", "ALL")
     _MEMORY_SCAN_MODE = ("BAND", "ALL")
-
-    _SG_RE = re.compile(r"(?P<sign>[-+NESW]?)(?P<d>[\d]+)[\s\.,]*"
-                        "(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
 
     _RX_BAUD = ("off", "1200 baud", "9600 baud")
     _TX_DELAY = ("100ms", "150ms", "200ms", "250ms", "300ms",
@@ -879,7 +872,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _SQUELCH = ["%d" % x for x in range(0, 16)]
     _VOLUME = ["%d" % x for x in range(0, 33)]
     _DG_ID = ["%d" % x for x in range(0, 100)]
-    _GM_RING = ("OFF", "IN RING", "AlWAYS")
+    _GM_RING = ("OFF", "IN RING", "ALWAYS")
     _GM_INTERVAL = ("LONG", "NORMAL", "OFF")
 
     _MYCALL_CHR_SET = list(string.ascii_uppercase) + \
@@ -912,7 +905,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
     def process_mmap(self):
         mem_format = MEM_SETTINGS_FORMAT + MEM_FORMAT + MEM_APRS_FORMAT + \
-                MEM_BACKTRACK_FORMAT + MEM_GM_FORMAT + MEM_CHECKSUM_FORMAT
+                MEM_GM_FORMAT + MEM_BACKTRACK_FORMAT + MEM_CHECKSUM_FORMAT
         self._memobj = bitwise.parse(mem_format % self._mem_params, self._mmap)
 
     def get_features(self):
@@ -921,7 +914,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         rf.valid_modes = list(MODES) + ['NFM', 'DN']
         rf.valid_tmodes = list(TMODES)
         rf.valid_duplexes = list(DUPLEX)
-        rf.valid_tuning_steps = list(STEPS)
+        rf.valid_tuning_steps = [x for x in STEPS if x]
         rf.valid_bands = [(500000, 999900000)]
         rf.valid_skips = SKIPS
         rf.valid_power_levels = POWER_LEVELS
@@ -933,8 +926,6 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         rf.has_bank_names = True
         rf.has_settings = True
         rf.valid_special_chans = [name for s in SPECIALS for name in s[1]]
-        return rf
-
         return rf
 
     def get_raw_memory(self, number):
@@ -992,7 +983,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                     num += len(x[1])
                     # num -= len(x[1])
             if array is None:
-                raise IndexError("Unknown special %s", memref)
+                raise IndexError("Unknown special %s" % memref)
             num += ndx
             # num -= ndx
         elif memref > self.MAX_MEM_SLOT:         # numbered special
@@ -1006,7 +997,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                     break
                 ndx -= len(x[1])
             if array is None:
-                raise IndexError("Unknown memref number %s", memref)
+                raise IndexError("Unknown memref number %s" % memref)
         else:
             array = "memory"
             ndx = memref - 1
@@ -1049,7 +1040,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             mem.duplex = ""
             mem.power = POWER_LEVELS[0]
             mem.mode = "FM"
-            mem.tuning_step = 0
+            mem.tuning_step = STEPS[0]
         else:
             mem.freq = chirp_common.fix_rounded_step(int(_mem.freq) * 1000)
             mem.offset = int(_mem.offset) * 1000
@@ -1096,7 +1087,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return self._add_ff_pad(label, 16)
 
     def _encode_charsetbits(self, mem):
-        # We only speak english here in chirpville
+        # We only speak English here in chirpville
         return 0x0000
 
     def _decode_power_level(self, mem):
@@ -1322,12 +1313,12 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             chirp_common.APRS_SSID,
-            chirp_common.APRS_SSID[aprs.my_callsign.ssid])
+            current_index=aprs.my_callsign.ssid)
         rs = RadioSetting("aprs.my_callsign.ssid", "My SSID", val)
         menu.append(rs)
 
         val = RadioSettingValueList(self._MY_SYMBOL,
-                                    self._MY_SYMBOL[aprs.selected_my_symbol])
+                                    current_index=aprs.selected_my_symbol)
         rs = RadioSetting("aprs.selected_my_symbol", "My Symbol", val)
         menu.append(rs)
 
@@ -1336,7 +1327,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         if aprs.custom_symbol >= len(chirp_common.APRS_SYMBOLS):
             symbols.append("%d" % aprs.custom_symbol)
             selected = len(symbols) - 1
-        val = RadioSettingValueList(symbols, symbols[selected])
+        val = RadioSettingValueList(symbols, current_index=selected)
         rs = RadioSetting("aprs.custom_symbol_text", "User Selected Symbol",
                           val)
         rs.set_apply_callback(self.apply_custom_symbol, aprs)
@@ -1344,7 +1335,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             chirp_common.APRS_POSITION_COMMENT,
-            chirp_common.APRS_POSITION_COMMENT[aprs.selected_position_comment])
+            current_index=aprs.selected_position_comment)
         rs = RadioSetting("aprs.selected_position_comment", "Position Comment",
                           val)
         menu.append(rs)
@@ -1367,7 +1358,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         # position_str[1] = "%s %s" % (latitude, longitude)
         # position_str[2] = "%s %s" % (latitude, longitude)
         val = RadioSettingValueList(position_str,
-                                    position_str[aprs.selected_position])
+                                    current_index=aprs.selected_position)
         rs = RadioSetting("aprs.selected_position", "My Position", val)
         menu.append(rs)
 
@@ -1382,67 +1373,67 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._TIME_SOURCE, self._TIME_SOURCE[aprs.set_time_manually])
+            self._TIME_SOURCE, current_index=aprs.set_time_manually)
         rs = RadioSetting("aprs.set_time_manually", "Time Source", val)
         menu.append(rs)
 
-        val = RadioSettingValueList(self._TZ, self._TZ[aprs.timezone])
+        val = RadioSettingValueList(self._TZ, current_index=aprs.timezone)
         rs = RadioSetting("aprs.timezone", "Timezone", val)
         menu.append(rs)
 
         val = RadioSettingValueList(self._SPEED_UNITS,
-                                    self._SPEED_UNITS[aprs.aprs_units_speed])
+                                    current_index=aprs.aprs_units_speed)
         rs = RadioSetting("aprs.aprs_units_speed", "APRS Speed Units", val)
         menu.append(rs)
 
         val = RadioSettingValueList(self._SPEED_UNITS,
-                                    self._SPEED_UNITS[aprs.gps_units_speed])
+                                    current_index=aprs.gps_units_speed)
         rs = RadioSetting("aprs.gps_units_speed", "GPS Speed Units", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._ALT_UNITS, self._ALT_UNITS[aprs.aprs_units_altitude_ft])
+            self._ALT_UNITS, current_index=aprs.aprs_units_altitude_ft)
         rs = RadioSetting("aprs.aprs_units_altitude_ft", "APRS Altitude Units",
                           val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._ALT_UNITS, self._ALT_UNITS[aprs.gps_units_altitude_ft])
+            self._ALT_UNITS, current_index=aprs.gps_units_altitude_ft)
         rs = RadioSetting("aprs.gps_units_altitude_ft", "GPS Altitude Units",
                           val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._POS_UNITS, self._POS_UNITS[aprs.aprs_units_position_mmss])
+            self._POS_UNITS, current_index=aprs.aprs_units_position_mmss)
         rs = RadioSetting("aprs.aprs_units_position_mmss",
                           "APRS Position Format", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._POS_UNITS, self._POS_UNITS[aprs.gps_units_position_sss])
+            self._POS_UNITS, current_index=aprs.gps_units_position_sss)
         rs = RadioSetting("aprs.gps_units_position_sss",
                           "GPS Position Format", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._DIST_UNITS, self._DIST_UNITS[aprs.aprs_units_distance_m])
+            self._DIST_UNITS, current_index=aprs.aprs_units_distance_m)
         rs = RadioSetting("aprs.aprs_units_distance_m", "APRS Distance Units",
                           val)
         menu.append(rs)
 
         val = RadioSettingValueList(self._WIND_UNITS,
-                                    self._WIND_UNITS[aprs.aprs_units_wind_mph])
+                                    current_index=aprs.aprs_units_wind_mph)
         rs = RadioSetting("aprs.aprs_units_wind_mph", "APRS Wind Speed Units",
                           val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._RAIN_UNITS, self._RAIN_UNITS[aprs.aprs_units_rain_inch])
+            self._RAIN_UNITS, current_index=aprs.aprs_units_rain_inch)
         rs = RadioSetting("aprs.aprs_units_rain_inch", "APRS Rain Units", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
-            self._TEMP_UNITS, self._TEMP_UNITS[aprs.aprs_units_temperature_f])
+            self._TEMP_UNITS, current_index=aprs.aprs_units_temperature_f)
         rs = RadioSetting("aprs.aprs_units_temperature_f",
                           "APRS Temperature Units", val)
         menu.append(rs)
@@ -1554,7 +1545,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         menu = RadioSettingGroup("aprs_rx", "APRS Receive")
         aprs = self._memobj.aprs
 
-        val = RadioSettingValueList(self._RX_BAUD, self._RX_BAUD[aprs.rx_baud])
+        val = RadioSettingValueList(self._RX_BAUD, current_index=aprs.rx_baud)
         rs = RadioSetting("aprs.rx_baud", "Modem RX", val)
         menu.append(rs)
 
@@ -1576,37 +1567,37 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         menu.append(rs)
 
         val = RadioSettingValueList(self._FLASH,
-                                    self._FLASH[aprs.flash_msg])
+                                    current_index=aprs.flash_msg)
         rs = RadioSetting("aprs.flash_msg", "Flash on personal message", val)
         menu.append(rs)
 
         if self._has_vibrate:
             val = RadioSettingValueList(self._FLASH,
-                                        self._FLASH[aprs.vibrate_msg])
+                                        current_index=aprs.vibrate_msg)
             rs = RadioSetting("aprs.vibrate_msg",
                               "Vibrate on personal message", val)
             menu.append(rs)
 
         val = RadioSettingValueList(self._FLASH[:10],
-                                    self._FLASH[aprs.flash_bln])
+                                    current_index=aprs.flash_bln)
         rs = RadioSetting("aprs.flash_bln", "Flash on bulletin message", val)
         menu.append(rs)
 
         if self._has_vibrate:
             val = RadioSettingValueList(self._FLASH[:10],
-                                        self._FLASH[aprs.vibrate_bln])
+                                        current_index=aprs.vibrate_bln)
             rs = RadioSetting("aprs.vibrate_bln",
                               "Vibrate on bulletin message", val)
             menu.append(rs)
 
         val = RadioSettingValueList(self._FLASH[:10],
-                                    self._FLASH[aprs.flash_grp])
+                                    current_index=aprs.flash_grp)
         rs = RadioSetting("aprs.flash_grp", "Flash on group message", val)
         menu.append(rs)
 
         if self._has_vibrate:
             val = RadioSettingValueList(self._FLASH[:10],
-                                        self._FLASH[aprs.vibrate_grp])
+                                        current_index=aprs.vibrate_grp)
             rs = RadioSetting("aprs.vibrate_grp",
                               "Vibrate on group message", val)
             menu.append(rs)
@@ -1623,7 +1614,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         # TODO: Use filter_val as the list entries and update it on edit.
         val = RadioSettingValueList(
             self._MSG_GROUP_NAMES,
-            self._MSG_GROUP_NAMES[aprs.selected_msg_group])
+            current_index=aprs.selected_msg_group)
         rs = RadioSetting("aprs.selected_msg_group", "Selected Message Group",
                           val)
         menu.append(rs)
@@ -1666,18 +1657,18 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         beacon_type = (aprs.tx_smartbeacon << 1) | aprs.tx_interval_beacon
         val = RadioSettingValueList(self._BEACON_TYPE,
-                                    self._BEACON_TYPE[beacon_type])
+                                    current_index=beacon_type)
         rs = RadioSetting("aprs.transmit", "TX Beacons", val)
         rs.set_apply_callback(self.apply_beacon_type, aprs)
         menu.append(rs)
 
         val = RadioSettingValueList(self._TX_DELAY,
-                                    self._TX_DELAY[aprs.tx_delay])
+                                    current_index=aprs.tx_delay)
         rs = RadioSetting("aprs.tx_delay", "TX Delay", val)
         menu.append(rs)
 
         val = RadioSettingValueList(self._BEACON_INT,
-                                    self._BEACON_INT[aprs.beacon_interval])
+                                    current_index=aprs.beacon_interval)
         rs = RadioSetting("aprs.beacon_interval", "Beacon Interval", val)
         menu.append(rs)
 
@@ -1692,8 +1683,8 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             rs.set_apply_callback(self.apply_ff_padded_string,
                                   self._memobj.aprs_beacon_status_txt[index])
             menu.append(rs)
-        val = RadioSettingValueList(desc,
-                                    desc[aprs.selected_beacon_status_txt])
+        val = RadioSettingValueList(
+            desc, current_index=aprs.selected_beacon_status_txt)
         rs = RadioSetting("aprs.selected_beacon_status_txt",
                           "Beacon Status Text", val)
         menu.append(rs)
@@ -1752,7 +1743,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         path_str[6] = self._DIGI_PATHS[6]
         path_str[7] = self._DIGI_PATHS[7]
         val = RadioSettingValueList(path_str,
-                                    path_str[aprs.selected_digi_path])
+                                    current_index=aprs.selected_digi_path)
         rs = RadioSetting("aprs.selected_digi_path", "Selected Digi Path", val)
         menu.append(rs)
 
@@ -1764,7 +1755,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._SMARTBEACON_PROFILE,
-            self._SMARTBEACON_PROFILE[aprs.active_smartbeaconing])
+            current_index=aprs.active_smartbeaconing)
         rs = RadioSetting("aprs.active_smartbeaconing", "SmartBeacon profile",
                           val)
         menu.append(rs)
@@ -1837,7 +1828,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         digital_settings = self._memobj.digital_settings
         val = RadioSettingValueList(
             self._AMS_TX_MODE,
-            self._AMS_TX_MODE[digital_settings.ams_tx_mode])
+            current_index=digital_settings.ams_tx_mode)
         rs = RadioSetting("digital_settings.ams_tx_mode",
                           "AMS TX Mode", val)
         menu.append(rs)
@@ -1845,14 +1836,14 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         # 16 DIG VW  Turn the VW mode selection ON or OFF.
         val = RadioSettingValueList(
             self._VW_MODE,
-            self._VW_MODE[digital_settings.vw_mode])
+            current_index=digital_settings.vw_mode)
         rs = RadioSetting("digital_settings.vw_mode", "VW Mode", val)
         menu.append(rs)
 
         # TX DG-ID Long Press Mode Key, Dial
         val = RadioSettingValueList(
             self._DG_ID,
-            self._DG_ID[digital_settings.tx_dg_id])
+            current_index=digital_settings.tx_dg_id)
         rs = RadioSetting("digital_settings.tx_dg_id",
                           "TX DG-ID", val)
         menu.append(rs)
@@ -1860,7 +1851,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         # RX DG-ID Long Press Mode Key, Mode Key to select, Dial
         val = RadioSettingValueList(
             self._DG_ID,
-            self._DG_ID[digital_settings.rx_dg_id])
+            current_index=digital_settings.rx_dg_id)
         rs = RadioSetting("digital_settings.rx_dg_id",
                           "RX DG-ID", val)
         menu.append(rs)
@@ -1870,9 +1861,9 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._DIG_POP_UP,
-            self._DIG_POP_UP[
+            current_index=(
                 0 if digital_settings_more.digital_popup == 0
-                else digital_settings_more.digital_popup - 9])
+                else digital_settings_more.digital_popup - 9))
 
         rs = RadioSetting("digital_settings_more.digital_popup",
                           "Digital Popup", val)
@@ -1883,7 +1874,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         # 07  BEP.STB    Standby Beep in the digital C4FM mode. On/Off
         val = RadioSettingValueList(
             self._STANDBY_BEEP,
-            self._STANDBY_BEEP[digital_settings.standby_beep])
+            current_index=digital_settings.standby_beep)
         rs = RadioSetting("digital_settings.standby_beep",
                           "Standby Beep", val)
         menu.append(rs)
@@ -1893,7 +1884,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         first_settings = self._memobj.first_settings
         val = RadioSettingValueList(
             self._GM_RING,
-            self._GM_RING[first_settings.gm_ring])
+            current_index=first_settings.gm_ring)
         rs = RadioSetting("first_settings.gm_ring", "GM Ring", val)
         GMmenu.append(rs)
 
@@ -1901,7 +1892,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         scan_settings = self._memobj.scan_settings
         val = RadioSettingValueList(
             self._GM_INTERVAL,
-            self._GM_INTERVAL[scan_settings.gm_interval])
+            current_index=scan_settings.gm_interval)
         rs = RadioSetting("scan_settings.gm_interval",
                           "GM Interval", val)
         GMmenu.append(rs)
@@ -1969,9 +1960,9 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         val = setting.value.get_value()
         setattr(obj, "name", val)
 
-    def apply_WiresX_roomid(cls, setting, obj):
+    def apply_WiresX_roomid(self, setting, obj):
         val = setting.value.get_value()
-        obj.ID = str(val)
+        obj.ID = self.zero_pad(val, 5)
 
     def apply_WiresX_roomname(cls, setting, obj):
         val = setting.value.get_value()
@@ -1983,20 +1974,20 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._DTMF_MODE,
-            self._DTMF_MODE[dtmf.dtmf_mode])
+            current_index=dtmf.dtmf_mode)
         rs = RadioSetting("scan_settings.dtmf_mode", "DTMF Mode", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._DTMF_SPEED,
-            self._DTMF_SPEED[dtmf.dtmf_speed])
+            current_index=dtmf.dtmf_speed)
         rs = RadioSetting(
             "scan_settings.dtmf_speed", "DTMF AutoDial Speed", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._DTMF_DELAY,
-            self._DTMF_DELAY[dtmf.dtmf_delay])
+            current_index=dtmf.dtmf_delay)
         rs = RadioSetting(
             "scan_settings.dtmf_delay", "DTMF AutoDial Delay", val)
         menu.append(rs)
@@ -2024,13 +2015,13 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._LCD_DIMMER,
-            self._LCD_DIMMER[scan_settings.lcd_dimmer])
+            current_index=scan_settings.lcd_dimmer)
         rs = RadioSetting("scan_settings.lcd_dimmer", "LCD Dimmer", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._LCD_CONTRAST,
-            self._LCD_CONTRAST[scan_settings.lcd_contrast - 1])
+            current_index=scan_settings.lcd_contrast - 1)
         rs = RadioSetting("scan_settings.lcd_contrast", "LCD Contrast",
                           val)
         rs.set_apply_callback(self.apply_lcd_contrast, scan_settings)
@@ -2038,7 +2029,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._LAMP_KEY,
-            self._LAMP_KEY[scan_settings.lamp])
+            current_index=scan_settings.lamp)
         rs = RadioSetting("scan_settings.lamp", "Lamp", val)
         menu.append(rs)
 
@@ -2046,7 +2037,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._BEEP_SELECT,
-            self._BEEP_SELECT[beep_select.beep])
+            current_index=beep_select.beep)
         rs = RadioSetting("beep_select.beep", "Beep Select", val)
         menu.append(rs)
 
@@ -2054,7 +2045,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OPENING_MESSAGE,
-            self._OPENING_MESSAGE[opening_message.flag])
+            current_index=opening_message.flag)
         rs = RadioSetting("opening_message.flag", "Opening Msg Mode",
                           val)
         menu.append(rs)
@@ -2085,12 +2076,12 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return False
 
-    def backtrack_zero_pad(self, number, l):
-        number = str(number).strip()
-        while len(number) < l:
-            number = '0' + number
-
-        return str(number)
+    @staticmethod
+    def zero_pad(number, length):
+        """
+        Applies a leading zero pad of length `length` to `number`
+        """
+        return str(number).rjust(length, "0")
 
     def _get_backtrack_settings(self):
 
@@ -2111,7 +2102,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
             val = RadioSettingValueList(
                 self._BACKTRACK_STATUS,
-                self._BACKTRACK_STATUS[0 if bt.status == 1 else 1])
+                current_index=0 if bt.status == 1 else 1)
             rs = RadioSetting(
                     "%s.status" % bt_idx,
                     prefix + "status", val)
@@ -2176,7 +2167,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
             if bt.status == 1 and self.backtrack_ll_validate(bt.lat, 0, 90):
                 val = RadioSettingValueString(
-                        0, 3, self.backtrack_zero_pad(bt.lat, 3))
+                        0, 3, self.zero_pad(bt.lat, 3))
             else:
                 val = RadioSettingValueString(0, 3, '   ')
             rs = RadioSetting("%s.lat" % bt_idx, prefix + "Latitude", val)
@@ -2186,7 +2177,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             if bt.status == 1 and \
                     self.backtrack_ll_validate(bt.lat_min, 0, 59):
                 val = RadioSettingValueString(
-                    0, 2, self.backtrack_zero_pad(bt.lat_min, 2))
+                    0, 2, self.zero_pad(bt.lat_min, 2))
             else:
                 val = RadioSettingValueString(0, 2, '  ')
             rs = RadioSetting(
@@ -2198,7 +2189,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             if bt.status == 1 and \
                     self.backtrack_ll_validate(bt.lat_dec_sec, 0, 9999):
                 val = RadioSettingValueString(
-                    0, 4, self.backtrack_zero_pad(bt.lat_dec_sec, 4))
+                    0, 4, self.zero_pad(bt.lat_dec_sec, 4))
             else:
                 val = RadioSettingValueString(0, 4, '    ')
             rs = RadioSetting(
@@ -2221,7 +2212,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
             if bt.status == 1 and self.backtrack_ll_validate(bt.lon, 0, 180):
                 val = RadioSettingValueString(
-                    0, 3, self.backtrack_zero_pad(bt.lon, 3))
+                    0, 3, self.zero_pad(bt.lon, 3))
             else:
                 val = RadioSettingValueString(0, 3, '   ')
             rs = RadioSetting("%s.lon" % bt_idx, prefix + "Longitude", val)
@@ -2231,7 +2222,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             if bt.status == 1 and \
                     self.backtrack_ll_validate(bt.lon_min, 0, 59):
                 val = RadioSettingValueString(
-                    0, 2, self.backtrack_zero_pad(bt.lon_min, 2))
+                    0, 2, self.zero_pad(bt.lon_min, 2))
             else:
                 val = RadioSettingValueString(0, 2, '  ')
             rs = RadioSetting(
@@ -2243,7 +2234,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             if bt.status == 1 and \
                     self.backtrack_ll_validate(bt.lon_dec_sec, 0, 9999):
                 val = RadioSettingValueString(
-                    0, 4, self.backtrack_zero_pad(bt.lon_dec_sec, 4))
+                    0, 4, self.zero_pad(bt.lon_dec_sec, 4))
             else:
                 val = RadioSettingValueString(0, 4, '    ')
             rs = RadioSetting(
@@ -2260,14 +2251,14 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._VOL_MODE,
-            self._VOL_MODE[scan_settings.vol_mode])
+            current_index=scan_settings.vol_mode)
         rs = RadioSetting("scan_settings.vol_mode", "Volume Mode", val)
         menu.append(rs)
 
         vfoa = self._memobj.vfo_info[0]
         val = RadioSettingValueList(
             self._VOLUME,
-            self._VOLUME[vfoa.volume])
+            current_index=vfoa.volume)
         rs = RadioSetting("vfo_info[0].volume", "VFO A Volume", val)
         rs.set_apply_callback(self.apply_volume, 0)
         menu.append(rs)
@@ -2275,7 +2266,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         vfob = self._memobj.vfo_info[1]
         val = RadioSettingValueList(
             self._VOLUME,
-            self._VOLUME[vfob.volume])
+            current_index=vfob.volume)
         rs = RadioSetting("vfo_info[1].volume", "VFO B Volume", val)
         rs.set_apply_callback(self.apply_volume, 1)
         menu.append(rs)
@@ -2283,43 +2274,43 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         squelch = self._memobj.squelch
         val = RadioSettingValueList(
             self._SQUELCH,
-            self._SQUELCH[squelch.vfo_a])
+            current_index=squelch.vfo_a)
         rs = RadioSetting("squelch.vfo_a", "VFO A Squelch", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._SQUELCH,
-            self._SQUELCH[squelch.vfo_b])
+            current_index=squelch.vfo_b)
         rs = RadioSetting("squelch.vfo_b", "VFO B Squelch", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._SCAN_RESTART,
-            self._SCAN_RESTART[scan_settings.scan_restart])
+            current_index=scan_settings.scan_restart)
         rs = RadioSetting("scan_settings.scan_restart", "Scan Restart", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._SCAN_RESUME,
-            self._SCAN_RESUME[scan_settings.scan_resume])
+            current_index=scan_settings.scan_resume)
         rs = RadioSetting("scan_settings.scan_resume", "Scan Resume", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.busy_led])
+            current_index=scan_settings.busy_led)
         rs = RadioSetting("scan_settings.busy_led", "Busy LED", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.scan_lamp])
+            current_index=scan_settings.scan_lamp)
         rs = RadioSetting("scan_settings.scan_lamp", "Scan Lamp", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._TOT_TIME,
-            self._TOT_TIME[scan_settings.tot])
+            current_index=scan_settings.tot)
         rs = RadioSetting("scan_settings.tot", "Transmit Timeout (TOT)", val)
         menu.append(rs)
 
@@ -2361,7 +2352,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                 ssid = int(ssid) % 16
             except ValueError:
                 ssid = default_ssid
-        setattr(obj, "callsign", cls._add_ff_pad(callsign, 6))
+        setattr(obj, "callsign", cls._add_ff_pad(callsign.encode(), 6))
         if ssid is not None:
             setattr(obj, "ssid", ssid)
 
@@ -2472,7 +2463,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -2518,13 +2509,6 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         if hemi != 'N' and hemi != 'S':
             hemi = ' '
         setattr(obj, "NShemi", hemi)
-
-    def apply_WEhemi(cls, setting, obj):
-        hemi = setting.value.get_value().upper()
-
-        if hemi != 'W' and hemi != 'E':
-            hemi = ' '
-        setattr(obj, "WEhemi", hemi)
 
     def apply_WEhemi(cls, setting, obj):
         hemi = setting.value.get_value().upper()

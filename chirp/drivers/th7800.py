@@ -19,9 +19,8 @@
 from chirp import bitwise, chirp_common, directory, errors, util, memmap
 import struct
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError, RadioSettings, \
+    RadioSettingValueInteger, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettings, \
     RadioSettingValueMap, zero_indexed_seq_map
 from chirp.chirp_common import format_freq
 import logging
@@ -43,7 +42,7 @@ struct mem {
   u8 fmdev:2,       // wide=00, mid=01, narrow=10
      scramb:1,
      compand:1,
-     emphasis:1
+     emphasis:1,
      unknown1a:2,
      sqlmode:1;     // carrier, tone
   u8 rptmod:2,      // off, -, +
@@ -160,8 +159,8 @@ BUSY_LOCK = ["off", "Carrier", "2 tone"]
 MICKEYFUNC = ["None", "SCAN", "SQL.OFF", "TCALL", "PPTR", "PRI", "LOW", "TONE",
               "MHz", "REV", "HOME", "BAND", "VFO/MR"]
 SQLPRESET = ["Off", "2", "5", "9", "Full"]
-BANDS = ["30MHz", "50MHz", "60MHz", "108MHz", "150MHz", "250MHz", "350MHz",
-         "450MHz", "850MHz"]
+BANDS = ["30 MHz", "50 MHz", "60 MHz", "108 MHz", "150 MHz", "250 MHz", "350 MHz",
+         "450 MHz", "850 MHz"]
 STEPS = [2.5, 5.0, 6.25, 7.5, 8.33, 10.0, 12.5,
          15.0, 20.0, 25.0, 30.0, 50.0, 100.0]
 
@@ -351,12 +350,8 @@ class TYTTH7800Base(chirp_common.Radio):
             display = None
         if mem.name:
             _mem.display = True
-            if display and not display.changed():
-                display.value = "Name"
         else:
             _mem.display = False
-            if display and not display.changed():
-                display.value = "Frequency"
 
         _mem.scan = SCAN_MODES.index(mem.skip)
         if mem.skip == "P":
@@ -383,7 +378,7 @@ class TYTTH7800Base(chirp_common.Radio):
         _mem.step = STEPS.index(mem.tuning_step)
 
         for setting in mem.extra:
-            LOG.debug("@set_mem:", setting.get_name(), setting.value)
+            LOG.debug("@set_mem: %s %s", setting.get_name(), setting.value)
             setattr(_mem, setting.get_name(), setting.value)
 
     def get_settings(self):
@@ -534,7 +529,7 @@ class TYTTH7800Base(chirp_common.Radio):
 
                 LOG.debug("Setting %s(%s) <= %s" % (setting, oldval, newval))
                 setattr(_settings, setting, newval)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -543,7 +538,7 @@ class TYTTH7800Base(chirp_common.Radio):
 class TYTTH7800File(TYTTH7800Base, chirp_common.FileBackedRadio):
     """TYT TH-7800 .dat file"""
     MODEL = "TH-7800 File"
-
+    NEEDS_COMPAT_SERIAL = True
     FILE_EXTENSION = "dat"
 
     _memsize = 69632
@@ -571,21 +566,20 @@ class TYTTH7800File(TYTTH7800Base, chirp_common.FileBackedRadio):
 def _identify(radio):
     """Do identify handshake with TYT"""
     try:
-        radio.pipe.write("\x02SPECPR")
+        radio.pipe.write(b"\x02SPECPR")
         ack = radio.pipe.read(1)
-        if ack != "A":
+        if ack != b"A":
             util.hexprint(ack)
-            raise errors.RadioError("Radio did not ACK first command: %x"
-                                    % ord(ack))
+            raise errors.RadioError("Radio did not ACK first command: %r"
+                                    % ack)
     except:
-        LOG.debug(util.hexprint(ack))
         raise errors.RadioError("Unable to communicate with the radio")
 
-    radio.pipe.write("G\x02")
+    radio.pipe.write(b"G\x02")
     ident = radio.pipe.read(16)
-    radio.pipe.write("A")
+    radio.pipe.write(b"A")
     r = radio.pipe.read(2)
-    if r != "A":
+    if r != b"A":
         raise errors.RadioError("Ack failed")
     return ident
 
@@ -596,15 +590,15 @@ def _download(radio, memsize=0x10000, blocksize=0x80):
     LOG.info("ident:", util.hexprint(data))
     offset = 0x100
     for addr in range(offset, memsize, blocksize):
-        msg = struct.pack(">cHB", "R", addr, blocksize)
+        msg = struct.pack(">cHB", b"R", addr, blocksize)
         radio.pipe.write(msg)
         block = radio.pipe.read(blocksize + 4)
         if len(block) != (blocksize + 4):
             LOG.debug(util.hexprint(block))
             raise errors.RadioError("Radio sent a short block")
-        radio.pipe.write("A")
+        radio.pipe.write(b"A")
         ack = radio.pipe.read(1)
-        if ack != "A":
+        if ack != b"A":
             LOG.debug(util.hexprint(ack))
             raise errors.RadioError("Radio NAKed block")
         data += block[4:]
@@ -616,9 +610,9 @@ def _download(radio, memsize=0x10000, blocksize=0x80):
             status.msg = "Cloning from radio"
             radio.status_fn(status)
 
-    radio.pipe.write("ENDR")
+    radio.pipe.write(b"ENDR")
 
-    return memmap.MemoryMap(data)
+    return memmap.MemoryMapBytes(data)
 
 
 def _upload(radio, memsize=0xF400, blocksize=0x80):
@@ -627,7 +621,7 @@ def _upload(radio, memsize=0xF400, blocksize=0x80):
 
     radio.pipe.timeout = 1
 
-    if data != radio._mmap[:radio._mmap_offset]:
+    if data != radio._mmap[0:radio._mmap_offset]:
         raise errors.RadioError(
             "Model mismatch: \n%s\n%s" %
             (util.hexprint(data),
@@ -654,12 +648,12 @@ def _upload(radio, memsize=0xF400, blocksize=0x80):
     for addr in range(offset, memsize, blocksize):
         mapaddr = addr + radio._mmap_offset - offset
         LOG.debug("addr: 0x%04X, mmapaddr: 0x%04X" % (addr, mapaddr))
-        msg = struct.pack(">cHB", "W", addr, blocksize)
+        msg = struct.pack(">cHB", b"W", addr, blocksize)
         msg += radio._mmap[mapaddr:(mapaddr + blocksize)]
         LOG.debug(util.hexprint(msg))
         radio.pipe.write(msg)
         ack = radio.pipe.read(1)
-        if ack != "A":
+        if ack != b"A":
             LOG.debug(util.hexprint(ack))
             raise errors.RadioError("Radio did not ack block 0x%04X" % addr)
 
@@ -671,7 +665,7 @@ def _upload(radio, memsize=0xF400, blocksize=0x80):
             radio.status_fn(status)
 
     # End of clone
-    radio.pipe.write("ENDW")
+    radio.pipe.write(b"ENDW")
 
     # Checksum?
     final_data = radio.pipe.read(3)

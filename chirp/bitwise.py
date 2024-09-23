@@ -18,6 +18,7 @@
 # Example definitions:
 #
 #  bit  foo[8];  /* Eight single bit values                 */
+#  lbit foo[16]; /* Sixteen single-bit values, little-endian*/
 #  u8   foo;     /* Unsigned 8-bit value                    */
 #  u16  foo;     /* Unsigned 16-bit value                   */
 #  ul16 foo;     /* Unsigned 16-bit value (LE)              */
@@ -60,12 +61,10 @@
 import struct
 import os
 import logging
-
-import six
-from builtins import bytes
+import re
+import warnings
 
 from chirp import bitwise_grammar
-from chirp.memmap import MemoryMap
 
 LOG = logging.getLogger(__name__)
 
@@ -73,20 +72,6 @@ LOG = logging.getLogger(__name__)
 class ParseError(Exception):
     """Indicates an error parsing a definition"""
     pass
-
-
-def byte_to_int(b):
-    if six.PY3 or isinstance(b, int):
-        return b
-    else:
-        return ord(b)
-
-
-def int_to_byte(i):
-    if six.PY3:
-        return bytes([i])
-    else:
-        return chr(i)
 
 
 def string_straight_encode(string):
@@ -105,7 +90,7 @@ def string_straight_encode(string):
     # specific binary values in memory). Ideally we would have
     # written all of chirp with bytes() for these values, but alas.
     # We can get the intended string here by doing bytes([ord(char)]).
-    return bytes(b''.join(int_to_byte(ord(b)) for b in string))
+    return bytes(b''.join(bytes([ord(b)]) for b in string))
 
 
 def string_straight_decode(string):
@@ -123,7 +108,7 @@ def string_straight_decode(string):
     # will detect '\xFF' properly.
     # FIXMEPY3: Remove this and the hack below when drivers convert to
     # bytestrings.
-    return ''.join(chr(byte_to_int(b)) for b in string)
+    return ''.join(chr(b) for b in string)
 
 
 def format_binary(nbits, value, pad=8):
@@ -197,6 +182,14 @@ class DataElement:
         self._offset = int(offset)
         self._count = count
 
+    def _compat_bytes(self, bs, asbytes):
+        if asbytes:
+            return bytes(bs)
+        else:
+            warnings.warn('Driver is using non-byte-native get_raw()',
+                          DeprecationWarning, stacklevel=3)
+            return string_straight_decode(bs)
+
     def size(self):
         return int(self._size * 8)
 
@@ -213,17 +206,52 @@ class DataElement:
     def set_value(self, value):
         raise Exception("Not implemented for %s" % self.__class__)
 
-    def get_raw(self, asbytes=False):
+    def get_raw(self, asbytes=True):
         raw = self._data[self._offset:self._offset+self._size]
-        if asbytes:
-            return bytes(raw)
-        else:
-            return string_straight_decode(raw)
+        return self._compat_bytes(raw, asbytes)
 
     def set_raw(self, data):
         if isinstance(data, str):
+            warnings.warn('Driver is using non-byte-native set_raw()',
+                          DeprecationWarning, stacklevel=2)
             data = string_straight_encode(data)
         self._data[self._offset] = data[:self._size]
+
+    def get_path(self, path):
+        """Retrieve a child element starting from here by symbolic path.
+
+        Examples:
+            .mystruct.foo[2].field1
+            [3]
+            .bar
+        """
+        tok = re.search('[.[]', path)
+        if tok:
+            tok = tok.group(0)
+        if path.startswith('.'):
+            return self.get_path(path[1:])
+        elif path.startswith('['):
+            index, rest = path.split(']', 1)
+            index = int(index[1:])
+            return self[index].get_path(rest)
+        elif tok == '.':
+            field, rest = path.split('.', 1)
+            return getattr(self, field).get_path(rest)
+        elif tok == '[':
+            field, rest = path.split('[', 1)
+            return getattr(self, field).get_path('[' + rest)
+        elif path:
+            return getattr(self, path)
+        else:
+            return self
+
+    def fill_raw(self, byteval):
+        """Fill object with bytes
+
+        :param byteval: A bytes of length 1 to fill the object's memory with
+        """
+        assert isinstance(byteval, bytes) and len(byteval) == 1
+        self.set_raw(byteval * (self.size() // 8))
 
     def __getattr__(self, name):
         raise AttributeError("Unknown attribute %s in %s" % (name,
@@ -258,12 +286,15 @@ class arrayDataElement(DataElement):
     def get_value(self):
         return list(self.__items)
 
-    def get_raw(self, asbytes=False):
-        raw = [item.get_raw(asbytes=asbytes) for item in self.__items]
-        if asbytes:
-            return bytes(b''.join(raw))
-        else:
-            return "".join(raw)
+    def get_raw(self, asbytes=True):
+        raw = [item.get_raw(asbytes=True) for item in self.__items]
+        return self._compat_bytes(bytes(b''.join(raw)), asbytes)
+
+    def set_raw(self, data):
+        item_size = self.__items[0].size() // 8
+        assert len(data) / item_size == len(self), 'Invalid raw data length'
+        for i in range(len(self)):
+            self[i].set_raw(data[i * item_size:(i + 1) * item_size])
 
     def __setitem__(self, index, val):
         self.__items[index].set_value(val)
@@ -665,6 +696,8 @@ class bcdDataElement(DataElement):
         if isinstance(data, int):
             self._data[self._offset] = data & 0xFF
         elif isinstance(data, str):
+            warnings.warn('Driver is using non-byte-native set_raw()',
+                          DeprecationWarning, stacklevel=2)
             self._data[self._offset] = string_straight_encode(data[0])
         elif isinstance(data, bytes) and len(data) == 1:
             self._data[self._offset] = int(data[0]) & 0xFF
@@ -725,7 +758,7 @@ class structDataElement(DataElement):
             s += "  %15s: %s%s" % (prop, repr(self._generators[prop]),
                                    os.linesep)
         s += "} %s (%i bytes at 0x%04X)%s" % (self._name,
-                                              self.size() / 8,
+                                              self.size() // 8,
                                               self._offset,
                                               os.linesep)
         return s
@@ -758,6 +791,9 @@ class structDataElement(DataElement):
         else:
             return result
 
+    def __contains__(self, key):
+        return key in self._generators.keys()
+
     def __getitem__(self, key):
         return self._generators[key]
 
@@ -772,7 +808,10 @@ class structDataElement(DataElement):
         try:
             return self._generators[name]
         except KeyError:
-            raise AttributeError("No attribute %s in struct" % name)
+            LOG.error('Request for struct element %s not in %s' % (
+                name, self._generators.keys()))
+            raise AttributeError("No attribute %s in struct %s" % (
+                name, self._name))
 
     def __setattr__(self, name, value):
         if "_structDataElement__init" not in self.__dict__:
@@ -792,18 +831,17 @@ class structDataElement(DataElement):
                 size += el.size()
         return int(size)
 
-    def get_raw(self, asbytes=False):
+    def get_raw(self, asbytes=True):
         size = self.size() // 8
         raw = self._data[self._offset:self._offset+size]
-        if asbytes:
-            return bytes(raw)
-        else:
-            return string_straight_decode(raw)
+        return self._compat_bytes(raw, asbytes)
 
     def set_raw(self, buffer):
         if len(buffer) != (self.size() // 8):
             raise ValueError("Struct size mismatch during set_raw()")
         if isinstance(buffer, str):
+            warnings.warn('Driver is using non-byte-native set_raw()',
+                          DeprecationWarning, stacklevel=2)
             buffer = string_straight_encode(buffer)
         self._data[self._offset] = buffer
 
@@ -817,7 +855,6 @@ class structDataElement(DataElement):
 
 
 class Processor:
-
     _types = {
         "u8":    u8DataElement,
         "u16":   u16DataElement,
@@ -837,7 +874,7 @@ class Processor:
         "bbcd":  bbcdDataElement,
         }
 
-    def __init__(self, data, offset):
+    def __init__(self, data, offset, input):
         if hasattr(data, 'get_byte_compatible'):
             # bitwise uses the byte-compatible interface of MemoryMap,
             # if that is what was passed in
@@ -846,17 +883,40 @@ class Processor:
         self._offset = offset
         self._obj = None
         self._user_types = {}
+        self._input = input.split('\n')
 
     def do_symbol(self, symdef, gen):
         name = symdef[1]
         self._generators[name] = gen
 
+    def get_source_line(self, lineno):
+        return self._input[lineno]
+
+    def get_line_from_sym(self, sym):
+        name = sym.__name__
+        if ':' in name.line:
+            _, num = name.line.split(':')
+        else:
+            num = 0
+        return int(num)
+
+    def get_line_sym(self, sym):
+        num = self.get_line_from_sym(sym)
+        return '%i: %s' % (num, self.get_source_line(num))
+
     def do_bitfield(self, dtype, bitfield):
-        bytes = self._types[dtype](self._data, 0).size() / 8
+        bytes = self._types[dtype](self._data, 0).size() // 8
         bitsleft = bytes * 8
 
         for _bitdef, defn in bitfield:
             name = defn[0][1]
+            if name in self._generators:
+                newname = '%s_%06x' % (name, self._offset)
+                prevline = self._lines.get(name, 'unknown')
+                LOG.error('Duplicate definition for %s on line %s; '
+                          'renaming to %s (previous definition line %s)',
+                          name, self.get_line_sym(defn[0]), newname, prevline)
+                name = newname
             bits = int(defn[1][1])
             if bitsleft < 0:
                 raise ParseError("Invalid bitfield spec")
@@ -867,21 +927,22 @@ class Processor:
                 _subgen = self._types[dtype]
 
             self._generators[name] = bitDE(self._data, self._offset)
+            self._lines[name] = self.get_line_from_sym(defn[0])
             bitsleft -= bits
 
         if bitsleft:
             LOG.warn("WARNING: %i trailing bits unaccounted for in %s" %
-                     (bitsleft, bitfield))
+                     (bitsleft, name))
 
         return bytes
 
-    def do_bitarray(self, i, count):
+    def do_bitarray(self, i, count, bigendian=True):
         if count % 8 != 0:
             raise ValueError("bit array must be divisible by 8.")
 
         class bitDE(bitDataElement):
             _nbits = 1
-            _shift = 8 - i % 8
+            _shift = (8 - i % 8) if bigendian else (i % 8) + 1
 
         return bitDE(self._data, self._offset)
 
@@ -901,21 +962,32 @@ class Processor:
                 sym = defn[1]
 
             name = sym[1]
+            if name in self._generators:
+                newname = '%s_%06x' % (name, self._offset)
+                prevline = self._lines.get(name, 'unknown')
+                LOG.error('Duplicate definition for %s on line %s; '
+                          'renaming to %s (previous definition line %s)',
+                          name, self.get_line_sym(sym), newname, prevline)
+                name = newname
             res = arrayDataElement(self._offset)
             size = 0
             for i in range(0, count):
                 if dtype == "bit":
                     gen = self.do_bitarray(i, count)
                     self._offset += int((i+1) % 8 == 0)
+                elif dtype == "lbit":
+                    gen = self.do_bitarray(i, count, bigendian=False)
+                    self._offset += int((i+1) % 8 == 0)
                 else:
                     gen = self._types[dtype](self._data, self._offset)
-                    self._offset += (gen.size() / 8)
+                    self._offset += (gen.size() // 8)
                 res.append(gen)
 
             if count == 1:
                 self._generators[name] = res[0]
             else:
                 self._generators[name] = res
+            self._lines[name] = self.get_line_from_sym(sym)
 
     def parse_struct_decl(self, struct):
         block = struct[:-1]
@@ -936,9 +1008,12 @@ class Processor:
                                         name=name)
             result.append(element)
             tmp = self._generators
+            tmp_lines = self._lines
             self._generators = element
+            self._lines = {}
             self.parse_block(block)
             self._generators = tmp
+            self._lines = tmp_lines
 
         if count == 1:
             self._generators[name] = result[0]
@@ -958,11 +1033,24 @@ class Processor:
         else:
             raise Exception("Internal error: What is `%s'?" % struct[0][0])
 
+    def assert_negative_seek(self, message):
+        warnings.warn(message, DeprecationWarning, stacklevel=6)
+
+    def assert_unnecessary_seek(self, message):
+        warnings.warn(message, DeprecationWarning, stacklevel=6)
+
     def parse_directive(self, directive):
         name = directive[0][0]
         value = directive[0][1][0][1]
         if name == "seekto":
-            self._offset = int(value, 0)
+            target = int(value, 0)
+            if self._offset == target:
+                self.assert_unnecessary_seek('Unnecessary #seekto %s' % value)
+            elif target < self._offset:
+                self.assert_negative_seek(
+                    'Invalid negative seek from 0x%04x to 0x%04x' % (
+                        self._offset, target))
+            self._offset = target
         elif name == "seek":
             self._offset += int(value, 0)
         elif name == "printoffset":
@@ -979,6 +1067,7 @@ class Processor:
                 self.parse_directive(d)
 
     def parse(self, lang):
+        self._lines = {}
         self._generators = structDataElement(self._data, self._offset)
         self.parse_block(lang)
         return self._generators
@@ -986,85 +1075,5 @@ class Processor:
 
 def parse(spec, data, offset=0):
     ast = bitwise_grammar.parse(spec)
-    p = Processor(data, offset)
+    p = Processor(data, offset, spec)
     return p.parse(ast)
-
-
-if __name__ == "__main__":
-    defn = """
-struct mytype { u8 foo; };
-struct mytype bar;
-struct {
-  u8 foo;
-  u8 highbit:1,
-     sixzeros:6,
-     lowbit:1;
-  char string[3];
-  bbcd fourdigits[2];
-} mystruct;
-"""
-    data = "\xab\x7F\x81abc\x12\x34"
-    tree = parse(defn, data)
-
-    print(repr(tree))
-
-    print("Foo %i" % tree.mystruct.foo)
-    print("Highbit: %i SixZeros: %i: Lowbit: %i" % (tree.mystruct.highbit,
-                                                    tree.mystruct.sixzeros,
-                                                    tree.mystruct.lowbit))
-    print("String: %s" % tree.mystruct.string)
-    print("Fourdigits: %i" % tree.mystruct.fourdigits)
-
-    import sys
-    sys.exit(0)
-
-    test = """
-    struct {
-      u16 bar;
-      u16 baz;
-      u8 one;
-      u8 upper:2,
-         twobit:1,
-         onebit:1,
-         lower:4;
-      u8 array[3];
-      char str[3];
-      bbcd bcdL[2];
-    } foo[2];
-    u8 tail;
-    """
-    data = "\xfe\x10\x00\x08\xFF\x23\x01\x02\x03abc\x34\x89"
-    data = (data * 2) + "\x12"
-    data = MemoryMap(data)
-
-    ast = bitwise_grammar.parse(test)
-
-    # Just for testing, pretty-print the tree
-    pp(ast)
-
-    # Mess with it a little
-    p = Processor(data, 0)
-    obj = p.parse(ast)
-    print("Object: %s" % obj)
-    print(obj["foo"][0]["bcdL"])
-    print(obj["tail"])
-    print(obj["foo"][0]["bar"])
-    obj["foo"][0]["bar"].set_value(255 << 8)
-    obj["foo"][0]["twobit"].set_value(0)
-    obj["foo"][0]["onebit"].set_value(1)
-    print("%i" % int(obj["foo"][0]["bar"]))
-
-    for i in obj["foo"][0]["array"]:
-        print(int(i))
-    obj["foo"][0]["array"][1].set_value(255)
-
-    for i in obj["foo"][0]["bcdL"]:
-        print(i.get_value())
-
-    int_to_bcd(obj["foo"][0]["bcdL"], 1234)
-    print(bcd_to_int(obj["foo"][0]["bcdL"]))
-
-    set_string(obj["foo"][0]["str"], "xyz")
-    print(get_string(obj["foo"][0]["str"]))
-
-    print(repr(data.get_packed()))

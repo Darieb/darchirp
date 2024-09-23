@@ -16,6 +16,7 @@
 from builtins import bytes
 
 import unittest
+from unittest import mock
 
 import six
 
@@ -97,6 +98,26 @@ class TestBitwiseBaseIntTypes(BaseTest):
             obj.foo[i] = i * 2
         self.assertEqual(b'\x00\x02\x04\x06', data.get_packed())
 
+    def test_int_array_set_raw(self):
+        data = memmap.MemoryMapBytes(bytes(b'\x00\x01\x02\x03'))
+        obj = bitwise.parse('u8 foo[4];', data)
+        obj.foo.set_raw(b'\x09\x08\x07\x06')
+        self.assertEqual(9, obj.foo[0])
+        self.assertEqual(8, obj.foo[1])
+        self.assertEqual(7, obj.foo[2])
+        self.assertEqual(6, obj.foo[3])
+
+        obj = bitwise.parse('u16 foo[2];', data)
+        obj.foo.set_raw(b'\x00\x01\x00\x02')
+        self.assertEqual(1, obj.foo[0])
+        self.assertEqual(2, obj.foo[1])
+
+        with self.assertRaises(AssertionError):
+            obj.foo.set_raw(b'123')
+
+        with self.assertRaises(AssertionError):
+            obj.foo.set_raw(b'12345')
+
 
 class TestBitfieldTypes(BaseTest):
     def test_bitfield_u8(self):
@@ -170,6 +191,16 @@ class TestBitType(BaseTest):
         for i in range(0, 24):
             obj.foo[i] = i % 2
         self.assertEqual(data.get_packed(), b"\x55\x55\x55")
+
+    def test_lbit_array(self):
+        defn = "lbit foo[24];"
+        data = memmap.MemoryMapBytes(bytes(b"\x00\x20\x80"))
+        obj = bitwise.parse(defn, data)
+        for i, v in [(0, False), (13, True), (23, True)]:
+            self.assertEqual(bool(obj.foo[i]), v)
+        for i in range(0, 24):
+            obj.foo[i] = i % 2
+        self.assertEqual(data.get_packed(), b"\xAA\xAA\xAA")
 
     def test_bit_array_fail(self):
         self.assertRaises(ValueError, bitwise.parse, "bit foo[23];", b"000")
@@ -251,8 +282,8 @@ class TestBitwiseCharTypes(BaseTest):
     def test_string_get_raw(self):
         data = memmap.MemoryMapBytes(bytes(b"foobar"))
         obj = bitwise.parse("char foo[6];", data)
-        self.assertEqual('foobar', obj.foo.get_raw())
-        self.assertEqual(b'foobar', obj.foo.get_raw(asbytes=True))
+        self.assertEqual(b'foobar', obj.foo.get_raw())
+        self.assertEqual('foobar', obj.foo.get_raw(asbytes=False))
 
 
 class TestBitwiseStructTypes(BaseTest):
@@ -283,15 +314,60 @@ class TestBitwiseStructTypes(BaseTest):
         data = memmap.MemoryMapBytes(bytes(b".."))
         defn = "struct { u8 bar; u8 baz; } foo;"
         obj = bitwise.parse(defn, data)
-        self.assertEqual('..', obj.get_raw())
-        self.assertEqual(b'..', obj.get_raw(asbytes=True))
+        self.assertEqual(b'..', obj.get_raw())
+        self.assertEqual('..', obj.get_raw(asbytes=False))
 
     def test_struct_get_raw_small(self):
         data = memmap.MemoryMapBytes(bytes(b"."))
         defn = "struct { u8 bar; } foo;"
         obj = bitwise.parse(defn, data)
-        self.assertEqual('.', obj.get_raw())
-        self.assertEqual(b'.', obj.get_raw(asbytes=True))
+        self.assertEqual(b'.', obj.get_raw())
+        self.assertEqual('.', obj.get_raw(asbytes=False))
+
+    def test_struct_set_raw(self):
+        data = memmap.MemoryMapBytes(bytes(b"."))
+        defn = "struct { u8 bar; } foo;"
+        obj = bitwise.parse(defn, data)
+        obj.set_raw(b'1')
+        self.assertEqual(b'1', data.get_packed())
+        obj.set_raw('2')
+        self.assertEqual(b'2', data.get_packed())
+
+    @mock.patch.object(bitwise.LOG, 'error')
+    def test_struct_duplicate(self, mock_log):
+        bitwise.parse('struct\n{ u8 foo; u8 foo1:2, foo:4, foo3:2;} bar;',
+                      memmap.MemoryMapBytes(b'\x00' * 128))
+        bitwise.parse('struct\n{ u8 foo; u8 foo;} bar;',
+                      memmap.MemoryMapBytes(b'\x00' * 128))
+        bitwise.parse('struct\n{ u8 foo; u8 foo[2];} bar;',
+                      memmap.MemoryMapBytes(b'\x00' * 128))
+        self.assertEqual(3, mock_log.call_count)
+
+    def test_struct_fill_raw(self):
+        data = memmap.MemoryMapBytes(bytes(b"..."))
+        defn = "struct { u8 bar; u16 baz; } foo;"
+        obj = bitwise.parse(defn, data)
+        obj.fill_raw(b'\xAA')
+        self.assertEqual(0xAA, obj.foo.bar)
+        self.assertEqual(0xAAAA, obj.foo.baz)
+        obj.foo.fill_raw(b'\xBB')
+        self.assertEqual(0xBB, obj.foo.bar)
+        self.assertEqual(0xBBBB, obj.foo.baz)
+        obj.foo.bar.fill_raw(b'\xCC')
+        self.assertEqual(0xCC, obj.foo.bar)
+        self.assertEqual(0xBBBB, obj.foo.baz)
+
+        self.assertRaises(AssertionError, obj.fill_raw, '1')
+        self.assertRaises(AssertionError, obj.fill_raw, b'AB')
+        self.assertRaises(AssertionError, obj.fill_raw, False)
+
+
+class TestBitwisePrintoffset(BaseTest):
+    @mock.patch.object(bitwise.LOG, 'debug')
+    def test_printoffset(self, mock_log):
+        defn = 'u8 foo; u16 bar; #printoffset "bar";'
+        bitwise.parse(defn, b"abcdZ")
+        mock_log.assert_called_once_with('bar: 3 (0x00000003)')
 
 
 class TestBitwiseSeek(BaseTest):
@@ -330,3 +406,23 @@ class TestBitwiseStringEncoders(BaseTest):
     def test_decode_bytes(self):
         self.assertEqual('foobar\x00',
                          bitwise.string_straight_decode(b'foobar\x00'))
+
+
+class TestPath(BaseTest):
+    def test_get_path(self):
+        fmt = ("u8 foo;"
+               "u8 bar[2];"
+               "struct {"
+               "  u8 foo;"
+               "  u8 bar[2];"
+               "  u8 baz1:4,"
+               "     baz2:4;"
+               "  struct {"
+               "    u16 childitem;"
+               "  } child;"
+               "} structure[2];")
+        obj = bitwise.parse(fmt, memmap.MemoryMapBytes(b'\x00' * 128))
+        obj.structure[0].bar[1] = 123
+        obj.structure[1].child.childitem = 456
+        self.assertEqual(123, obj.get_path('.structure[0].bar[1]'))
+        self.assertEqual(456, obj.get_path('structure[1].child.childitem'))

@@ -20,8 +20,7 @@ from chirp import chirp_common, directory, bitwise
 from chirp.chirp_common import to_GHz, from_GHz
 from chirp.settings import RadioSetting, RadioSettingGroup, \
                 RadioSettingValueBoolean, RadioSettingValueList, \
-                RadioSettingValueInteger, RadioSettingValueString, \
-                RadioSettingValueFloat, RadioSettings
+                RadioSettingValueInteger, RadioSettings
 
 
 LOG = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ struct {
   u8  fractional:1,
       unknown:7;
   bbcd offset[2];
-  u16 ctone:6
+  u16 ctone:6,
       rtone:6,
       tune_step:4;
 } memory[200];
@@ -93,7 +92,7 @@ EDGE_LIST = ["%sP" % x for x in range(0, 20)] + ["Band", "All"]
 PAUSE_LIST = ["%s sec" % x for x in range(2, 22, 2)] + ["Hold"]
 RESUME_LIST = ["%s sec" % x for x in range(0, 6)]
 APOFF_LIST = ["Off"] + ["%s min" % x for x in range(30, 150, 30)]
-D_SEL_LIST = ["100 KHz", "1 MHz", "10 MHz"]
+D_SEL_LIST = ["100 kHz", "1 MHz", "10 MHz"]
 
 
 @directory.register
@@ -136,7 +135,7 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
     def validate_memory(self, mem):
         if mem.freq < 30000000 and mem.mode != 'AM':
             return [chirp_common.ValidationError(
-                'Only AM is allowed below 30MHz')]
+                'Only AM is allowed below 30 MHz')]
         return icf.IcomCloneModeRadio.validate_memory(self, mem)
 
     def get_memory(self, number):
@@ -225,14 +224,14 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
 
         rs = RadioSetting("autorp", "Auto Repeater Function",
                           RadioSettingValueList(
-                              AUTORP_LIST, AUTORP_LIST[_settings.autorp]))
+                              AUTORP_LIST, current_index=_settings.autorp))
         basic.append(rs)
 
         rs = RadioSetting("ritfunct", "RIT Runction",
                           RadioSettingValueBoolean(_settings.ritfunct))
         basic.append(rs)
 
-        rs = RadioSetting("rit", "RIT Shift (KHz)",
+        rs = RadioSetting("rit", "RIT Shift (kHz)",
                           RadioSettingValueInteger(-7, 7, _settings.rit))
         basic.append(rs)
 
@@ -243,29 +242,29 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
         rs = RadioSetting("lockgroup", "Lock Group",
                           RadioSettingValueList(
                               LOCKGROUP_LIST,
-                              LOCKGROUP_LIST[_settings.lockgroup]))
+                              current_index=_settings.lockgroup))
         basic.append(rs)
 
         rs = RadioSetting("squelch", "Squelch",
                           RadioSettingValueList(
-                              SQUELCH_LIST, SQUELCH_LIST[_settings.squelch]))
+                              SQUELCH_LIST, current_index=_settings.squelch))
         basic.append(rs)
 
         rs = RadioSetting("monitor", "Monitor Switch Function",
                           RadioSettingValueList(
                               MONITOR_LIST,
-                              MONITOR_LIST[_settings.monitor]))
+                              current_index=_settings.monitor))
         basic.append(rs)
 
         rs = RadioSetting("light", "Display Backlighting",
                           RadioSettingValueList(
-                              LIGHT_LIST, LIGHT_LIST[_settings.light]))
+                              LIGHT_LIST, current_index=_settings.light))
         basic.append(rs)
 
         rs = RadioSetting("priority", "Priority Watch Operation",
                           RadioSettingValueList(
                               PRIORITY_LIST,
-                              PRIORITY_LIST[_settings.priority]))
+                              current_index=_settings.priority))
         basic.append(rs)
 
         rs = RadioSetting("p_scan", "Frequency Skip Function",
@@ -275,22 +274,22 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
         rs = RadioSetting("bnk_scan", "Memory Bank Scan Selection",
                           RadioSettingValueList(
                               BANKSCAN_LIST,
-                              BANKSCAN_LIST[_settings.bnk_scan]))
+                              current_index=_settings.bnk_scan))
         basic.append(rs)
 
         rs = RadioSetting("edge", "Band Edge Scan Selection",
                           RadioSettingValueList(
-                              EDGE_LIST, EDGE_LIST[_settings.edge]))
+                              EDGE_LIST, current_index=_settings.edge))
         basic.append(rs)
 
         rs = RadioSetting("pause", "Scan Pause Time",
                           RadioSettingValueList(
-                              PAUSE_LIST, PAUSE_LIST[_settings.pause]))
+                              PAUSE_LIST, current_index=_settings.pause))
         basic.append(rs)
 
         rs = RadioSetting("resume", "Scan Resume Time",
                           RadioSettingValueList(
-                              RESUME_LIST, RESUME_LIST[_settings.resume]))
+                              RESUME_LIST, current_index=_settings.resume))
         basic.append(rs)
 
         rs = RadioSetting("p_save", "Power Saver",
@@ -299,7 +298,7 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
 
         rs = RadioSetting("ap_off", "Auto Power-off Function",
                           RadioSettingValueList(
-                              APOFF_LIST, APOFF_LIST[_settings.ap_off]))
+                              APOFF_LIST, current_index=_settings.ap_off))
         basic.append(rs)
 
         rs = RadioSetting("speed", "Dial Speed Acceleration",
@@ -308,7 +307,7 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
 
         rs = RadioSetting("d_sel", "Dial Select Step",
                           RadioSettingValueList(
-                              D_SEL_LIST, D_SEL_LIST[_settings.d_sel]))
+                              D_SEL_LIST, current_index=_settings.d_sel))
         basic.append(rs)
 
         return group
@@ -343,6 +342,6 @@ class ICQ7Radio(icf.IcomCloneModeRadio):
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise

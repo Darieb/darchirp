@@ -16,11 +16,10 @@
 import logging
 import time
 
-from chirp import chirp_common, directory, memmap, errors, util, bitwise
+from chirp import chirp_common, directory, memmap, errors, bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
-    RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -36,7 +35,6 @@ LOG = logging.getLogger(__name__)
 
 
 MEM_FORMAT = """
-#seekto 0x000;
 u8 rid;                 // Radio Identification
 
 struct {
@@ -56,7 +54,7 @@ u8 tot:4,                   // Time out timer: 16 values (0.0-7.5 in 0.5s step)
    tot_resume:2,            // Time out timer resume: 3, 2, 1, 0 => 0s, 6s, 20s, 60s
    unknownB:2;
 u8 a_key:2,                 // A key function: resume: 0-3: Talkaround, High/Low, Call, Accessory
-   unknownB:6;
+   unknownC:6;
 u8 pch1;                    // Priority channel 1
 u8 pch2;                    // Priority channel 1
 } settings;
@@ -81,7 +79,7 @@ struct {
   u8 unknownA[2];
 } memory[24];
 
-#seekto 0x0190;
+//#seekto 0x0190;
 char filename[11];
 
 #seekto 0x19C;
@@ -95,12 +93,12 @@ DTCS_CODES = chirp_common.DTCS_CODES
 SKIP_VALUES = ["", "S"]
 LIST_BCL = ["OFF", "Carrier", "Tone"]
 LIST_SCAN_RESUME = ["0.5 seconds", "Carrier drop"]
-LIST_SCAN_TIME = ["%smsecs" % x for x in range(5, 85, 5)]
+LIST_SCAN_TIME = ["%s ms" % x for x in range(5, 85, 5)]
 LIST_SCAN_P_SPEED = ["Slow", "Fast"]
 LIST_HOME_CHANNEL = ["Scan Start ch", "Priority 1ch"]
 LIST_TOT = ["Off"] + ["%.1f s" % (x/10.0) for x in range(5, 80, 5)]
-# 3, 2, 1, 0 => 0s, 6s, 20s, 60s
-LIST_TOT_RESUME = ["60s", "20s", "6s", "0s"]
+# 3, 2, 1, 0 => 0 s, 6 s, 20 s, 60 s
+LIST_TOT_RESUME = ["60 s", "20 s", "6 s", "0 s"]
 LIST_A_KEY = ["Talkaround", "High/Low", "Call", "Accessory"]
 LIST_PCH = []  # dynamic, as depends on channel list.
 # make a copy of the tones, is not funny to work with this directly
@@ -274,6 +272,7 @@ def int_to_bcd(data):
 class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     """Vertex FTL1011/2011/7011 4/8/12/24 channels"""
     VENDOR = "Vertex Standard"
+    NEEDS_COMPAT_SERIAL = True
     _memsize = MEM_SIZE
     _upper = 0
     _range = []
@@ -388,7 +387,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         return repr(self._memobj.memory[number])
 
     def _decode_tone(self, mem, rx=True):
-        """Parse the tone data to decode from mem tones are encodded like this
+        """Parse the tone data to decode from mem tones are encoded like this
         CTCS: mapped [0x80...0xa5] = [67.0...250.3]
         DTCS: mixed  [0x88, 0x23] last is BCD and first is the 100 power - 88
 
@@ -517,7 +516,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         bcl = RadioSetting("bclo", "Busy channel lockout",
                            RadioSettingValueList(LIST_BCL,
-                                                 LIST_BCL[bcls]))
+                                                 current_index=bcls))
         mem.extra.append(bcl)
 
         # return mem
@@ -561,11 +560,11 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         # validate tone data from here
         if rxmode == "Tone" and rxtone in invalid_tones:
-            msg = "The tone %shz is not valid for this radio" % rxtone
+            msg = "The tone %s Hz is not valid for this radio" % rxtone
             raise errors.UnsupportedToneError(msg)
 
         if txmode == "Tone" and txtone in invalid_tones:
-            msg = "The tone %shz is not valid for this radio" % txtone
+            msg = "The tone %s Hz is not valid for this radio" % txtone
             raise errors.UnsupportedToneError(msg)
 
         if rxmode == "DTCS" and rxtone not in DTCS_CODES:
@@ -628,23 +627,23 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # ## Basic Settings
         scanr = RadioSetting("scan_resume", "Scan resume by",
                              RadioSettingValueList(
-                              LIST_SCAN_RESUME, LIST_SCAN_RESUME[_settings.scan_resume]))
+                              LIST_SCAN_RESUME, current_index=_settings.scan_resume))
         basic.append(scanr)
 
         scant = RadioSetting("scan_time", "Scan time per channel",
                              RadioSettingValueList(
-                              LIST_SCAN_TIME, LIST_SCAN_TIME[_settings.scan_time]))
+                              LIST_SCAN_TIME, current_index=_settings.scan_time))
         basic.append(scant)
 
         LIST_PCH = ["%s" % x for x in range(1, _settings.chcount + 1)]
         pch1 = RadioSetting("pch1", "Priority channel 1",
                             RadioSettingValueList(
-                                 LIST_PCH, LIST_PCH[_settings.pch1]))
+                                 LIST_PCH, current_index=_settings.pch1))
         basic.append(pch1)
 
         pch2 = RadioSetting("pch2", "Priority channel 2",
                             RadioSettingValueList(
-                                LIST_PCH, LIST_PCH[_settings.pch2]))
+                                LIST_PCH, current_index=_settings.pch2))
         basic.append(pch2)
 
         scanp = RadioSetting("priority_during_scan", "Disable priority during scan",
@@ -653,7 +652,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         scanps = RadioSetting("priority_speed", "Priority scan speed",
                               RadioSettingValueList(
-                                LIST_SCAN_P_SPEED, LIST_SCAN_P_SPEED[_settings.priority_speed]))
+                                LIST_SCAN_P_SPEED, current_index=_settings.priority_speed))
         basic.append(scanps)
 
         oh = RadioSetting("off_hook", "Off Hook",  # inverted
@@ -666,17 +665,17 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         tot = RadioSetting("tot", "Time out timer",
                            RadioSettingValueList(
-                                 LIST_TOT, LIST_TOT[_settings.tot]))
+                                 LIST_TOT, current_index=_settings.tot))
         basic.append(tot)
 
         totr = RadioSetting("tot_resume", "Time out timer resume guard",
                             RadioSettingValueList(
-                               LIST_TOT_RESUME, LIST_TOT_RESUME[_settings.tot_resume]))
+                               LIST_TOT_RESUME, current_index=_settings.tot_resume))
         basic.append(totr)
 
         ak = RadioSetting("a_key", "A Key function",
                           RadioSettingValueList(
-                                LIST_A_KEY, LIST_A_KEY[_settings.a_key]))
+                                LIST_A_KEY, current_index=_settings.a_key))
         basic.append(ak)
 
         monitor = RadioSetting("monitor", "Monitor",  # inverted
@@ -685,7 +684,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         homec = RadioSetting("home_channel", "Home Channel is",
                              RadioSettingValueList(
-                                 LIST_HOME_CHANNEL, LIST_HOME_CHANNEL[_settings.home_channel]))
+                                 LIST_HOME_CHANNEL, current_index=_settings.home_channel))
         basic.append(homec)
 
         txd = RadioSetting("tx_carrier_delay", "Talk Back",
@@ -715,7 +714,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                     setattr(_settings, name, value)
 
                 LOG.debug("Setting %s: %s" % (name, value))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -731,7 +730,7 @@ class ftlx011(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # testing the firmware fingerprint, this experimental
         try:
             match_model = _model_match(cls, filedata)
-        except Exception as e:
+        except Exception:
             match_model = False
 
         return match_size and match_model

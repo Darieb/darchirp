@@ -26,7 +26,7 @@ from chirp import bitwise, errors, util
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettingValueFloat, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -36,17 +36,17 @@ struct chns {
   ul32 txfreq;
   u8 rxtone[2];
   u8 txtone[2];
-  u8  wide:1   // 0x0c
-      vox_on:1
-      chunk01:1
-      bcl:1    // inv bool
-      epilogue:1
-      power:1
-      chunk02:1
+  u8  wide:1,  // 0x0c
+      vox_on:1,
+      chunk01:1,
+      bcl:1,    // inv bool
+      epilogue:1,
+      power:1,
+      chunk02:1,
       chunk03:1;
-  u8  ani:1     // 0x0d inv
-      chunk08:1
-      ptt:2
+  u8  ani:1,    // 0x0d inv
+      chunk08:1,
+      ptt:2,
       chpad04:4;
   u8  chunk05;  // 0x0e
   u16 id_code; // 0x0f, 10
@@ -64,22 +64,22 @@ struct fm_chn {
 struct frqx {
   ul32 rxfreq;
   ul24 ofst;
-  u8  fqunk01:4  // 0x07
-      funk10:2
+  u8  fqunk01:4,  // 0x07
+      funk10:2,
       duplx:2;
   u8 rxtone[2]; // 0x08, 9
   u8 txtone[2]; // 0x0a, b
-  u8  wide:1    // 0x0c
-      vox_on:1
-      funk11:1
-      bcl:1     // inv bool
-      epilogue:1
-      power:1
+  u8  wide:1,    // 0x0c
+      vox_on:1,
+      funk11:1,
+      bcl:1,     // inv bool
+      epilogue:1,
+      power:1,
       fqunk02:2;
-  u8  ani:1     // 0x0d inv bool
-      fqunk03:1
-      ptt:2
-      fqunk12:1
+  u8  ani:1,     // 0x0d inv bool
+      fqunk03:1,
+      ptt:2,
+      fqunk12:1,
       fqunk04:3;
   u8  fqunk07;  // 0x0e
   u16 id_code;  // 0x0f, 0x10
@@ -94,13 +94,10 @@ struct bitmap {
 #seekto 0x0010;
 struct chns chan_mem[128];
 
-#seekto 0x1010;
 struct frqx frq[2];
 
-#seekto 0x1050;
 struct fm_chn fm_stations[25];
 
-#seekto 0x1080;
 struct {
   u8  fmunk01[14];
   ul16 fmcur;
@@ -109,54 +106,51 @@ struct {
 #seekto 0x1190;
 struct bitmap chnmap;
 
-#seekto 0x11a0;
 struct bitmap skpchns;
 
-#seekto 0x011b0;
 struct {
   u8  fmset[4];
 } fmmap;
 
-#seekto 0x011b4;
 struct {
   u8  setunk01[4];
   u8  setunk02[3];
-  u8  chs_name:1    // 0x11bb
-      txsel:1
-      dbw:1
-      setunk05:1
-      ponfmchs:2
+  u8  chs_name:1,    // 0x11bb
+      txsel:1,
+      dbw:1,
+      setunk05:1,
+      ponfmchs:2,
       ponchs:2;
-  u8  voltx:2       // 0x11bc
-      setunk04:1
-      keylok:1
-      setunk07:1
+  u8  voltx:2,       // 0x11bc
+      setunk04:1,
+      keylok:1,
+      setunk07:1,
       batsav:3;
-  u8  setunk09:1    // 0x11bd
-      rxinhib:1
-      rgrbeep:1    // inv bool
-      lampon:2
-      voice:2
+  u8  setunk09:1,    // 0x11bd
+      rxinhib:1,
+      rgrbeep:1,    // inv bool
+      lampon:2,
+      voice:2,
       beepon:1;
-  u8  setunk11:1    // 0x11be
-      manualset:1
-      xbandon:1     // inv
-      xbandenable:1
-      openmsg:2
+  u8  setunk11:1,    // 0x11be
+      manualset:1,
+      xbandon:1,     // inv
+      xbandenable:1,
+      openmsg:2,
       ledclr:2;
-  u8  tot:4         // 0x11bf
+  u8  tot:4,         // 0x11bf
       sql:4;
-  u8  setunk27:1   // 0x11c0
-      voxdelay:2
-      setunk28:1
+  u8  setunk27:1,   // 0x11c0
+      voxdelay:2,
+      setunk31:1,
       voxgain:4;
-  u8  fmstep:4      // 0x11c1
+  u8  fmstep:4,      // 0x11c1
       freqstep:4;
-  u8  scanspeed:4   // 0x11c2
+  u8  scanspeed:4,   // 0x11c2
       scanmode:4;
   u8  scantmo;      // 0x11c3
   u8  prichan;      // 0x11c4
-  u8  setunk12:4    // 0x11c5
+  u8  setunk12:4,    // 0x11c5
       supersave:4;
   u8  setunk13;
   u8  fmsclo;       // 0x11c7 ??? placeholder
@@ -164,26 +158,26 @@ struct {
   u8  fmschi;       // ??? placeholder
   u8  setunk14[3];  // 0x11d0
   u8 setunk17[2];   // 0x011d3, 4
-  u8  setunk18:4
+  u8  setunk18:4,
       dtmfspd:4;
-  u8  dtmfdig1dly:4 // 0x11d6
+  u8  dtmfdig1dly:4, // 0x11d6
       dtmfdig1time:4;
-  u8  stuntype:1
-      setunk19:1
-      dtmfspms:2
+  u8  stuntype:1,
+      setunk19:1,
+      dtmfspms:2,
       grpcode:4;
-  u8  setunk20:1    // 0x11d8
-      txdecode:1
-      codeabcd:1
-      idedit:1
-      pttidon:2
+  u8  setunk20:1,    // 0x11d8
+      txdecode:1,
+      codeabcd:1,
+      idedit:1,
+      pttidon:2,
       setunk40:1,
       dtmfside:1;
   u8  setunk50:4,
       autoresettmo:4;
   u8  codespctim:4, // 0x11da
       decodetmo:4;
-  u8  pttecnt:4     // 0x11db
+  u8  pttecnt:4,     // 0x11db
       pttbcnt:4;
   lbcd  dtmfdecode[3];
   u8  setunk22;
@@ -199,11 +193,11 @@ struct {
   u8  setunk65;
   u8  setunk66;
   u8  manfrqyn;     // 0x11fd
-  u8  setunk27:3
-      frqr3:1
-      setunk28:1
-      frqr2:1
-      setunk29:1
+  u8  setunk30:3,
+      frqr3:1,
+      setunk28:1,
+      frqr2:1,
+      setunk29:1,
       frqr1:1;
   u8  setunk25;
   ul32 frqr1lo;  // 0x1200
@@ -254,14 +248,6 @@ STEPS = [0.5, 2.5, 5.0, 6.25, 10.0, 12.5, 25.0, 37.5, 50.0, 100.0]
 LIST_STEPS = [str(x) for x in STEPS]
 LIST_VOXDLY = ["0.5", "1.0", "2.0", "3.0"]      # LISTS must be strings
 LIST_PTT = ["Both", "EoT", "BoT", "Off"]
-
-SETTING_LISTS = {"tot": LIST_TIMEOUT, "wtled": LIST_COLOR,
-                 "rxled": LIST_COLOR, "txled": LIST_COLOR,
-                 "ledsw": LIST_LEDSW, "frq_chn_mode": LIST_VFOMODE,
-                 "rx_tone": LIST_CTCSS, "tx_tone": LIST_CTCSS,
-                 "rx_mode": LIST_RECVMODE, "fm_bw": LIST_BW,
-                 "shift": LIST_SHIFT, "step": LIST_STEPS,
-                 "vox_dly": LIST_VOXDLY, "ptt": LIST_PTT}
 
 
 def _clean_buffer(radio):
@@ -493,7 +479,6 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
     """TYT UV8000D Radio"""
     VENDOR = "TYT"
     MODEL = "TH-UV8000"
-    NEEDS_COMPAT_SERIAL = False
     MODES = ["NFM", "FM"]
     TONES = chirp_common.TONES
     DTCS_CODES = tuple(sorted(chirp_common.DTCS_CODES + (645,)))
@@ -526,21 +511,20 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
     def get_prompts(cls):
         rp = chirp_common.RadioPrompts()
         rp.info = \
-            ('Click on the "Special Channels" toggle-button of the memory '
-             'editor to see/set the upper and lower frequency-mode values.\n')
+            ('Remember the # T-R key is the VFO/MEM toggle.\n')
 
         rp.pre_download = _(
             "Follow these instructions to download the radio memory:\n"
             "1 - Turn off your radio\n"
             "2 - Connect your interface cable\n"
             "3 - Turn on your radio, volume @ 50%\n"
-            "4 - Radio > Download from radio\n")
+            "4 - CHIRP Menu - Radio - Download from radio\n")
         rp.pre_upload = _(
             "Follow these instructions to upload the radio memory:\n"
             "1 - Turn off your radio\n"
             "2 - Connect your interface cable\n"
             "3 - Turn on your radio, volume @ 50%\n"
-            "4 - Radio > Upload to radio\n")
+            "4 - CHIRP Menu - Radio - Upload to radio\n")
         return rp
 
     def get_features(self):
@@ -611,7 +595,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         self._memobj = bitwise.parse(MEM_FORMAT, self._mmap)
 
     def get_raw_memory(self, number):
-        return repr(self._memobj.memory[number - 1])
+        return repr(self._memobj.chan_mem[number - 1])
 
     def get_memory(self, number):
         if isinstance(number, str):
@@ -643,7 +627,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         """Convert raw channel memory data into UI columns"""
         mem.extra = RadioSettingGroup("extra", "Extra")
 
-        if _mem.get_raw()[0] == "\xff":
+        if _mem.get_raw()[0] == 0xff:
             mem.empty = True
             return mem
 
@@ -748,7 +732,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
 
         # ID code can't be done in extra - no Integer method or call-back
 
-        rx = RadioSettingValueList(LIST_PTT, LIST_PTT[_mem.ptt])
+        rx = RadioSettingValueList(LIST_PTT, current_index=_mem.ptt)
         rset = RadioSetting("ptt", "Xmit PTT ID", rx)
         mem.extra.append(rset)
 
@@ -1081,7 +1065,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
 
         def myset_fmfrq(setting, obj, atrb, nx):
             """ Callback to set xx.x FM freq in memory as xx.x * 40"""
-            # in-valid even KHz freqs are allowed; to satisfy run_tests
+            # in-valid even kHz freqs are allowed; to satisfy run_tests
             vx = float(str(setting.value))
             vx = int(vx * 40)
             setattr(obj[nx], atrb, vx)
@@ -1092,7 +1076,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         rset.set_apply_callback(my_adjraw, _sets, "voxgain", -1)
         basic.append(rset)
 
-        rx = RadioSettingValueList(LIST_VOXDLY, LIST_VOXDLY[_sets.voxdelay])
+        rx = RadioSettingValueList(LIST_VOXDLY, current_index=_sets.voxdelay)
         rset = RadioSetting("setstuf.voxdelay", "Vox Delay (secs)", rx)
         basic.append(rset)
 
@@ -1100,8 +1084,8 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         rset = RadioSetting("setstuf.sql", "Squelch", rx)
         basic.append(rset)
 
-        rx = RadioSettingValueList(LIST_STEPS, LIST_STEPS[_sets.freqstep])
-        rset = RadioSetting("setstuf.freqstep", "VFO Tune Step (KHz))", rx)
+        rx = RadioSettingValueList(LIST_STEPS, current_index=_sets.freqstep)
+        rset = RadioSetting("setstuf.freqstep", "VFO Tune Step (kHz)", rx)
         basic.append(rset)
 
         rx = RadioSettingValueBoolean(bool(_sets.dbw))     # true logic
@@ -1109,12 +1093,12 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         options = ["Off", "On", "Auto"]
-        rx = RadioSettingValueList(options, options[_sets.lampon])
+        rx = RadioSettingValueList(options, current_index=_sets.lampon)
         rset = RadioSetting("setstuf.lampon", "Backlight (LED)", rx)
         basic.append(rset)
 
         options = ["Orange", "Purple", "Blue"]
-        rx = RadioSettingValueList(options, options[_sets.ledclr])
+        rx = RadioSettingValueList(options, current_index=_sets.ledclr)
         rset = RadioSetting("setstuf.ledclr", "Backlight Color (LIGHT)", rx)
         basic.append(rset)
 
@@ -1131,7 +1115,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         rset.set_apply_callback(my_invbool, _sets, "xbandon")
         basic.append(rset)
 
-        rx = RadioSettingValueList(LIST_TIMEOUT, LIST_TIMEOUT[_sets.tot])
+        rx = RadioSettingValueList(LIST_TIMEOUT, current_index=_sets.tot)
         rset = RadioSetting("setstuf.tot", "TX Timeout (Secs)", rx)
         basic.append(rset)
 
@@ -1146,12 +1130,12 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         options = ["None", "Message", "DC Volts"]
-        rx = RadioSettingValueList(options, options[_sets.openmsg])
+        rx = RadioSettingValueList(options, current_index=_sets.openmsg)
         rset = RadioSetting("setstuf.openmsg", "Power-On Display", rx)
         basic.append(rset)
 
         options = ["Channel Name", "Frequency"]
-        rx = RadioSettingValueList(options, options[_sets.chs_name])
+        rx = RadioSettingValueList(options, current_index=_sets.chs_name)
         rset = RadioSetting("setstuf.chs_name", "Display Name/Frq", rx)
         basic.append(rset)
 
@@ -1166,14 +1150,14 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
 
         # Advanced (Strange) Settings
         options = ["Busy: Last Tx Band", "Edit: Current Band"]
-        rx = RadioSettingValueList(options, options[_sets.txsel])
+        rx = RadioSettingValueList(options, current_index=_sets.txsel)
         rset = RadioSetting("setstuf.txsel", "Transmit Priority", rx)
         rset.set_doc("'Busy' transmits on last band used, not current one.")
         adv.append(rset)
 
         options = ["Off", "English", "Unk", "Chinese"]
         val = _sets.voice
-        rx = RadioSettingValueList(options, options[val])
+        rx = RadioSettingValueList(options, current_index=val)
         rset = RadioSetting("setstuf.voice", "Voice", rx)
         adv.append(rset)
 
@@ -1181,14 +1165,14 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         val = (_sets.batsav & 0x3) + 1     # ratio
         if (_sets.batsav & 0x4) == 0:    # Off
             val = 0
-        rx = RadioSettingValueList(options, options[val])
+        rx = RadioSettingValueList(options, current_index=val)
         rset = RadioSetting("setstuf.batsav", "Battery Saver", rx)
         rset.set_apply_callback(my_batsav, _sets, "batsav")
         adv.append(rset)
 
         # Find out what & where SuperSave is
         options = ["Off", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
-        rx = RadioSettingValueList(options, options[_sets.supersave])
+        rx = RadioSettingValueList(options, current_index=_sets.supersave)
         rset = RadioSetting("setstuf.supersave", "Super Save (Secs)", rx)
         rset.set_doc("Unknown radio attribute??")
         adv.append(rset)
@@ -1206,7 +1190,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         adv.append(rset)
 
         options = ["None", "Low", "High", "Both"]
-        rx = RadioSettingValueList(options, options[_sets.voltx])
+        rx = RadioSettingValueList(options, current_index=_sets.voltx)
         rset = RadioSetting("setstuf.voltx", "Transmit Inhibit Voltage", rx)
         rset.set_doc("Block Transmit if battery volts are too high or low,")
         adv.append(rset)
@@ -1215,7 +1199,7 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         if _sets.manfrqyn == 0xaa:
             val = 1
         options = ["No", "Yes"]
-        rx = RadioSettingValueList(options, options[val])
+        rx = RadioSettingValueList(options, current_index=val)
         rset = RadioSetting("setstuf.manfrqyn", "Manual Frequency", rx)
         rset.set_apply_callback(my_manfrq, _sets, "manfrqyn")
         adv.append(rset)
@@ -1226,14 +1210,14 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
 
         # Scan Settings
         options = ["CO: During Rx", "TO: Timed", "SE: Halt"]
-        rx = RadioSettingValueList(options, options[_sets.scanmode])
+        rx = RadioSettingValueList(options, current_index=_sets.scanmode)
         rset = RadioSetting("setstuf.scanmode",
                             "Scan Mode (Scan Pauses When)", rx)
         scn.append(rset)
 
         options = ["100", "150", "200", "250",
                    "300", "350", "400", "450"]
-        rx = RadioSettingValueList(options, options[_sets.scanspeed])
+        rx = RadioSettingValueList(options, current_index=_sets.scanspeed)
         rset = RadioSetting("setstuf.scanspeed", "Scan Speed (ms)", rx)
         scn.append(rset)
 
@@ -1260,8 +1244,8 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         fmb.append(rset)
 
         options = ["5", "50", "100", "200(USA)"]    # 5 is not used
-        rx = RadioSettingValueList(options, options[_sets.fmstep])
-        rset = RadioSetting("setstuf.fmstep", "FM Freq Step (KHz)", rx)
+        rx = RadioSettingValueList(options, current_index=_sets.fmstep)
+        rset = RadioSetting("setstuf.fmstep", "FM Freq Step (kHz)", rx)
         fmb.append(rset)
 
         # FM Scan Range fmsclo and fmschi are unknown memory locations,
@@ -1302,31 +1286,31 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
 
         # DTMF Settings
         options = [str(x) for x in range(4, 16)]
-        rx = RadioSettingValueList(options, options[_sets.dtmfspd])
+        rx = RadioSettingValueList(options, current_index=_sets.dtmfspd)
         rset = RadioSetting("setstuf.dtmfspd",
                             "Tx Speed (digits/sec)", rx)
         dtmf.append(rset)
 
         options = [str(x) for x in range(0, 1100, 100)]
-        rx = RadioSettingValueList(options, options[_sets.dtmfdig1time])
+        rx = RadioSettingValueList(options, current_index=_sets.dtmfdig1time)
         rset = RadioSetting("setstuf.dtmfdig1time",
                             "Tx 1st Digit Time (ms)", rx)
         dtmf.append(rset)
 
         options = [str(x) for x in range(100, 1100, 100)]
-        rx = RadioSettingValueList(options, options[_sets.dtmfdig1dly])
+        rx = RadioSettingValueList(options, current_index=_sets.dtmfdig1dly)
         rset = RadioSetting("setstuf.dtmfdig1dly",
                             "Tx 1st Digit Delay (ms)", rx)
         dtmf.append(rset)
 
         options = ["0", "100", "500", "1000"]
-        rx = RadioSettingValueList(options, options[_sets.dtmfspms])
+        rx = RadioSettingValueList(options, current_index=_sets.dtmfspms)
         rset = RadioSetting("setstuf.dtmfspms",
                             "Tx Star & Pound Time (ms)", rx)
         dtmf.append(rset)
 
         options = ["None"] + [str(x) for x in range(600, 2100, 100)]
-        rx = RadioSettingValueList(options, options[_sets.codespctim])
+        rx = RadioSettingValueList(options, current_index=_sets.codespctim)
         rset = RadioSetting("setstuf.codespctim",
                             "Tx Code Space Time (ms)", rx)
         dtmf.append(rset)
@@ -1340,12 +1324,12 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         dtmf.append(rset)
 
         options = ["Off", "A", "B", "C", "D"]
-        rx = RadioSettingValueList(options, options[_sets.grpcode])
+        rx = RadioSettingValueList(options, current_index=_sets.grpcode)
         rset = RadioSetting("setstuf.grpcode", "Rx Group Code", rx)
         dtmf.append(rset)
 
         options = ["Off"] + [str(x) for x in range(1, 16)]
-        rx = RadioSettingValueList(options, options[_sets.autoresettmo])
+        rx = RadioSettingValueList(options, current_index=_sets.autoresettmo)
         rset = RadioSetting("setstuf.autoresettmo",
                             "Rx Auto Reset Timeout (secs)", rx)
         dtmf.append(rset)
@@ -1359,13 +1343,13 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         dtmf.append(rset)
 
         options = [str(x) for x in range(500, 1600, 100)]
-        rx = RadioSettingValueList(options, options[_sets.decodetmo])
+        rx = RadioSettingValueList(options, current_index=_sets.decodetmo)
         rset = RadioSetting("setstuf.decodetmo",
                             "Rx Decode Timeout (ms)", rx)
         dtmf.append(rset)
 
         options = ["Tx & Rx Inhibit", "Tx Inhibit"]
-        rx = RadioSettingValueList(options, options[_sets.stuntype])
+        rx = RadioSettingValueList(options, current_index=_sets.stuntype)
         rset = RadioSetting("setstuf.stuntype", "Stun Type", rx)
         dtmf.append(rset)
 
@@ -1390,8 +1374,8 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
         mod_se = True     # UV8000SE has 3rd freq bank
         if mod_se:
             rx = RadioSettingValueBoolean(bool(_sets.frqr3))
-            rset = RadioSetting("setstuf.frqr3", "Freq Range 3 (220Mhz)", rx)
-            rset.set_doc("Enable the 220MHz frequency bank.")
+            rset = RadioSetting("setstuf.frqr3", "Freq Range 3 (220 MHz)", rx)
+            rset.set_doc("Enable the 220 MHz frequency bank.")
             frng.append(rset)
 
         frqm = 100000
@@ -1479,6 +1463,6 @@ class THUV8000Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise

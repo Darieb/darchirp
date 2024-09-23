@@ -33,7 +33,6 @@ from chirp.settings import (
     RadioSettingValueBoolean,
     RadioSettingValueInteger,
     RadioSettingValueList,
-    RadioSettingValueString,
 )
 
 LOG = logging.getLogger(__name__)
@@ -141,27 +140,17 @@ VOICE_LIST = ["Off", "English"]
 VOXD_LIST = ["0.5", "1.0", "1.5", "2.0", "2.5", "3.0"]
 VOXL_LIST = ["OFF"] + ["%s" % x for x in range(1, 10)]
 
-SETTING_LISTS = {
-    "backlight": BACKLIGHT_LIST,
-    "pfkey_gt": PFKEY_EU_LIST,
-    "pfkey_gt": PFKEY_US_LIST,
-    "pfkey_lt": PFKEY_EU_LIST,
-    "pfkey_lt": PFKEY_US_LIST,
-    "save": SAVE_LIST,
-    "tot": TIMEOUTTIMER_LIST,
-    "voice": VOICE_LIST,
-    "voxd": VOXD_LIST,
-    "voxl": VOXL_LIST,
-    }
+PMR_TONES = tuple(
+    set(chirp_common.TONES) - set([69.3, 159.8, 165.5, 171.3, 177.3,
+                                   183.5, 189.9, 196.6, 199.5, 206.5,
+                                   229.1, 254.1]))
 
-PMR_TONES = list(chirp_common.TONES)
-[PMR_TONES.remove(x) for x in [69.3, 159.8, 165.5, 171.3, 177.3, 183.5,
-                               189.9, 196.6, 199.5, 206.5, 229.1, 254.1]]
-
-PMR_DTCS_CODES = list(chirp_common.DTCS_CODES)
-[PMR_DTCS_CODES.remove(x) for x in [36,  53, 122, 145, 212, 225, 246,
-                                    252, 255, 266, 274, 325, 332, 356,
-                                    446, 452, 454, 455, 462, 523, 526]]
+PMR_DTCS_CODES = tuple(
+    set(chirp_common.DTCS_CODES) - set([36,  53, 122, 145, 212,
+                                        225, 246, 252, 255, 266,
+                                        274, 325, 332, 356, 446,
+                                        452, 454, 455, 462, 523,
+                                        526]))
 
 
 def _enter_programming_mode(radio):
@@ -312,7 +301,6 @@ class RB28Radio(chirp_common.CloneModeRadio):
     VENDOR = "Retevis"
     MODEL = "RB28"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     BLOCK_SIZE = 0x20
     BLOCK_SIZE_UP = 0x10
 
@@ -356,7 +344,7 @@ class RB28Radio(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = self.POWER_LEVELS
         rf.valid_duplexes = ["", "off"]
-        rf.valid_modes = ["FM", "NFM"]  # 25 KHz, 12.5 kHz.
+        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 kHz.
         rf.valid_tones = self.TONES
         rf.valid_dtcs_codes = self.DTCS_CODES
         rf.memory_bounds = (1, self._upper)
@@ -408,16 +396,16 @@ class RB28Radio(chirp_common.CloneModeRadio):
         _mem = self._memobj.memory[number - 1]
 
         if self._reserved:
-            _rsvd = _mem.reserved.get_raw()
+            _rsvd = _mem.reserved.get_raw(asbytes=False)
 
         mem.freq = int(_mem.rxfreq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rxfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rxfreq.get_raw(asbytes=False) == "\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
@@ -525,7 +513,7 @@ class RB28Radio(chirp_common.CloneModeRadio):
         _mem = self._memobj.memory[mem.number - 1]
 
         if self._reserved:
-            _rsvd = _mem.reserved.get_raw()
+            _rsvd = _mem.reserved.get_raw(asbytes=False)
 
         if mem.empty:
             if self._reserved:
@@ -600,22 +588,22 @@ class RB28Radio(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         rs = RadioSettingValueList(TIMEOUTTIMER_LIST,
-                                   TIMEOUTTIMER_LIST[_settings.tot - 1])
+                                   current_index=_settings.tot - 1)
         rset = RadioSetting("tot", "Time-out timer", rs)
         basic.append(rset)
 
         rs = RadioSettingValueList(VOICE_LIST,
-                                   VOICE_LIST[_settings.voice])
+                                   current_index=_settings.voice)
         rset = RadioSetting("voice", "Voice Prompts", rs)
         basic.append(rset)
 
         rs = RadioSettingValueList(SAVE_LIST,
-                                   SAVE_LIST[_settings.savem])
+                                   current_index=_settings.savem)
         rset = RadioSetting("savem", "Battery Save Mode", rs)
         basic.append(rset)
 
         rs = RadioSettingValueList(BACKLIGHT_LIST,
-                                   BACKLIGHT_LIST[_settings.backlight])
+                                   current_index=_settings.backlight)
         rset = RadioSetting("backlight", "Back Light", rs)
         basic.append(rset)
 
@@ -666,22 +654,22 @@ class RB28Radio(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         rs = RadioSettingValueList(VOXL_LIST,
-                                   VOXL_LIST[_settings.voxl])
+                                   current_index=_settings.voxl)
         rset = RadioSetting("voxl", "Vox Level", rs)
         basic.append(rset)
 
         rs = RadioSettingValueList(VOXD_LIST,
-                                   VOXD_LIST[_settings.voxd])
+                                   current_index=_settings.voxd)
         rset = RadioSetting("voxd", "Vox Delay", rs)
         basic.append(rset)
 
         rs = RadioSettingValueList(self.PFKEY_LIST,
-                                   self.PFKEY_LIST[_settings.pfkey_lt])
+                                   current_index=_settings.pfkey_lt)
         rset = RadioSetting("pfkey_lt", "Key Set < Long", rs)
         basic.append(rset)
 
         rs = RadioSettingValueList(self.PFKEY_LIST,
-                                   self.PFKEY_LIST[_settings.pfkey_gt])
+                                   current_index=_settings.pfkey_gt)
         rset = RadioSetting("pfkey_gt", "Key Set > Long", rs)
         basic.append(rset)
 
@@ -716,7 +704,7 @@ class RB28Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

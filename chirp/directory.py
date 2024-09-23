@@ -63,7 +63,29 @@ def register(cls):
     DRV_TO_RADIO[ident] = cls
     RADIO_TO_DRV[cls] = ident
 
+    if not hasattr(cls, '_DETECTED_BY'):
+        cls._DETECTED_BY = None
+
     return cls
+
+
+def detected_by(manager_class):
+    """Mark a class as detected by another class
+
+    This means it may not be offered directly as a choice and instead is added
+    to @manager_class's DETECTED_MODELS list and should be returned from
+    detect_from_serial() when appropriate.
+    """
+    assert issubclass(manager_class, chirp_common.CloneModeRadio)
+
+    def wrapper(cls):
+        assert issubclass(cls, chirp_common.CloneModeRadio)
+
+        cls._DETECTED_BY = manager_class
+        manager_class.detect_model(cls)
+        return cls
+
+    return wrapper
 
 
 DRV_TO_RADIO = {}
@@ -160,14 +182,23 @@ def get_radio_by_image(image_file):
                     MODEL = meta_model
                     VARIANT = metadata.get('variant')
 
+                    def __repr__(self):
+                        return repr(self._orig_rclass)
+
                 return DynamicRadioAlias(image_file)
 
     if metadata:
-        e = errors.ImageMetadataInvalidModel("Unsupported model %s %s" % (
+        ex = errors.ImageMetadataInvalidModel("Unsupported model %s %s" % (
             metadata.get("vendor"), metadata.get("model")))
-        e.metadata = metadata
-        raise e
+        ex.metadata = metadata
+        raise ex
     else:
+        # If we don't find anything else and the file appears to be a CSV
+        # file, then explicitly open it with the generic driver so we can
+        # get relevant errors instead of just "Unknown file format".
+        if image_file.lower().endswith('.csv'):
+            rclass = get_radio('Generic_CSV')
+            return rclass(image_file)
         raise errors.ImageDetectFailed("Unknown file format")
 
 

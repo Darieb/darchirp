@@ -1,24 +1,26 @@
-# English translations for CHIRP package.
+# Italian translations for CHIRP package.
 # Copyright (C) 2011 Dan Smith <dsmith@danplanet.com>
 # This file is distributed under the same license as the CHIRP package.
 # Dan Smith <dan@theine>, 2011.
+# Daniele Forsi <iu5hkx@gmail.com>, 2024
+# Giovanni Scafora IK5TWZ <scafora.giovanni@gmail.com>, 2024
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: CHIRP\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-06-13 18:59-0700\n"
-"PO-Revision-Date: 2014-11-08 17:58+0100\n"
-"Last-Translator: Dan Smith <dan@theine>\n"
-"Language-Team: English\n"
+"POT-Creation-Date: 2024-09-20 06:07+0200\n"
+"PO-Revision-Date: 2024-09-20 06:06+0200\n"
+"Last-Translator: Giovanni Scafora IK5TWZ <scafora.giovanni@gmail.com>\n"
+"Language-Team: CHIRP Italian Translation\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ASCII\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 1.6.10\n"
+"X-Generator: Poedit 3.4.2\n"
 
-#: ../drivers/ft2d.py:100
+#: ../drivers/ft2d.py:97
 msgid ""
 " 1. Turn radio off.\n"
 " 2. Connect cable to DATA terminal.\n"
@@ -28,37 +30,80 @@ msgid ""
 "      (\"-WAIT-\" will appear on radio LCD).\n"
 "5. Finally, press OK button below.\n"
 msgstr ""
+" 1. Spegnere la radio.\n"
+" 2. Collegare il cavo al terminale DATI.\n"
+" 3. Tenere premuto il tasto [DISP] mentre si accende la radio\n"
+"      (Sul display apparirà la scritta \"CLONE\").\n"
+" 4. Premere il pulsante dello schermo [RECEIVE]\n"
+"      (Sul display apparirà la scritta \"-WAIT-\").\n"
+" 5. Infine, premere sul pulsante OK situato in basso.\n"
 
-#: ../wxui/query_sources.py:58
+#: ../wxui/query_sources.py:60
 #, python-format
 msgid "%(value)s must be between %(min)i and %(max)i"
-msgstr ""
+msgstr "%(value)s deve essere compreso tra %(min)i e %(max)i"
 
-#: ../wxui/memedit.py:1466
-#, fuzzy, python-format
-msgid "%i Memories"
-msgstr "Memorie"
-
-#: ../wxui/memedit.py:1473
-#, fuzzy, python-format
+#: ../wxui/memedit.py:1739
+#, python-format
 msgid "%i Memories and shift all up"
-msgstr "Elimina (e sposta sopra)"
+msgid_plural "%i Memories and shift all up"
+msgstr[0] "%i memoria e sposta tutto su"
+msgstr[1] "%i memorie e sposta tutto su"
 
-#: ../wxui/memedit.py:1469
-#, fuzzy, python-format
-msgid "%i Memories and shift block up"
-msgstr "Elimina (e sposta sopra)"
+#: ../wxui/memedit.py:1730
+#, python-format
+msgid "%i Memory"
+msgid_plural "%i Memories"
+msgstr[0] "%i memoria"
+msgstr[1] "%i memorie"
 
-#: ../wxui/main.py:1233
-#, fuzzy, python-format
+#: ../wxui/memedit.py:1734
+#, python-format
+msgid "%i Memory and shift block up"
+msgid_plural "%i Memories and shift block up"
+msgstr[0] "%i memoria e sposta il blocco su"
+msgstr[1] "%i memorie e sposta il blocco su"
+
+#: ../wxui/main.py:1388
+#, python-format
 msgid "%s has not been saved. Save before closing?"
-msgstr "Il file e' stato modificato, salvare i cambiamenti prima di chiudere?"
+msgstr "%s non è stato salvato. Salvarlo prima di chiudere?"
 
-#: ../wxui/radioinfo.py:48
+#: ../wxui/bugreport.py:426
+msgid "(Describe what actually happened instead)"
+msgstr "(Descrivi ciò che è realmente accaduto)"
+
+#: ../wxui/bugreport.py:424
+msgid "(Describe what you expected to happen)"
+msgstr "(Descrivi cosa ti aspettavi che accadesse)"
+
+#: ../wxui/bugreport.py:422
+msgid "(Describe what you were doing)"
+msgstr "(Descrivi cosa stavi facendo)"
+
+#: ../wxui/bugreport.py:428
+msgid ""
+"(Has this ever worked before? New radio? Does it work with OEM software?)"
+msgstr "(Ha mai funzionato prima? Radio nuova? Funziona con il software OEM?)"
+
+#: ../wxui/radioinfo.py:50
 msgid "(none)"
-msgstr ""
+msgstr "(nessuno)"
 
-#: ../drivers/alinco.py:606 ../drivers/alinco.py:615
+#: ../wxui/memedit.py:2092
+#, python-format
+msgid "...and %i more"
+msgstr "...ed altri %i"
+
+#: ../drivers/ft4.py:726
+msgid ""
+"1. Connect programming cable to MIC jack.\n"
+"2. Press OK."
+msgstr ""
+"1. Collega il cavo di programmazione alla presa MIC.\n"
+"2. Fai clic su OK."
+
+#: ../drivers/alinco.py:605 ../drivers/alinco.py:614
 msgid ""
 "1. Ensure your firmware version is 4_10 or higher\n"
 "2. Turn radio off\n"
@@ -69,16 +114,30 @@ msgid ""
 "   (rotate dial while holding MONI to change)\n"
 "7. Click OK\n"
 msgstr ""
+"1. Assicurarsi che la versione del firmware sia 4_10 o superiore\n"
+"2. Spegnere la radio\n"
+"3. Collegare il cavo dell'interfaccia\n"
+"4. Accendere la radio\n"
+"5. Premere e rilasciare il PTT 3 volte mentre si tiene premuto il tasto "
+"MONI\n"
+"6. Velocità di trasmissione supportate: 57600 (predefinito) e 19200\n"
+"   (per cambiare, ruotare il selettore, tenendo premuto MONI)\n"
+"7. Fare clic su OK\n"
 
-#: ../drivers/ft2900.py:1228
+#: ../drivers/ft2900.py:1253
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
 "3. While holding \"A/N LOW\" button, turn radio on.\n"
 "4. <b>After clicking OK</b>, press \"SET MHz\" to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenendo premuto il pulsante \"A/N LOW\", accendere la radio.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere \"SET MHz\" per inviare "
+"l'immagine.\n"
 
-#: ../drivers/ft2900.py:1233
+#: ../drivers/ft2900.py:1258
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
@@ -90,16 +149,59 @@ msgid ""
 "      power and pressing and holding red \"*L\" button to unlock\n"
 "      radio, then start back at step 1.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenendo premuto il pulsante \"A/N LOW\", accendere la radio.\n"
+"4. Premere \"MW D/MR\" per acquisire l'immagine.\n"
+"5. Assicurarsi che il display indichi \"-WAIT-\" (in caso contrario, vedere "
+"la nota seguente)\n"
+"6. Fare clic su OK per chiudere la finestra di dialogo ed avviare il "
+"trasferimento.\n"
+"Nota: se al punto 5 non viene visualizzato il messaggio \"-WAIT-\",\n"
+"      provare a spegnere la radio, tenendo premuto il pulsante\n"
+"      rosso \"*L\" per sbloccarla, quindi ricominciare dal punto 1.\n"
 
-#: ../drivers/ft7100.py:1126
+#: ../drivers/ft8100.py:94
+msgid ""
+"1. Turn Radio off.\n"
+"2. Connect data cable.\n"
+"3. While holding \"F/W\" button, turn radio on.\n"
+"4. <b>After clicking OK</b>, press \"RPT\" to send image.\n"
+msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenendo premuto il pulsante \"F/W\", accendere la radio.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere \"RPT\" per inviare "
+"l'immagine.\n"
+
+#: ../drivers/ft8100.py:99
+msgid ""
+"1. Turn Radio off.\n"
+"2. Connect data cable.\n"
+"3. While holding \"F/W\" button, turn radio on.\n"
+"4. Press \"REV\" to receive image.\n"
+"5. Click OK to start transfer.\n"
+msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenendo premuto il pulsante \"F/W\", accendere la radio.\n"
+"4. Premere \"REV\" per acquisire l'immagine.\n"
+"5. Fare clic su OK per avviare il trasferimento.\n"
+
+#: ../drivers/ft7100.py:1130
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
 "3. While holding \"TONE\" and \"REV\" buttons, turn radio on.\n"
 "4. <b>After clicking OK</b>, press \"TONE\" to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenendo premuto i pulsanti \"TONE\" e \"REV\", accendere la radio.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere \"TONE\" per inviare "
+"l'immagine.\n"
 
-#: ../drivers/ft7100.py:1131
+#: ../drivers/ft7100.py:1135
 msgid ""
 "1. Turn Radio off.\n"
 "2. Connect data cable.\n"
@@ -108,8 +210,15 @@ msgid ""
 "5. Make sure display says \"CLONE RX\" and green led is blinking\n"
 "6. Click OK to start transfer.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenendo premuto i pulsanti \"TONE\" e \"REV\", accendere la radio.\n"
+"4. Premere \"REV\" per acquisire l'immagine.\n"
+"5. Assicurarsi che il display indichi \"CLONE RX\" e che il led verde "
+"lampeggi.\n"
+"6. Fare clic su OK per avviare il trasferimento.\n"
 
-#: ../drivers/ft2800.py:189
+#: ../drivers/ft2800.py:206
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable\n"
@@ -119,8 +228,15 @@ msgid ""
 "5. <b>After clicking OK</b>, press the MHz key on the radio to send image.\n"
 "    (\"TX\" will appear on the LCD). \n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenere premuti i tasti MHz, Low e D/MR sulla radio mentre la si accende.\n"
+"4. La radio è in modalità clone quando TX/RX lampeggia.\n"
+"5. <b>Dopo aver fatto clic su OK</b>, premere il tasto MHz sulla radio per "
+"inviare l'immagine.\n"
+"    (sul display apparirà la scritta \"TX\"). \n"
 
-#: ../drivers/ft2800.py:199
+#: ../drivers/ft2800.py:216
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable\n"
@@ -130,8 +246,15 @@ msgid ""
 "5. Press the Low key on the radio (\"RX\" will appear on the LCD).\n"
 "6. Click OK."
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Tenere premuti i tasti MHz, Low e D/MR sulla radio mentre la si accende.\n"
+"4. La radio è in modalità clone quando TX/RX lampeggia.\n"
+"5. Premere il tasto Low sulla radio (sul display apparirà la scritta "
+"\"RX\").\n"
+"6. Fare clic su OK."
 
-#: ../drivers/ft450d.py:384
+#: ../drivers/ft450d.py:430
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -141,8 +264,15 @@ msgid ""
 "4. <b>After clicking OK</b> here, press the [C.S.] key to\n"
 "    send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa ACC.\n"
+"3. Tenere premuti i tasti [MODE &lt;] e [MODE &gt;] mentre\n"
+"     si accende la radio (sul display apparirà la scritta\n"
+"     \"CLONE MODE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [C.S.] per\n"
+"    inviare l'immagine.\n"
 
-#: ../drivers/ft817.py:283
+#: ../drivers/ft817.py:281
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -151,8 +281,15 @@ msgid ""
 "     display).\n"
 "4. <b>After clicking OK</b>, press the [A] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa ACC.\n"
+"3. Tenere premuti i tasti [MODE &lt;] e [MODE &gt;] mentre\n"
+"     si accende la radio (sul display apparirà la scritta\n"
+"     \"CLONE MODE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [A] per inviare "
+"l'immagine.\n"
 
-#: ../drivers/ft450d.py:393
+#: ../drivers/ft450d.py:439
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -162,6 +299,13 @@ msgid ""
 "4. Click OK here.\n"
 "    (\"Receiving\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa ACC.\n"
+"3. Tenere premuti i tasti [MODE &lt;] e [MODE &gt;] mentre\n"
+"     si accende la radio (sul display apparirà la scritta\n"
+"     \"CLONE MODE\").\n"
+"4. Fare clic su OK.\n"
+"    (Sul display apparirà la scritta \"Receiving\").\n"
 
 #: ../drivers/ft857.py:450
 msgid ""
@@ -172,8 +316,15 @@ msgid ""
 "     display).\n"
 "4. Press the [A](RCV) key (\"receiving\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa ACC.\n"
+"3. Tenere premuti i tasti [MODE &lt;] e [MODE &gt;] mentre\n"
+"     si accende la radio (sul display apparirà la scritta\n"
+"     \"CLONE MODE\").\n"
+"4. Premere il tasto [A](RCV) (sul display apparirà la scritta "
+"\"Receiving\").\n"
 
-#: ../drivers/ft817.py:291
+#: ../drivers/ft817.py:289
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to ACC jack.\n"
@@ -182,6 +333,12 @@ msgid ""
 "     display).\n"
 "4. Press the [C] key (\"RX\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa ACC.\n"
+"3. Tenere premuti i tasti [MODE &lt;] e [MODE &gt;] mentre\n"
+"     si accende la radio (sul display apparirà la scritta\n"
+"     \"CLONE MODE\").\n"
+"4. Premere il tasto [C] (sul display apparirà la scritta \"RX\").\n"
 
 #: ../drivers/ft857.py:441
 msgid ""
@@ -193,8 +350,15 @@ msgid ""
 "4. <b>After clicking OK</b>,\n"
 "     press the [C](SEND) key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa CAT/LINEAR.\n"
+"3. Tenere premuti i tasti [MODE &lt;] e [MODE &gt;] mentre\n"
+"     si accende la radio (sul display apparirà la scritta\n"
+"     \"CLONE MODE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>,\n"
+"     premere il tasto [C](SEND) per inviare l'immagine.\n"
 
-#: ../drivers/ft7800.py:839
+#: ../drivers/ft7800.py:857
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -206,8 +370,19 @@ msgid ""
 "6. <b>After clicking OK</b>, press the \"left\" [V/M] key to\n"
 "     send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa DATA.\n"
+"3. Tenere premuto il tasto \"sinistro\" [V/M] mentre si accende\n"
+"     la radio.\n"
+"4. Ruotare la manopola \"destra\" del selettore e selezionare \"CLONE "
+"START\".\n"
+"5. Premere il tasto [SET]. Il display scomparirà per un attimo,\n"
+"     quindi apparirà la notazione \"CLONE\".\n"
+"6. <b>Dopo aver fatto clic su OK</b>, premere il tasto \"sinistro\" [V/M] "
+"per\n"
+"     inviare l'immagine.\n"
 
-#: ../drivers/ft7800.py:849
+#: ../drivers/ft7800.py:867
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -219,6 +394,16 @@ msgid ""
 "6. Press the \"left\" [LOW] key (\"CLONE -RX-\" will appear on\n"
 "     the display).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa DATA.\n"
+"3. Tenere premuto il tasto \"sinistro\" [V/M] mentre si accende\n"
+"     la radio.\n"
+"4. Ruotare la manopola \"destra\" del selettore e selezionare \"CLONE "
+"START\".\n"
+"5. Premere il tasto [SET]. Il display scomparirà per un attimo,\n"
+"     quindi apparirà la notazione \"CLONE\".\n"
+"6. Premere il tasto \"sinistro\" [LOW] (sul display apparirà la scritta\n"
+"     \"CLONE -RX-\").\n"
 
 #: ../drivers/vx8.py:584
 msgid ""
@@ -228,6 +413,12 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. <b>After clicking OK</b>, press the [BAND] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa DATA.\n"
+"3. Tenere premuto il tasto [FW] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [BAND] per inviare "
+"l'immagine.\n"
 
 #: ../drivers/vx8.py:591
 msgid ""
@@ -237,8 +428,13 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. Press the [MODE] key (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa DATA.\n"
+"3. Tenere premuto il tasto [FW] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [MODE] (sul display apparirà la scritta \"-WAIT\").\n"
 
-#: ../drivers/ft7800.py:287
+#: ../drivers/ft7800.py:282
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -250,8 +446,18 @@ msgid ""
 "     will appear.\n"
 "6. Press the [LOW(ACC)] key (\"--RX--\" will appear on the display).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati alla presa DATA.\n"
+"3. Tenere premuto il tasto [MHz(PRI)] mentre si accende\n"
+"     la radio.\n"
+"4. Ruotare il selettore e selezionare \"F-7 CLONE\".\n"
+"5. Tenere premuto il tasto [BAND(SET)]. Il display\n"
+"     scomparirà per un attimo, quindi apparirà la notazione\n"
+"     \"CLONE\".\n"
+"6. Premere il tasto [LOW(ACC)] (sul display apparirà la scritta \"--RX--"
+"\").\n"
 
-#: ../drivers/ft7800.py:276
+#: ../drivers/ft7800.py:271
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA jack.\n"
@@ -263,8 +469,18 @@ msgid ""
 " will appear.\n"
 "6. <b>After clicking OK</b>, press the [V/M(MW)] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa DATA.\n"
+"3. Tenere premuto il tasto [MHz(PRI)] mentre si accende\n"
+" la radio.\n"
+"4. Ruotare il selettore e selezionare \"F-7 CLONE\".\n"
+"5. Premere e tenere premuto il tasto [BAND(SET)]. Il display\n"
+" scomparirà per un momento, quindi apparirà la notazione\n"
+" \"CLONE\".\n"
+"6. <b>Dopo aver fatto clic su OK</b>, premere il tasto [V/M(MW)] per inviare "
+"l'immagine.\n"
 
-#: ../drivers/ft2d.py:93
+#: ../drivers/ft2d.py:90
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -273,8 +489,14 @@ msgid ""
 "4. <b>After clicking OK here in chirp</b>,\n"
 "     press the [Send] screen button.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Tenere premuto il tasto [DISP] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK, qui in chirp</b>,\n"
+"     premere il tasto dello schermo [Invia].\n"
 
-#: ../drivers/ft1d.py:666
+#: ../drivers/ft1d.py:891
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -282,8 +504,14 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. <b>After clicking OK</b>, press the [BAND] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Tenere premuto il tasto [F] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [BAND] per inviare "
+"l'immagine.\n"
 
-#: ../drivers/ft1d.py:673
+#: ../drivers/ft1d.py:898
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -291,8 +519,13 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. Press the [Dx] key (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Tenere premuto il tasto [F] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [Dx] (sul display apparirà la scritta \"-WAIT-\").\n"
 
-#: ../drivers/ftm3200d.py:83
+#: ../drivers/ftm3200d.py:84
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -301,8 +534,14 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [REV(DW)] key\n"
 "     to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Tenere premuto il tasto [MHz(SETUP)] mentre si accende la radio\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [REV(DW)]\n"
+"     per inviare l'immagine.\n"
 
-#: ../drivers/ftm3200d.py:91
+#: ../drivers/ftm3200d.py:92
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -311,6 +550,12 @@ msgid ""
 "4. Press the [MHz(SETUP)] key\n"
 "     (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Tenere premuto il tasto [MHz(SETUP)] mentre si accende la radio\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [MHz(SETUP)]\n"
+"     (sul display apparirà la scritta \"-WAIT-\").\n"
 
 #: ../drivers/ftm7250d.py:84
 msgid ""
@@ -321,6 +566,12 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [GM(AMS)] key\n"
 "     to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC.\n"
+"3. Tenere premuto il tasto [MHz(SETUP)] mentre si accende la radio\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [GM(AMS)]\n"
+"     per inviare l'immagine.\n"
 
 #: ../drivers/ftm7250d.py:92
 msgid ""
@@ -331,6 +582,12 @@ msgid ""
 "4. Press the [MHz(SETUP)] key\n"
 "     (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC.\n"
+"3. Tenere premuto il tasto [MHz(SETUP)] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [MHz(SETUP)]\n"
+"     (sul display apparirà la scritta \"-WAIT-\").\n"
 
 #: ../drivers/vx5.py:317
 msgid ""
@@ -341,6 +598,13 @@ msgid ""
 "4. <b>After clicking OK</b>, press the [VFO(DW)SC] key to receive\n"
 "    the image from the radio.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/EAR.\n"
+"3. Tenere premuto il tasto [F/W] mentre si accende la radio.\n"
+"    (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [VFO(DW)SC] per "
+"acquisire\n"
+"    l'immagine dalla radio.\n"
 
 #: ../drivers/vx5.py:325
 msgid ""
@@ -352,6 +616,14 @@ msgid ""
 "    on the LCD).\n"
 "5. Click OK to send image to radio.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/EAR.\n"
+"3. Tenere premuto il tasto [F/W] mentre si accende la radio.\n"
+"    (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [MR(SKP)SC] (sul display apparirà la scritta\n"
+" \n"
+"    \"CLONE WAIT\").\n"
+"5. Fare clic su OK per inviare l'immagine alla radio.\n"
 
 #: ../drivers/ft50.py:195
 msgid ""
@@ -361,6 +633,12 @@ msgid ""
 "     radio on.\n"
 "4. <b>After clicking OK</b>, press the [PTT] switch to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [PTT] &amp; mentre si accende\n"
+"     la radio.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [PTT] per inviare "
+"l'immagine.\n"
 
 #: ../drivers/ft50.py:202
 msgid ""
@@ -371,8 +649,15 @@ msgid ""
 "4. Press the [MONI] switch (\"WAIT\" will appear on the LCD).\n"
 "5. Press OK.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [PTT] &amp; mentre si accende\n"
+"     la radio.\n"
+"4. Premere l'interruttore [MONI] (sul display apparirà la scritta "
+"\"WAIT\").\n"
+"5. Premere OK.\n"
 
-#: ../drivers/vx6.py:369 ../drivers/vx3.py:374
+#: ../drivers/vx6.py:370 ../drivers/vx3.py:373
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -380,8 +665,14 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. <b>After clicking OK</b>, press the [BAND] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [F/W] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [BAND] per inviare "
+"l'immagine.\n"
 
-#: ../drivers/vx6.py:376 ../drivers/vx3.py:381
+#: ../drivers/vx6.py:377 ../drivers/vx3.py:380
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -389,6 +680,11 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. Press the [V/M] key (\"-WAIT-\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [F/W] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [V/M] (sul display apparirà la scritta \"-WAIT-\").\n"
 
 #: ../drivers/vx7.py:192
 msgid ""
@@ -398,6 +694,12 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. <b>After clicking OK</b>, press the [BAND] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [MON-F] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [BAND] per inviare "
+"l'immagine.\n"
 
 #: ../drivers/vx7.py:200
 msgid ""
@@ -407,8 +709,13 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "4. Press the [V/M] key (\"CLONE WAIT\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [MON-F] mentre si accende la radio.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"4. Premere il tasto [V/M] (sul display apparirà la scritta \"CLONE WAIT\").\n"
 
-#: ../drivers/ft60.py:355
+#: ../drivers/ft60.py:354
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -419,8 +726,16 @@ msgid ""
 "6. <b>After clicking OK</b>, hold the [PTT] switch\n"
 "     for one second to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto l'interruttore [MONI] mentre si accende\n"
+"     la radio.\n"
+"4. Ruotare il selettore e selezionare \"F8 CLONE\".\n"
+"5. Premere momentaneamente il tasto [F/W].\n"
+"6. <b>Dopo aver fatto clic su OK</b>, tenere premuto il tasto [PTT]\n"
+"     per un secondo per inviare l'immagine.\n"
 
-#: ../drivers/ft60.py:364
+#: ../drivers/ft60.py:363
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to MIC/SP jack.\n"
@@ -430,6 +745,14 @@ msgid ""
 "5. Press the [F/W] key momentarily.\n"
 "6. Press the [MONI] switch (\"--RX--\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto l'interruttore [MONI] mentre si accende\n"
+"     la radio.\n"
+"4. Ruotare il selettore e selezionare \"F8 CLONE\".\n"
+"5. Premere momentaneamente il tasto [F/W].\n"
+"6. Premere il selettore [MONI] (sul display apparirà la scritta \"--RX--"
+"\").\n"
 
 #: ../drivers/vx170.py:101
 msgid ""
@@ -441,6 +764,15 @@ msgid ""
 "5. <b>After clicking OK</b>, briefly hold [PTT] key to send image.\n"
 "    (\"-TX-\" will appear on the LCD). \n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa MIC/SP.\n"
+"3. Tenere premuto il tasto [moni] mentre si accende la radio.\n"
+"4. Selezionare CLONE nel menu, quindi premere F. La radio si riavvia in "
+"modalità clone.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"5. <b>Dopo aver fatto clic su OK</b>, tenere brevemente premuto il tasto "
+"[PTT] per inviare l'immagine.\n"
+"    (sul display apparirà la scritta \"-TX-\"). \n"
 
 #: ../drivers/ft1802.py:96
 msgid ""
@@ -449,6 +781,11 @@ msgid ""
 "3. Press and hold in the [LOW(A/N)] key while turning the radio on.\n"
 "4. <b>After clicking OK</b>, press the [MHz(SET)] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa del microfono.\n"
+"3. Tenere premuto il tasto [LOW(A/N)] mentre si accende la radio.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [MHz(SET)] per "
+"inviare l'immagine.\n"
 
 #: ../drivers/ft1802.py:103
 msgid ""
@@ -457,6 +794,11 @@ msgid ""
 "3. Press and hold in the [LOW(A/N)] key while turning the radio on.\n"
 "4. Press the [D/MR(MW)] key (\"--WAIT--\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa del microfono.\n"
+"3. Tenere premuto il tasto [LOW(A/N)] mentre si accende la radio.\n"
+"4. Premere il tasto [D/MR(MW)] (sul display apparirà la scritta \"--WAIT--"
+"\").\n"
 
 #: ../drivers/ft1500m.py:96
 msgid ""
@@ -466,6 +808,12 @@ msgid ""
 "   while turning the radio on.\n"
 "4. <b>After clicking OK</b>, press the [MHz(SET)] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa del microfono.\n"
+"3. Premere e tenere premuti i tasti [MHz], [LOW] e [D/MR]\n"
+"   mentre si accende la radio.\n"
+"4. <b>Dopo fatto clic su OK</b>, premere il tasto [MHz(SET)] per inviare "
+"l'immagine.\n"
 
 #: ../drivers/ft1500m.py:103
 msgid ""
@@ -475,8 +823,14 @@ msgid ""
 "   while turning the radio on.\n"
 "4. Press the [D/MR(MW)] key (\"--WAIT--\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo alla presa del microfono.\n"
+"3. Premere e tenere premuti i tasti [MHz], [LOW] e [D/MR]\n"
+"   mentre si accende la radio.\n"
+"4. Premere il tasto [D/MR(MW)] (sul display apparirà la scritta \"--WAIT--"
+"\").\n"
 
-#: ../drivers/uv5r.py:777
+#: ../drivers/uv5r.py:834
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -485,8 +839,16 @@ msgid ""
 "5. Ensure that the radio is tuned to channel with no activity.\n"
 "6. Click OK to download image from device.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al connettore microfono/spkr.\n"
+"3. Assicurarsi che il connettore sia saldamente collegato.\n"
+"4. Accendere la radio (potrebbe essere necessario impostare il volume al "
+"100%).\n"
+"5. Assicurarsi che la radio sia sintonizzata su un canale privo di "
+"attività.\n"
+"6. Fare clic su OK per scaricare l'immagine dal dispositivo.\n"
 
-#: ../drivers/uv5r.py:785
+#: ../drivers/uv5r.py:842
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -495,8 +857,16 @@ msgid ""
 "5. Ensure that the radio is tuned to channel with no activity.\n"
 "6. Click OK to upload image to device.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al connettore microfono/spkr.\n"
+"3. Assicurarsi che il connettore sia saldamente collegato.\n"
+"4. Accendere la radio (potrebbe essere necessario impostare il volume al "
+"100%).\n"
+"5. Assicurarsi che la radio sia sintonizzata su un canale privo di "
+"attività.\n"
+"6. Fare clic su OK per caricare l'immagine sul dispositivo.\n"
 
-#: ../drivers/uvb5.py:288 ../drivers/wouxun.py:214 ../drivers/tg_uv2p.py:223
+#: ../drivers/tg_uv2p.py:232 ../drivers/wouxun.py:213 ../drivers/uvb5.py:287
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -505,8 +875,15 @@ msgid ""
 "5. Ensure that the radio is tuned to channel with no activity.\n"
 "6. Click OK to download image from device.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al connettore microfono/spkr.\n"
+"3. Assicurarsi che il connettore sia saldamente collegato.\n"
+"4. Accendere la radio.\n"
+"5. Assicurarsi che la radio sia sintonizzata su un canale privo di "
+"attività.\n"
+"6. Fare clic su OK per scaricare l'immagine dal dispositivo.\n"
 
-#: ../drivers/uvb5.py:296 ../drivers/wouxun.py:222 ../drivers/tg_uv2p.py:231
+#: ../drivers/tg_uv2p.py:240 ../drivers/wouxun.py:221 ../drivers/uvb5.py:295
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect cable to mic/spkr connector.\n"
@@ -515,6 +892,13 @@ msgid ""
 "5. Ensure that the radio is tuned to channel with no activity.\n"
 "6. Click OK to upload image to device.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo al connettore microfono/spkr.\n"
+"3. Assicurarsi che il connettore sia saldamente collegato.\n"
+"4. Accendere la radio.\n"
+"5. Assicurarsi che la radio sia sintonizzata su un canale privo di "
+"attività.\n"
+"6. Fare clic su OK per caricare l'immagine sul dispositivo.\n"
 
 #: ../drivers/yaesu_clone.py:239
 msgid ""
@@ -523,6 +907,11 @@ msgid ""
 "3. Prepare radio for clone.\n"
 "4. <b>After clicking OK</b>, press the key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Preparare la radio per il clone.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto per inviare "
+"l'immagine.\n"
 
 #: ../drivers/yaesu_clone.py:244
 msgid ""
@@ -531,8 +920,12 @@ msgid ""
 "3. Prepare radio for clone.\n"
 "4. Press the key to receive the image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il cavo dati.\n"
+"3. Preparare la radio per il clone.\n"
+"4. Premere il tasto per acquisire l'immagine.\n"
 
-#: ../drivers/ft90.py:196
+#: ../drivers/ft90.py:194
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect mic and hold [ACC] on mic while powering on.\n"
@@ -540,8 +933,15 @@ msgid ""
 "3. Replace mic with PC programming cable.\n"
 "4. <b>After clicking OK</b>, press the [SET] key to send image.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il microfono e tenere premuto [ACC] sul microfono durante "
+"l'accensione.\n"
+"    (sul display apparirà la scritta \"CLONE\").\n"
+"3. Sostituire il microfono con il cavo di programmazione del PC.\n"
+"4. <b>Dopo aver fatto clic su OK</b>, premere il tasto [SET] per inviare "
+"l'immagine.\n"
 
-#: ../drivers/ft90.py:203
+#: ../drivers/ft90.py:201
 msgid ""
 "1. Turn radio off.\n"
 "2. Connect mic and hold [ACC] on mic while powering on.\n"
@@ -550,8 +950,15 @@ msgid ""
 "4. Press the [DISP/SS] key\n"
 "    (\"R\" will appear on the lower left of LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Collegare il microfono e tenere premuto [ACC] sul microfono durante "
+"l'accensione.\n"
+"    (sul display apparirà la scritta \"CLONE\").\n"
+"3. Sostituire il microfono con il cavo di programmazione del PC.\n"
+"4. Premere il tasto [DISP/SS]\n"
+"    (sul display, in basso a sinistra, apparirà la scritta \"R\").\n"
 
-#: ../drivers/bj9900.py:106
+#: ../drivers/bj9900.py:102
 msgid ""
 "1. Turn radio off.\n"
 "2. Remove front head.\n"
@@ -559,6 +966,11 @@ msgid ""
 "     head was connected to, <b>not the mic connector</b>.\n"
 "4. Click OK.\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"2. Rimuovere la parte anteriore.\n"
+"3. Collegare il cavo dati alla radio, utilizzando lo stesso connettore\n"
+"     del pannello frontale, <b>non al connettore del microfono</b>.\n"
+"4. Fare clic su OK.\n"
 
 #: ../drivers/vx170.py:112
 msgid ""
@@ -568,8 +980,33 @@ msgid ""
 "     (\"CLONE\" will appear on the display).\n"
 "5. Press the [moni] key (\"-RX-\" will appear on the LCD).\n"
 msgstr ""
+"1. Spegnere la radio.\n"
+"3. Tenere premuto il tasto [moni] mentre si accende la radio.\n"
+"4. Selezionare CLONE nel menu, quindi premere F. La radio si riavvia in "
+"modalità clone.\n"
+"     (sul display apparirà la scritta \"CLONE\").\n"
+"5. Premere il tasto [moni] (sul display apparirà la scritta \"-RX-\").\n"
 
-#: ../drivers/ft70.py:552
+#: ../drivers/ft70.py:545
+msgid ""
+"1. Turn radio on.\n"
+"2. Connect cable to DATA terminal.\n"
+"3. Unclip battery.\n"
+"4. Press and hold in the [AMS] key and power key while clipping \n"
+" in back battery the (\"ADMS\" will appear on the display).\n"
+"5. Press the [MODE] key (\"-WAIT-\" will appear on the LCD).\n"
+"<b>Then click OK</b>"
+msgstr ""
+"1. Accendere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Staccare la batteria.\n"
+"4. Tenere premuto il tasto [AMS] e il tasto di accensione mentre si "
+"aggancia\n"
+" la batteria posteriore (sul display apparirà la scritta \"ADMS\").\n"
+"5. Premere il tasto [MODE] (sul display apparirà la scritta \"-WAIT-\").\n"
+"<b>Quindi, fare clic su OK</b>"
+
+#: ../drivers/ft70.py:537
 msgid ""
 "1. Turn radio on.\n"
 "2. Connect cable to DATA terminal.\n"
@@ -578,130 +1015,193 @@ msgid ""
 " in back battery the(\"ADMS\" will appear on the display).\n"
 "5. <b>After clicking OK</b>, press the [BAND] key.\n"
 msgstr ""
+"1. Accendere la radio.\n"
+"2. Collegare il cavo al terminale DATA.\n"
+"3. Staccare la batteria.\n"
+"4. Tenere premuto il tasto [AMS] e il tasto di accensione mentre si "
+"aggancia\n"
+" la batteria posteriore (sul display apparirà la scritta \"ADMS\").\n"
+"5. <b>Dopo aver fatto clic su OK</b>, premere il tasto [BAND].\n"
 
-#: ../drivers/ft70.py:560
+#: ../drivers/uvk5.py:658
 msgid ""
 "1. Turn radio on.\n"
-"2. Connect cable to DATA terminal.\n"
-"3. Unclip battery.\n"
-"4. Press and hold in the [AMS] key and power key while clipping \n"
-" in back battery the(\"ADMS\" will appear on the display).\n"
-"5. Press the [MODE] key (\"-WAIT-\" will appear on the LCD). OK</b>\n"
-" click <b>Then"
+"2. Connect cable to mic/spkr connector.\n"
+"3. Make sure connector is firmly connected.\n"
+"4. Click OK to download image from device.\n"
+"\n"
+"It will may not work if you turn on the radio with the cable already "
+"attached\n"
 msgstr ""
+"1. Accendere la radio.\n"
+"2. Collegare il cavo al connettore microfono/spkr.\n"
+"3. Assicurarsi che il connettore sia saldamente collegato.\n"
+"4. Fare clic su OK, per scaricare l'immagine dal dispositivo.\n"
+"\n"
+"Potrebbe non funzionare, se si accende la radio con il cavo già collegato\n"
 
-#: ../wxui/main.py:1617
+#: ../drivers/uvk5.py:665
+msgid ""
+"1. Turn radio on.\n"
+"2. Connect cable to mic/spkr connector.\n"
+"3. Make sure connector is firmly connected.\n"
+"4. Click OK to upload the image to device.\n"
+"\n"
+"It will may not work if you turn on the radio with the cable already attached"
+msgstr ""
+"1. Accendere la radio.\n"
+"2. Collegare il cavo al connettore microfono/spkr.\n"
+"3. Assicurarsi che il connettore sia saldamente collegato.\n"
+"4. Fare clic su OK, per caricare l'immagine sul dispositivo.\n"
+"\n"
+"Potrebbe non funzionare, se si accende la radio con il cavo già collegato"
+
+#: ../wxui/main.py:1889
 msgid ""
 "A new CHIRP version is available. Please visit the website as soon as "
 "possible to download it!"
 msgstr ""
+"È disponibile una nuova versione di CHIRP. Visita il sito per scaricarla!"
 
-#: ../wxui/main.py:817
+#: ../drivers/ga510.py:1068
+msgid "AM mode does not allow duplex or tone"
+msgstr "La modalità AM non consente il duplex o il tono"
+
+#: ../wxui/main.py:925
 msgid "About"
-msgstr ""
+msgstr "Informazioni"
 
-#: ../wxui/main.py:1479
+#: ../wxui/main.py:1738
 msgid "About CHIRP"
-msgstr ""
+msgstr "Informazioni su CHIRP"
 
-#: ../wxui/query_sources.py:353
+#: ../wxui/query_sources.py:367
 msgid "All"
 msgstr "Tutto"
 
-#: ../wxui/main.py:1100
-#, fuzzy
+#: ../wxui/main.py:1218
 msgid "All Files"
-msgstr "Files CSV"
+msgstr "Tutti i file"
 
-#: ../wxui/main.py:1111
+#: ../wxui/main.py:1229
 msgid "All supported formats|"
-msgstr ""
+msgstr "Tutti i formati supportati|"
 
-#: ../wxui/query_sources.py:281 ../wxui/query_sources.py:345
+#: ../wxui/query_sources.py:284 ../wxui/query_sources.py:359
 msgid "Amateur"
-msgstr ""
+msgstr "Radioamatore"
 
-#: ../wxui/common.py:463 ../wxui/common.py:501
+#: ../wxui/common.py:609 ../wxui/common.py:636 ../wxui/bugreport.py:284
+#: ../wxui/bugreport.py:393
 msgid "An error has occurred"
-msgstr "Si e' verificato un errore"
+msgstr "Si è verificato un errore"
 
-#: ../wxui/clone.py:109
+#: ../wxui/clone.py:126
 msgid "Applying settings"
-msgstr ""
+msgstr "Applicazione delle impostazioni"
 
-#: ../wxui/developer.py:471
+#: ../wxui/main.py:1484
+msgid "Automatic from system"
+msgstr "Automatico dal sistema"
+
+#: ../wxui/developer.py:556
 msgid "Available modules"
-msgstr ""
+msgstr "Moduli disponibili"
 
-#: ../wxui/main.py:1563
+#: ../wxui/main.py:1831
 msgid "Bandplan"
-msgstr ""
+msgstr "Bandplan"
 
-#: ../wxui/query_sources.py:375
+#: ../wxui/query_sources.py:389 ../wxui/query_sources.py:606
 msgid "Bands"
-msgstr ""
+msgstr "Bande"
 
-#: ../wxui/main.py:196
+#: ../wxui/main.py:209
 msgid "Banks"
-msgstr "Bank"
+msgstr "Banchi"
 
-#: ../wxui/developer.py:216
+#: ../wxui/developer.py:224
 msgid "Bin"
-msgstr ""
+msgstr "Bin"
 
-#: ../wxui/main.py:207
+#: ../wxui/main.py:220
 msgid "Browser"
-msgstr ""
+msgstr "Browser"
 
-#: ../wxui/developer.py:403
+#: ../wxui/bugreport.py:392
+msgid "Bug number not found"
+msgstr "Il numero del bug non esiste"
+
+#: ../wxui/bugreport.py:369
+msgid "Bug number:"
+msgstr "Numero del bug:"
+
+#: ../wxui/bugreport.py:324
+msgid "Bug subject:"
+msgstr "Oggetto del bug:"
+
+#: ../wxui/developer.py:415
 msgid "Building Radio Browser"
-msgstr ""
+msgstr "Creazione del browser della radio"
 
-#: ../wxui/query_sources.py:525
+#: ../wxui/main.py:1513
+msgid "CHIRP must be restarted for the new selection to take effect"
+msgstr "Per rendere effettiva la nuova selezione, è necessario riavviare CHIRP"
+
+#: ../wxui/query_sources.py:699
 msgid "Canada"
-msgstr ""
+msgstr "Canada"
 
-#: ../wxui/memedit.py:1164
+#: ../wxui/common.py:479
+msgid ""
+"Changing this setting requires refreshing the settings from the image, which "
+"will happen now."
+msgstr ""
+"Per modificare questa impostazione è necessario aggiornare le impostazioni "
+"dall'immagine, cosa che avverrà ora."
+
+#: ../wxui/memedit.py:1390
 #, python-format
 msgid ""
 "Channels with equivalent TX and RX %s are represented by tone mode of \"%s\""
 msgstr ""
+"I canali con TX e RX equivalenti %s sono rappresentati dalla modalità di "
+"tono \"%s\"."
 
-#: ../wxui/main.py:1099
+#: ../wxui/main.py:1217
 msgid "Chirp Image Files"
-msgstr ""
+msgstr "File immagine di Chirp"
 
-#: ../wxui/memedit.py:341
+#: ../wxui/memedit.py:422
 msgid "Choice Required"
-msgstr ""
+msgstr "Scelta richiesta"
 
-#: ../wxui/memedit.py:1143
-#, fuzzy, python-format
+#: ../wxui/memedit.py:1369
+#, python-format
 msgid "Choose %s DTCS Code"
-msgstr "DTCS Code"
+msgstr "Scegliere il codice DTCS %s"
 
-#: ../wxui/memedit.py:1140
+#: ../wxui/memedit.py:1366
 #, python-format
 msgid "Choose %s Tone"
-msgstr ""
+msgstr "Scegliere il Tono %s"
 
-#: ../wxui/memedit.py:1174
-#, fuzzy
+#: ../wxui/memedit.py:1400
 msgid "Choose Cross Mode"
-msgstr "Cross Mode"
+msgstr "Scegliere la modalità Cross"
 
-#: ../wxui/memedit.py:1204
+#: ../wxui/memedit.py:1430
 msgid "Choose duplex"
-msgstr ""
+msgstr "Scegliere il duplex"
 
-#: ../wxui/developer.py:470
-#, fuzzy, python-format
+#: ../wxui/developer.py:555
+#, python-format
 msgid "Choose the module to load from issue %i:"
-msgstr "Scegli da dove importare:"
+msgstr "Scegliere il modulo da caricare dal sito %i:"
 
-#: ../wxui/query_sources.py:451
+#: ../wxui/query_sources.py:469
 msgid "City"
-msgstr ""
+msgstr "Città"
 
 #: ../drivers/ts590.py:671
 msgid ""
@@ -712,266 +1212,411 @@ msgid ""
 "are supported in this release.\n"
 "Ignore the beeps from the radio on upload and download.\n"
 msgstr ""
+"Fare clic sul pulsante \"Special Channels\" dell'editor di memoria\n"
+"per vedere/impostare i canali EXT. I canali P-VFO 100-109\n"
+"sono considerati impostazioni.\n"
+"Solo un sottoinsieme delle oltre 200 impostazioni radio disponibili\n"
+"sono supportate in questa versione.\n"
+"Ignorare i segnali acustici della radio durante l'upload e il download.\n"
 
-#: ../drivers/ft817.py:360
+#: ../drivers/ft817.py:358
 msgid "Clone completed, checking for spurious bytes"
-msgstr ""
+msgstr "Clonazione completata, controllo dei byte spuri"
 
-#: ../wxui/common.py:96
+#: ../wxui/common.py:121
 msgid "Cloning"
-msgstr "Programmazione"
+msgstr "Clonazione"
 
-#: ../drivers/bj9900.py:137 ../drivers/ft450d.py:442 ../drivers/ft817.py:343
-#, fuzzy
+#: ../drivers/ft4.py:317 ../drivers/ft450d.py:507 ../drivers/bj9900.py:133
+#: ../drivers/ft817.py:341
 msgid "Cloning from radio"
-msgstr "Leggi da Radio"
+msgstr "Clonazione dalla radio"
 
-#: ../drivers/bj9900.py:164 ../drivers/ft450d.py:471 ../drivers/ft817.py:381
-#, fuzzy
+#: ../drivers/ft4.py:318 ../drivers/ft450d.py:536 ../drivers/bj9900.py:165
+#: ../drivers/ft817.py:379
 msgid "Cloning to radio"
-msgstr "Scrivi su Radio"
+msgstr "Clonazione verso la radio"
 
-#: ../wxui/main.py:895
+#: ../wxui/main.py:1017
 msgid "Close"
-msgstr ""
+msgstr "Chiudi"
 
-#: ../wxui/main.py:896
+#: ../wxui/main.py:1018
 msgid "Close file"
-msgstr ""
+msgstr "Chiudi il file"
 
-#: ../wxui/memedit.py:1526
-#, fuzzy, python-format
-msgid "Cluster %i memories"
-msgstr "Diff memorie Raw"
+#: ../wxui/memedit.py:1798
+#, python-format
+msgid "Cluster %i memory"
+msgid_plural "Cluster %i memories"
+msgstr[0] "Raggruppa %i memoria"
+msgstr[1] "Raggruppa %i memorie"
 
-#: ../wxui/memedit.py:531
+#: ../wxui/memedit.py:618
 msgid "Comment"
 msgstr "Commento"
 
-#: ../wxui/clone.py:215
+#: ../wxui/clone.py:291
 msgid "Communicate with radio"
-msgstr ""
+msgstr "Comunicazione con la radio"
 
-#: ../wxui/clone.py:117
-#, fuzzy
+#: ../wxui/clone.py:134
 msgid "Complete"
-msgstr "Completato"
+msgstr "Completo"
 
-#: ../drivers/tmd710.py:194 ../drivers/tmd710.py:197
+#: ../wxui/memedit.py:137
+msgid ""
+"Complex or non-standard tone squelch mode (starts the tone mode selection "
+"wizard)"
+msgstr ""
+"Modalità squelch toni complessi o non standard (avvia la procedura guidata "
+"di selezione della modalità toni)"
+
+#: ../drivers/tmd710.py:185 ../drivers/tmd710.py:188
 msgid ""
 "Connect your interface cable to the PC Port on the\n"
 "back of the 'TX/RX' unit. NOT the Com Port on the head.\n"
 msgstr ""
+"Collegare il cavo dell'interfaccia alla porta del PC\n"
+"situata sul retro dell'unita 'TX/RX'. NON alla porta COM del pannello "
+"frontale.\n"
 
-#: ../wxui/query_sources.py:279 ../wxui/query_sources.py:457
+#: ../wxui/query_sources.py:337
+msgid "Convert to FM"
+msgstr "Converti in FM"
+
+#: ../wxui/memedit.py:1715
+msgid "Copy"
+msgstr "Copia"
+
+#: ../wxui/query_sources.py:282 ../wxui/query_sources.py:475
+#: ../wxui/query_sources.py:565
 msgid "Country"
-msgstr ""
+msgstr "Nazione"
 
-#: ../wxui/memedit.py:523
-#, fuzzy
-msgid "Cross mode"
-msgstr "Cross Mode"
+#: ../wxui/memedit.py:604
+msgid "Cross Mode"
+msgstr "Modalità Cross"
 
-#: ../wxui/clone.py:319 ../wxui/clone.py:394
+#: ../wxui/clone.py:513
+msgid "Custom Port"
+msgstr "Porta personalizzata"
+
+#: ../wxui/clone.py:41
 msgid "Custom..."
-msgstr ""
+msgstr "Personalizza..."
 
-#: ../wxui/memedit.py:454
-#, fuzzy
+#: ../wxui/memedit.py:1711
+msgid "Cut"
+msgstr "Taglia"
+
+#: ../wxui/memedit.py:535
 msgid "DTCS"
-msgstr "DTCS Pol"
+msgstr "DTCS"
 
-#: ../wxui/memedit.py:500
-#, fuzzy
+#: ../wxui/memedit.py:581
 msgid ""
 "DTCS\n"
 "Polarity"
-msgstr "DTCS Pol"
+msgstr ""
+"DTCS\n"
+"Polarità"
 
-#: ../wxui/memedit.py:1996
+#: ../drivers/uvk5.py:881
+msgid "DTMF decode"
+msgstr "Decodifica DTMF"
+
+#: ../wxui/memedit.py:2358
 msgid "DV Memory"
-msgstr ""
+msgstr "Memoria DV"
 
-#: ../wxui/main.py:1493
+#: ../wxui/main.py:1752
 msgid "Danger Ahead"
-msgstr ""
+msgstr "Pericolo in vista"
 
-#: ../wxui/developer.py:215
-#, fuzzy
+#: ../wxui/developer.py:223
 msgid "Dec"
-msgstr "Rileva"
+msgstr "Dec"
 
-#: ../wxui/memedit.py:1460
+#: ../wxui/memedit.py:1724
 msgid "Delete"
 msgstr "Elimina"
 
-#: ../wxui/main.py:822
-#, fuzzy
-msgid "Developer Mode"
-msgstr "Sviluppatore"
+#: ../wxui/bugreport.py:469
+msgid "Detailed information"
+msgstr "Informazioni dettagliate"
 
-#: ../wxui/main.py:1499
+#: ../wxui/main.py:930
+msgid "Developer Mode"
+msgstr "Modalità sviluppatore"
+
+#: ../wxui/main.py:1758
 #, python-format
 msgid "Developer state is now %s. CHIRP must be restarted to take effect"
 msgstr ""
+"Lo stato dello sviluppatore è ora impostato su %s. Per avere effetto, CHIRP "
+"deve essere riavviato"
 
-#: ../wxui/memedit.py:1560
+#: ../wxui/memedit.py:1834 ../wxui/developer.py:88
 msgid "Diff Raw Memories"
-msgstr "Diff memorie Raw"
+msgstr "Diff memorie raw"
 
-#: ../wxui/memedit.py:1921
+#: ../wxui/memedit.py:2283
 msgid "Digital Code"
-msgstr "Digital Code"
+msgstr "Codice digitale"
 
-#: ../wxui/main.py:1510
+#: ../wxui/query_sources.py:341
+msgid "Digital Modes"
+msgstr "Modi digitali"
+
+#: ../wxui/main.py:1770
 msgid "Disable reporting"
-msgstr ""
+msgstr "Disabilita notifiche"
 
-#: ../wxui/memedit.py:430
+#: ../wxui/memedit.py:511
 msgid "Disabled"
-msgstr ""
+msgstr "Disabilitata"
 
-#: ../wxui/query_sources.py:310
+#: ../wxui/query_sources.py:100 ../wxui/query_sources.py:313
+#: ../wxui/query_sources.py:588
 msgid "Distance"
-msgstr ""
+msgstr "Distanza"
 
-#: ../wxui/clone.py:165
+#: ../wxui/clone.py:186
 #, python-format
 msgid "Do not prompt again for %s"
-msgstr ""
+msgstr "Non mostrarlo più per %s"
+
+#: ../wxui/clone.py:183
+msgid "Do you accept the risk?"
+msgstr "Accetti il rischio?"
 
 #: ../wxui/bankedit.py:190
 msgid "Double-click to change bank name"
-msgstr ""
+msgstr "Fare doppio clic per modificare il nome del banco"
 
-#: ../wxui/main.py:897
+#: ../wxui/main.py:1019
 msgid "Download"
-msgstr ""
+msgstr "Scarica"
 
-#: ../wxui/main.py:734 ../wxui/main.py:898
-#, fuzzy
+#: ../wxui/main.py:1020
 msgid "Download from radio"
-msgstr "Leggi da Radio"
+msgstr "Scarica dalla radio"
 
-#: ../wxui/clone.py:502
-#, fuzzy
+#: ../wxui/main.py:837
+msgid "Download from radio..."
+msgstr "Scarica dalla radio..."
+
+#: ../wxui/clone.py:647
 msgid "Download instructions"
-msgstr "Leggi da Radio"
+msgstr "Istruzioni per il download"
 
-#: ../wxui/memedit.py:393
+#: ../wxui/radioinfo.py:62
+msgid "Driver"
+msgstr "Driver"
+
+#: ../drivers/uvk5.py:1299
+msgid "Driver information"
+msgstr "Informazioni sul driver"
+
+#: ../wxui/main.py:553
+msgid "Driver messages"
+msgstr "Messaggi del driver"
+
+#: ../wxui/query_sources.py:339
+msgid "Dual-mode digital repeaters that support analog will be shown as FM"
+msgstr ""
+"I ripetitori digitali dual-mode che supportano l'analogico saranno mostrati "
+"come FM"
+
+#: ../wxui/memedit.py:474
 msgid "Duplex"
 msgstr "Duplex"
 
-#: ../wxui/memedit.py:1951
+#: ../wxui/memedit.py:2313
 #, python-format
 msgid "Edit details for %i memories"
-msgstr ""
+msgstr "Modifica dettagli per %i memorie"
 
-#: ../wxui/memedit.py:1949
+#: ../wxui/memedit.py:2311
 #, python-format
 msgid "Edit details for memory %i"
-msgstr ""
+msgstr "Modifica dettagli per la memoria %i"
 
-#: ../wxui/main.py:766
+#: ../wxui/main.py:874
 msgid "Enable Automatic Edits"
-msgstr ""
+msgstr "Abilita modifiche automatiche"
 
-#: ../wxui/memedit.py:430
+#: ../wxui/memedit.py:511
 msgid "Enabled"
-msgstr ""
+msgstr "Abilitato"
 
-#: ../wxui/memedit.py:249
-#, fuzzy
+#: ../wxui/memedit.py:333
 msgid "Enter Frequency"
-msgstr "Frequenza"
+msgstr "Inserire la frequenza"
 
-#: ../wxui/memedit.py:1191
+#: ../wxui/memedit.py:1417
 msgid "Enter Offset (MHz)"
-msgstr ""
+msgstr "Inserire l'offset (MHz)"
 
-#: ../wxui/memedit.py:1183
+#: ../wxui/memedit.py:1409
 msgid "Enter TX Frequency (MHz)"
-msgstr ""
+msgstr "Inserire la frequenza TX (MHz)"
 
 #: ../wxui/bankedit.py:203
 #, python-format
 msgid "Enter a new name for bank %s:"
-msgstr ""
+msgstr "Inserire un nuovo nome per il banco %s:"
 
-#: ../wxui/clone.py:395
+#: ../wxui/clone.py:512
 msgid "Enter custom port:"
-msgstr ""
+msgstr "Inserire la porta personalizzata:"
 
-#: ../wxui/common.py:282
-#, fuzzy, python-format
+#: ../wxui/bugreport.py:407
+msgid ""
+"Enter details about this update. Be descriptive about what you were doing, "
+"what you expected to happen, and what actually happened."
+msgstr ""
+"Inserisci i dettagli di questo aggiornamento. Sii descrittivo su ciò che "
+"stavi facendo, su ciò che ti aspettavi accadesse e su ciò che è "
+"effettivamente accaduto."
+
+#: ../wxui/bugreport.py:310
+msgid ""
+"Enter information about the bug including a short but meaningful subject and "
+"information about the radio model (if applicable) in question. In the next "
+"step you will have a chance to add more details about the problem."
+msgstr ""
+"Immetti le informazioni sul bug, compreso un oggetto breve ma significativo "
+"e le informazioni sul modello della radio (se applicabile) in questione. "
+"Nella fase successiva sarà possibile aggiungere ulteriori dettagli sul "
+"problema."
+
+#: ../wxui/bugreport.py:414
+msgid "Enter information to add to the bug here"
+msgstr "Inserisci qui le informazioni da aggiungere al bug"
+
+#: ../wxui/bugreport.py:360
+msgid "Enter the bug number that should be updated"
+msgstr "Digita il numero del bug da aggiornare"
+
+#: ../wxui/bugreport.py:188
+msgid ""
+"Enter your username and password for chirpmyradio.com. If you do not have an "
+"account click below to create one before proceeding."
+msgstr ""
+"Inserisci il nome utente e la password di chirpmyradio.com. Se non disponi "
+"di un account, fai clic qui sotto per crearne uno prima di procedere."
+
+#: ../wxui/common.py:329
+#, python-format
 msgid "Erased memory %s"
-msgstr "Cancellazione memoria {loc}"
+msgstr "Memoria %s eliminata"
 
-#: ../wxui/settingsedit.py:114
-#, fuzzy
+#: ../wxui/settingsedit.py:140
 msgid "Error applying settings"
-msgstr "Errore di scrittura della memoria"
+msgstr "Si è verificato un errore durante l'applicazione delle impostazioni"
 
-#: ../wxui/clone.py:439
+#: ../wxui/clone.py:572
 msgid "Error communicating with radio"
-msgstr ""
+msgstr "Errore durante la comunicazione con la radio"
 
-#: ../wxui/clone.py:470
+#: ../wxui/query_sources.py:334
+msgid "Exclude private and closed repeaters"
+msgstr "Escludi ripetitori privati e chiusi"
+
+#: ../wxui/clone.py:605
 msgid "Experimental driver"
-msgstr ""
+msgstr "Driver sperimentale"
 
-#: ../wxui/memedit.py:1881
+#: ../wxui/memedit.py:2236
 msgid "Export can only write CSV files"
-msgstr ""
+msgstr "L'esportazione può scrivere solo file CSV"
 
-#: ../wxui/main.py:630 ../wxui/main.py:1218
-#, fuzzy
+#: ../wxui/main.py:1373
 msgid "Export to CSV"
-msgstr "Esporta in File"
+msgstr "Esporta in CSV"
 
-#: ../wxui/memedit.py:1985
+#: ../wxui/main.py:712
+msgid "Export to CSV..."
+msgstr "Esporta in CSV..."
+
+#: ../wxui/memedit.py:2347
 msgid "Extra"
-msgstr ""
+msgstr "Extra"
 
-#: ../wxui/developer.py:411
+#: ../drivers/uvk5.py:1297
+msgid "FM Radio"
+msgstr "Radio FM"
+
+#: ../wxui/query_sources.py:620
+msgid ""
+"FREE repeater database, which provides most up-to-date\n"
+"information about repeaters in Europe. No account is\n"
+"required."
+msgstr ""
+"Database GRATUITO di ripetitori, che fornisce le\n"
+"informazioni più aggiornate sui ripetitori in Europa.\n"
+"Non è necessario un account."
+
+#: ../wxui/developer.py:423
 msgid "Failed to load radio browser"
-msgstr ""
+msgstr "Impossibile caricare il browser della radio"
 
-#: ../wxui/radioinfo.py:43
+#: ../sources/przemienniki.py:57
+msgid "Failed to parse result"
+msgstr "Impossibile elaborare il risultato"
+
+#: ../wxui/bugreport.py:597
+msgid "Failed to send bug report:"
+msgstr "Impossibile inviare la segnalazione del bug:"
+
+#: ../wxui/radioinfo.py:45
 msgid "Features"
-msgstr ""
+msgstr "Funzionalità"
 
-#: ../wxui/main.py:498
+#: ../wxui/bugreport.py:152
+msgid "File a new bug"
+msgstr "Segnala un nuovo bug"
+
+#: ../wxui/main.py:559
 #, python-format
 msgid "File does not exist: %s"
-msgstr ""
+msgstr "Il file non esiste: %s"
 
-#: ../wxui/main.py:1103 ../wxui/main.py:1175 ../wxui/main.py:1185
-#: ../wxui/main.py:1214 ../wxui/main.py:1445 ../wxui/main.py:1446
-#, fuzzy
+#: ../wxui/main.py:1221 ../wxui/main.py:1301 ../wxui/main.py:1311
+#: ../wxui/main.py:1369 ../wxui/main.py:1704 ../wxui/main.py:1705
 msgid "Files"
 msgstr "File"
 
-#: ../wxui/query_sources.py:316
+#: ../wxui/bugreport.py:467
+msgid "Files:"
+msgstr "File:"
+
+#: ../wxui/query_sources.py:319
 msgid "Filter"
-msgstr ""
+msgstr "Filtro"
 
-#: ../wxui/query_sources.py:314
+#: ../wxui/query_sources.py:317
 msgid "Filter results with location matching this string"
-msgstr ""
+msgstr "Filtra i risultati con i luoghi che corrispondono a questa stringa"
 
-#: ../wxui/main.py:1296
+#: ../wxui/main.py:1443
 msgid "Find"
-msgstr ""
+msgstr "Trova"
 
-#: ../wxui/main.py:688
+#: ../wxui/main.py:780
 msgid "Find Next"
-msgstr ""
+msgstr "Trova successivo"
 
-#: ../wxui/common.py:284
+#: ../wxui/main.py:766
+msgid "Find..."
+msgstr "Trova..."
+
+#: ../wxui/common.py:331
 #, python-format
 msgid "Finished radio job %s"
-msgstr ""
+msgstr "Lavoro radio completato %s"
 
 #: ../drivers/ts590.py:678
 msgid ""
@@ -981,6 +1626,11 @@ msgid ""
 "during download!\n"
 "3 - Disconnect your interface cable\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scaricare la memoria della radio:\n"
+"1 - Collegare il cavo dati dell'interfaccia\n"
+"2 - Radio > Scarica dalla radio: NON intervenire sulla radio\n"
+"durante il download!\n"
+"3 - Scollegare il cavo dati dell'interfaccia\n"
 
 #: ../drivers/ts480.py:517
 msgid ""
@@ -990,17 +1640,27 @@ msgid ""
 "on the radio head!\n"
 "3 - Disconnect your interface cable\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scaricare la memoria della radio:\n"
+"1 - Collegare il cavo dati dell'interfaccia\n"
+"2 - Radio > Scarica dalla radio: non regolare le impostazioni\n"
+"della radio!\n"
+"3 - Scollegare il cavo dati dell'interfaccia\n"
 
-#: ../drivers/th_uv8000.py:533
+#: ../drivers/th_uv8000.py:517
 msgid ""
 "Follow these instructions to download the radio memory:\n"
 "1 - Turn off your radio\n"
 "2 - Connect your interface cable\n"
 "3 - Turn on your radio, volume @ 50%\n"
-"4 - Radio > Download from radio\n"
+"4 - CHIRP Menu - Radio - Download from radio\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scaricare la memoria della radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio, volume al 50%.\n"
+"4 - Menu CHIRP - Radio - Scarica dalla radio\n"
 
-#: ../drivers/ic2730.py:313
+#: ../drivers/ic2730.py:306
 msgid ""
 "Follow these instructions to download your config:\n"
 "1 - Turn off your radio\n"
@@ -1010,11 +1670,20 @@ msgid ""
 "5 - Disconnect the interface cable! Otherwise there will be\n"
 "    no right-side audio!\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scaricare la configurazione:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia alla presa Speaker-2\n"
+"3 - Accendere la radio\n"
+"4 - Radio > Scarica dalla radio\n"
+"5 - Scollegare il cavo dati dell'interfaccia! In caso contrario, non ci "
+"sarà\n"
+"    l'audio del lato destro!\n"
 
-#: ../drivers/mursv1.py:343 ../drivers/baofeng_wp970i.py:326
-#: ../drivers/btech.py:689 ../drivers/gmrsuv1.py:392
-#: ../drivers/tdxone_tdq8a.py:456 ../drivers/uv6r.py:342
-#: ../drivers/uv5x3.py:418 ../drivers/gmrsv2.py:364 ../drivers/bf_t1.py:483
+#: ../drivers/bf_t1.py:482 ../drivers/mursv1.py:341
+#: ../drivers/baofeng_wp970i.py:327 ../drivers/baofeng_uv17Pro.py:440
+#: ../drivers/gmrsuv1.py:391 ../drivers/btech.py:689 ../drivers/uv6r.py:339
+#: ../drivers/tdxone_tdq8a.py:456 ../drivers/uv5x3.py:417
+#: ../drivers/gmrsv2.py:363
 msgid ""
 "Follow these instructions to download your info:\n"
 "1 - Turn off your radio\n"
@@ -1022,8 +1691,13 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Do the download of your radio data\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scaricare le informazioni:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Effettuare il download dei dati della radio\n"
 
-#: ../drivers/tk760g.py:684
+#: ../drivers/tk760g.py:683
 msgid ""
 "Follow these instructions to download your radio:\n"
 "1 - Turn off your radio\n"
@@ -1031,8 +1705,13 @@ msgid ""
 "3 - Turn on your radio (unlock it if password protected)\n"
 "4 - Click OK to start\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scaricare dalla radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio (sbloccarla se protetta da password)\n"
+"4 - Fare clic su OK per iniziare\n"
 
-#: ../drivers/tk760.py:344
+#: ../drivers/tk760.py:341
 msgid ""
 "Follow these instructions to read your radio:\n"
 "1 - Turn off your radio\n"
@@ -1040,6 +1719,11 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Click OK to start\n"
 msgstr ""
+"Seguire le seguenti istruzioni per leggere la radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Fare clic su OK per iniziare\n"
 
 #: ../drivers/ts590.py:684
 msgid ""
@@ -1049,6 +1733,11 @@ msgid ""
 "during upload!\n"
 "3 - Disconnect your interface cable\n"
 msgstr ""
+"Seguire le seguenti istruzioni per caricare la memoria della radio:\n"
+"1 - Collegare il cavo dati dell'interfaccia\n"
+"2 - Radio > Carica sulla radio: NON intervenire sulla radio\n"
+"durante il caricamento!\n"
+"3 - Scollegare il cavo dati dell'interfaccia\n"
 
 #: ../drivers/ts480.py:523
 msgid ""
@@ -1058,17 +1747,27 @@ msgid ""
 "on the radio head!\n"
 "3 - Disconnect your interface cable\n"
 msgstr ""
+"Seguire le seguenti istruzioni per caricare la memoria della radio:\n"
+"1 - Collegare il cavo dati dell'interfaccia\n"
+"2 - Radio > Carica sulla radio: Non modificare le impostazioni\n"
+"sulla radio!\n"
+"3 - Scollegare il cavo dati dell'interfaccia\n"
 
-#: ../drivers/th_uv8000.py:539
+#: ../drivers/th_uv8000.py:523
 msgid ""
 "Follow these instructions to upload the radio memory:\n"
 "1 - Turn off your radio\n"
 "2 - Connect your interface cable\n"
 "3 - Turn on your radio, volume @ 50%\n"
-"4 - Radio > Upload to radio\n"
+"4 - CHIRP Menu - Radio - Upload to radio\n"
 msgstr ""
+"Seguire le seguenti istruzioni per caricare la memoria della radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio, volume al 50%.\n"
+"4 - Menu CHIRP - Radio - Carica sulla radio\n"
 
-#: ../drivers/ic2730.py:321
+#: ../drivers/ic2730.py:314
 msgid ""
 "Follow these instructions to upload your config:\n"
 "1 - Turn off your radio\n"
@@ -1079,8 +1778,16 @@ msgid ""
 "    no right-side audio!\n"
 "6 - Cycle power on the radio to exit clone mode\n"
 msgstr ""
+"Seguire le istruzioni per caricare la configurazione:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia alla presa Speaker-2\n"
+"3 - Accendere la radio\n"
+"4 - Radio > Carica sulla radio\n"
+"5 - Scollegare il cavo dati dell'interfaccia, altrimenti non ci sarà\n"
+"    l'audio del lato destro!\n"
+"6 - Accendere la radio per uscire dalla modalità clone.\n"
 
-#: ../drivers/btech.py:695 ../drivers/bf_t1.py:489
+#: ../drivers/bf_t1.py:488 ../drivers/btech.py:695
 msgid ""
 "Follow these instructions to upload your info:\n"
 "1 - Turn off your radio\n"
@@ -1088,8 +1795,13 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Do the upload of your radio data\n"
 msgstr ""
+"Seguire le istruzioni per caricare le informazioni:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Effettuare il caricamento dei dati sulla radio\n"
 
-#: ../drivers/tk760g.py:690
+#: ../drivers/tk760g.py:689
 msgid ""
 "Follow these instructions to upload your radio:\n"
 "1 - Turn off your radio\n"
@@ -1097,8 +1809,13 @@ msgid ""
 "3 - Turn on your radio (unlock it if password protected)\n"
 "4 - Click OK to start\n"
 msgstr ""
+"Seguire le seguenti istruzioni per caricare i dati sulla radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio (sbloccarla se protetta da password)\n"
+"4 - Fare clic su OK per iniziare\n"
 
-#: ../drivers/tk760.py:350
+#: ../drivers/tk760.py:347
 msgid ""
 "Follow these instructions to write your radio:\n"
 "1 - Turn off your radio\n"
@@ -1106,8 +1823,13 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Click OK to start\n"
 msgstr ""
+"Seguire le seguenti istruzioni per scrivere sulla radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Fare clic su OK per iniziare\n"
 
-#: ../drivers/vgc.py:599 ../drivers/lt725uv.py:522
+#: ../drivers/lt725uv.py:496 ../drivers/vgc.py:598
 msgid ""
 "Follow this instructions to download your info:\n"
 "1 - Turn off your radio\n"
@@ -1115,8 +1837,13 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Do the download of your radio data\n"
 msgstr ""
+"Seguire le istruzioni per scaricare le informazioni:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Effettuare il download dei dati della radio\n"
 
-#: ../drivers/tk270.py:341
+#: ../drivers/tk270.py:340
 msgid ""
 "Follow this instructions to read your radio:\n"
 "1 - Turn off your radio\n"
@@ -1124,11 +1851,17 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Do the download of your radio data\n"
 msgstr ""
+"Seguire queste istruzioni per leggere i dati dalla radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Effettuare il download dei dati dalla radio\n"
 
-#: ../drivers/vgc.py:605 ../drivers/mursv1.py:349
-#: ../drivers/baofeng_wp970i.py:332 ../drivers/gmrsuv1.py:398
-#: ../drivers/lt725uv.py:528 ../drivers/tdxone_tdq8a.py:462
-#: ../drivers/uv6r.py:348 ../drivers/uv5x3.py:424 ../drivers/gmrsv2.py:370
+#: ../drivers/mursv1.py:347 ../drivers/baofeng_wp970i.py:333
+#: ../drivers/baofeng_uv17Pro.py:446 ../drivers/gmrsuv1.py:397
+#: ../drivers/lt725uv.py:502 ../drivers/vgc.py:604 ../drivers/uv6r.py:345
+#: ../drivers/tdxone_tdq8a.py:462 ../drivers/uv5x3.py:423
+#: ../drivers/gmrsv2.py:369
 msgid ""
 "Follow this instructions to upload your info:\n"
 "1 - Turn off your radio\n"
@@ -1136,8 +1869,13 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Do the upload of your radio data\n"
 msgstr ""
+"Seguire le istruzioni per caricare le informazioni:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Effettuare il caricamento dei dati sulla radio\n"
 
-#: ../drivers/tk270.py:347
+#: ../drivers/tk270.py:346
 msgid ""
 "Follow this instructions to write your radio:\n"
 "1 - Turn off your radio\n"
@@ -1145,321 +1883,449 @@ msgid ""
 "3 - Turn on your radio\n"
 "4 - Do the upload of your radio data\n"
 msgstr ""
+"Seguire queste istruzioni per scrivere i dati sulla radio:\n"
+"1 - Spegnere la radio\n"
+"2 - Collegare il cavo dati dell'interfaccia\n"
+"3 - Accendere la radio\n"
+"4 - Effettuare il caricamento dei dati sulla radio\n"
 
-#: ../wxui/memedit.py:124
+#: ../wxui/memedit.py:208
 #, python-format
 msgid "Found empty list value for %(name)s: %(value)r"
-msgstr ""
+msgstr "Trovato valore di lista vuoto per %(name)s: %(value)r"
 
-#: ../wxui/memedit.py:210
+#: ../wxui/memedit.py:294
 msgid "Frequency"
 msgstr "Frequenza"
 
-#: ../wxui/query_sources.py:282 ../wxui/query_sources.py:336
-#: ../wxui/query_sources.py:427
-msgid "GMRS"
-msgstr ""
-
-#: ../wxui/settingsedit.py:54
-msgid "Getting settings"
-msgstr ""
-
-#: ../wxui/memedit.py:742
-msgid "Goto"
-msgstr ""
-
-#: ../wxui/memedit.py:774
-#, fuzzy
-msgid "Goto Memory"
-msgstr "Mostra memorie Raw"
-
-#: ../wxui/memedit.py:773
-msgid "Goto Memory:"
-msgstr ""
-
-#: ../wxui/clone.py:319 ../wxui/clone.py:401
-msgid "Help Me..."
-msgstr ""
-
-#: ../wxui/developer.py:214
-msgid "Hex"
-msgstr ""
-
-#: ../wxui/memedit.py:751
-#, fuzzy
-msgid "Hide empty memories"
-msgstr "Sovrascrivere?"
-
-#: ../wxui/memedit.py:683
+#: ../import_logic.py:76
 #, python-format
-msgid "Hold %(key)s to drag multiple memories"
-msgstr ""
+msgid "Frequency %s is out of supported range"
+msgstr "La frequenza %s non rientra nel range supportato"
 
-#: ../wxui/query_sources.py:293 ../wxui/query_sources.py:299
+#: ../wxui/memedit.py:141
+msgid "Frequency granularity in kHz"
+msgstr "Granularità della frequenza in kHz"
+
+#: ../drivers/tdh8.py:2482 ../drivers/mml_jc8810.py:1368
+#: ../drivers/ga510.py:1072
+msgid "Frequency in this range must not be AM mode"
+msgstr "La frequenza in questo intervallo non deve essere in modalità AM"
+
+#: ../drivers/tdh8.py:2479 ../drivers/mml_jc8810.py:1365
+#: ../drivers/ga510.py:1065
+msgid "Frequency in this range requires AM mode"
+msgstr "La frequenza in questo intervallo richiede la modalità AM"
+
+#: ../drivers/tdh8.py:2486
+msgid "Frequency outside TX bands must be duplex=off"
+msgstr "La frequenza al di fuori delle bande TX deve essere duplex=off"
+
+#: ../wxui/query_sources.py:285 ../wxui/query_sources.py:350
+#: ../wxui/query_sources.py:443
+msgid "GMRS"
+msgstr "GMRS"
+
+#: ../wxui/settingsedit.py:60
+msgid "Getting settings"
+msgstr "Acquisire le impostazioni"
+
+#: ../wxui/memedit.py:970
+msgid "Goto Memory"
+msgstr "Vai alla memoria"
+
+#: ../wxui/memedit.py:969
+msgid "Goto Memory:"
+msgstr "Vai alla memoria:"
+
+#: ../wxui/memedit.py:938
+msgid "Goto..."
+msgstr "Vai..."
+
+#: ../wxui/main.py:985
+msgid "Help"
+msgstr "Aiuto"
+
+#: ../wxui/clone.py:40
+msgid "Help Me..."
+msgstr "Aiutami..."
+
+#: ../wxui/developer.py:222
+msgid "Hex"
+msgstr "Hex"
+
+#: ../wxui/memedit.py:947
+msgid "Hide empty memories"
+msgstr "Nascondi memorie vuote"
+
+#: ../wxui/memedit.py:144
+msgid "Human-readable comment (not stored in radio)"
+msgstr "Commento leggibile dall'essere umano (non memorizzato nella radio)"
+
+#: ../wxui/query_sources.py:296 ../wxui/query_sources.py:302
+#: ../wxui/query_sources.py:572 ../wxui/query_sources.py:578
 msgid "If set, sort results by distance from these coordinates"
 msgstr ""
+"Se impostata, ordina i risultati secondo la distanza da tali coordinate"
+
+#: ../wxui/main.py:1356
+msgid "Import"
+msgstr "Importa"
+
+#: ../wxui/main.py:706
+msgid "Import from file..."
+msgstr "Importa da file..."
+
+#: ../wxui/main.py:1360
+msgid "Import messages"
+msgstr "Importa messaggi"
+
+#: ../wxui/main.py:1354
+msgid "Import not recommended"
+msgstr "Importazione non consigliata"
 
 #: ../wxui/bankedit.py:62
 msgid "Index"
 msgstr "Indice"
 
-#: ../wxui/main.py:209
+#: ../wxui/main.py:222
 msgid "Info"
-msgstr ""
+msgstr "Informazioni"
 
-#: ../wxui/memedit.py:1166
+#: ../wxui/memedit.py:1392
 msgid "Information"
-msgstr ""
+msgstr "Informazioni"
 
-#: ../wxui/memedit.py:1453
-#, fuzzy
+#: ../wxui/memedit.py:1705
 msgid "Insert Row Above"
 msgstr "Inserisci riga sopra"
 
-#: ../wxui/__init__.py:38
+#: ../wxui/__init__.py:59
 msgid "Install desktop icon?"
-msgstr ""
+msgstr "Installare l'icona sul desktop?"
 
-#: ../wxui/main.py:806
+#: ../wxui/main.py:914
 msgid "Interact with driver"
-msgstr ""
+msgstr "Interagisci con il driver"
 
-#: ../wxui/query_sources.py:56
-#, fuzzy, python-format
+#: ../wxui/clone.py:669
+msgid "Internal driver error"
+msgstr "Errore interno del driver"
+
+#: ../wxui/query_sources.py:58
+#, python-format
 msgid "Invalid %(value)s (use decimal degrees)"
-msgstr "Valore non valido. Deve essere un numero intero"
+msgstr "Il valore %(value)s non è valido (usare i gradi decimali)"
 
-#: ../wxui/query_sources.py:109
+#: ../wxui/memedit.py:1553 ../wxui/query_sources.py:66
+msgid "Invalid Entry"
+msgstr "Valore non valido"
+
+#: ../wxui/query_sources.py:111
 msgid "Invalid ZIP code"
-msgstr ""
+msgstr "Codice postale non valido"
 
-#: ../wxui/memedit.py:1308 ../wxui/memedit.py:2076
+#: ../wxui/memedit.py:1552 ../wxui/memedit.py:2438
 #, python-format
 msgid "Invalid edit: %s"
-msgstr ""
+msgstr "Modifica non valida: %s"
 
-#: ../wxui/main.py:1442
+#: ../wxui/main.py:1701
 msgid "Invalid or unsupported module file"
-msgstr ""
+msgstr "File del modulo non valido o non supportato"
 
-#: ../wxui/memedit.py:179 ../wxui/memedit.py:185
-#, fuzzy, python-format
+#: ../wxui/memedit.py:263 ../wxui/memedit.py:269
+#, python-format
 msgid "Invalid value: %r"
-msgstr "Valore non valido per questo campo"
+msgstr "Valore non valido: %r"
 
-#: ../wxui/developer.py:481
+#: ../wxui/developer.py:577
 msgid "Issue number:"
-msgstr ""
+msgstr "Numero:"
 
-#: ../wxui/main.py:327
+#: ../wxui/main.py:340
 msgid "LIVE"
-msgstr ""
+msgstr "In diretta live"
 
-#: ../wxui/query_sources.py:301
+#: ../wxui/main.py:823 ../wxui/main.py:1498
+msgid "Language"
+msgstr "Lingua"
+
+#: ../wxui/query_sources.py:88 ../wxui/query_sources.py:304
+#: ../wxui/query_sources.py:580
 msgid "Latitude"
-msgstr ""
+msgstr "Latitudine"
 
-#: ../wxui/developer.py:195
+#: ../wxui/developer.py:203
 #, python-format
 msgid "Length must be %i"
-msgstr ""
+msgstr "La lunghezza deve essere %i"
 
-#: ../wxui/query_sources.py:322
+#: ../wxui/query_sources.py:325 ../wxui/query_sources.py:540
 msgid "Limit Bands"
-msgstr ""
+msgstr "Limita bande"
 
-#: ../wxui/query_sources.py:327
+#: ../wxui/query_sources.py:330
 msgid "Limit Modes"
-msgstr ""
+msgstr "Limita modi"
 
-#: ../wxui/query_sources.py:308
+#: ../wxui/query_sources.py:555
+msgid "Limit Status"
+msgstr "Limita stato"
+
+#: ../wxui/query_sources.py:311 ../wxui/query_sources.py:586
 msgid "Limit results to this distance (km) from coordinates"
-msgstr ""
+msgstr "Limita i risultati a questa distanza (km) dalle coordinate"
 
-#: ../wxui/main.py:636
-#, fuzzy
-msgid "Load Module"
-msgstr "Modalita' tono"
+#: ../wxui/query_sources.py:335
+msgid "Limit use"
+msgstr "Limita uso"
 
-#: ../wxui/main.py:854 ../wxui/developer.py:482
-#, fuzzy
+#: ../wxui/main.py:1582
+msgid "Live Radio"
+msgstr "Radio in diretta live"
+
+#: ../wxui/main.py:718
+msgid "Load Module..."
+msgstr "Carica modulo..."
+
+#: ../wxui/developer.py:578
 msgid "Load module from issue"
-msgstr "Modalita' tono"
+msgstr "Carica modulo dal sito"
 
-#: ../wxui/main.py:1449
+#: ../wxui/main.py:967
+msgid "Load module from issue..."
+msgstr "Carica modulo dal sito..."
+
+#: ../wxui/main.py:1806
+msgid ""
+"Loading a module will not affect open tabs. It is recommended (unless "
+"instructed otherwise) to close all tabs before loading a module."
+msgstr ""
+"Il caricamento di un modulo non influisce sulle schede aperte. Si consiglia "
+"(salvo istruzioni diverse) di chiudere tutte le schede, prima di caricare un "
+"modulo."
+
+#: ../wxui/main.py:1708
 msgid ""
 "Loading modules can be extremely dangerous, leading to damage to your "
 "computer, radio, or both. NEVER load a module from a source you do not "
 "trust, and especially not from anywhere other than the main CHIRP website "
-"(chirp.danplanet.com). Loading a module from another source is akin to "
-"giving them direct access to your computer and everything on it! Proceed "
-"despite this risk?"
+"(chirpmyradio.com). Loading a module from another source is akin to giving "
+"them direct access to your computer and everything on it! Proceed despite "
+"this risk?"
 msgstr ""
+"Il caricamento dei moduli può essere estremamente pericoloso e causare danni "
+"al computer, alla radio o a entrambi. Non caricate MAI un modulo da una "
+"fonte di cui non vi fidate, soprattutto se non dal sito web principale di "
+"CHIRP (chirpmyradio.com). Caricare un modulo da un'altra fonte equivale a "
+"dargli accesso diretto al vostro computer e a tutto ciò che contiene! Vuoi "
+"procedere nonostante questo rischio?"
 
-#: ../wxui/clone.py:111
+#: ../wxui/clone.py:128
 msgid "Loading settings"
-msgstr ""
+msgstr "Caricamento delle impostazioni"
 
-#: ../wxui/query_sources.py:302
+#: ../wxui/bugreport.py:282
+msgid "Login failed: Check your username and password"
+msgstr "Accesso non riuscito: controlla il nome utente e la password"
+
+#: ../drivers/uvk5.py:1800
+msgid "Logo string 1 (12 characters)"
+msgstr "Stringa del logo 1 (12 caratteri)"
+
+#: ../drivers/uvk5.py:1807
+msgid "Logo string 2 (12 characters)"
+msgstr "Stringa del logo 2 (12 caratteri)"
+
+#: ../wxui/query_sources.py:94 ../wxui/query_sources.py:305
+#: ../wxui/query_sources.py:581
 msgid "Longitude"
-msgstr ""
+msgstr "Longitudine"
 
-#: ../wxui/main.py:188
+#: ../wxui/main.py:201
 msgid "Memories"
 msgstr "Memorie"
 
-#: ../wxui/memedit.py:1347
+#: ../drivers/uvk5.py:2098
+msgid "Memories are read-only due to unsupported firmware version"
+msgstr ""
+"Le memorie sono di sola lettura a causa della versione del firmware non "
+"supportata"
+
+#: ../wxui/memedit.py:1592
 #, python-format
 msgid "Memory %i is not deletable"
-msgstr ""
+msgstr "La memoria %i non è eliminabile"
+
+#: ../wxui/memedit.py:129
+msgid "Memory label (stored in radio)"
+msgstr "Etichetta di memoria (memorizzata nella radio)"
 
 #: ../wxui/bankedit.py:233
 msgid "Memory must be in a bank to be edited"
-msgstr ""
+msgstr "La memoria deve trovarsi in un banco per essere modificata"
 
 #: ../drivers/vx5.py:133
 #, python-brace-format
 msgid "Memory {num} not in bank {bank}"
-msgstr ""
+msgstr "La memoria {num} non è presente nel banco {bank}"
 
-#: ../wxui/memedit.py:509
-#, fuzzy
+#: ../wxui/memedit.py:590 ../wxui/query_sources.py:532
 msgid "Mode"
-msgstr "Modulazione"
+msgstr "Modalità"
 
-#: ../wxui/clone.py:243
+#: ../wxui/clone.py:322
 msgid "Model"
 msgstr "Modello"
 
-#: ../wxui/query_sources.py:396
-#, fuzzy
+#: ../wxui/query_sources.py:410
 msgid "Modes"
-msgstr "Modulazione"
+msgstr "Modalità"
 
-#: ../wxui/main.py:1446
+#: ../wxui/main.py:1705
 msgid "Module"
-msgstr ""
+msgstr "Modulo"
 
-#: ../wxui/main.py:1418
+#: ../wxui/main.py:1677
 msgid "Module Loaded"
-msgstr ""
+msgstr "Modulo caricato"
 
-#: ../wxui/main.py:1549
+#: ../wxui/main.py:1817
 msgid "Module loaded successfully"
-msgstr ""
+msgstr "Modulo caricato con successo"
 
-#: ../wxui/clone.py:366
+#: ../wxui/clone.py:470
 #, python-format
 msgid "More than one port found: %s"
-msgstr ""
+msgstr "Trovata più di una porta: %s"
 
-#: ../wxui/memedit.py:738
-#, fuzzy
+#: ../wxui/memedit.py:934
 msgid "Move Down"
-msgstr "Muovi Giu"
+msgstr "Sposta giù"
 
-#: ../wxui/memedit.py:728
-#, fuzzy
+#: ../wxui/memedit.py:924
 msgid "Move Up"
-msgstr "Muovi Su"
+msgstr "Sposta su"
 
-#: ../wxui/main.py:577
+#: ../wxui/memedit.py:2148
+msgid "Move operations are disabled while the view is sorted"
+msgstr ""
+"Le operazioni di spostamento sono disabilitate quando la visualizzazione è "
+"ordinata"
+
+#: ../wxui/main.py:664
 msgid "New Window"
-msgstr ""
+msgstr "Nuova finestra"
 
-#: ../wxui/main.py:1619
+#: ../wxui/main.py:1891
 msgid "New version available"
-msgstr ""
+msgstr "Nuova versione disponibile"
 
-#: ../wxui/memedit.py:1596
-#, fuzzy
+#: ../wxui/memedit.py:1871
 msgid "No empty rows below!"
-msgstr "Inserisci riga sotto"
+msgstr "Nessuna riga vuota in basso!"
 
-#: ../wxui/developer.py:497
+#: ../wxui/developer.py:593
 msgid "No modules found"
-msgstr ""
+msgstr "Nessun modulo trovato"
 
-#: ../wxui/developer.py:496
+#: ../wxui/developer.py:592
 #, python-format
 msgid "No modules found in issue %i"
-msgstr ""
+msgstr "Nessun modulo trovato nel sito %i"
 
-#: ../sources/repeaterbook.py:284
+#: ../wxui/memedit.py:2030
+msgid "No more space available; some memories were not applied"
+msgstr "Non c'è più spazio disponibile; alcune memorie non sono state inserite"
+
+#: ../sources/przemienniki.py:53
+msgid "No results"
+msgstr "Nessun risultato"
+
+#: ../sources/repeaterbook.py:300
 msgid "No results!"
-msgstr ""
+msgstr "Nessun risultato!"
 
-#: ../wxui/memedit.py:773
+#: ../wxui/memedit.py:969 ../wxui/query_sources.py:41
 msgid "Number"
-msgstr ""
+msgstr "Numero"
 
-#: ../wxui/memedit.py:208
+#: ../wxui/memedit.py:292
 msgid "Offset"
 msgstr "Offset"
 
-#: ../wxui/query_sources.py:320
+#: ../wxui/query_sources.py:323 ../wxui/query_sources.py:538
 msgid "Only certain bands"
-msgstr ""
+msgstr "Solo alcune bande"
 
-#: ../wxui/query_sources.py:325
+#: ../wxui/query_sources.py:328
 msgid "Only certain modes"
-msgstr ""
+msgstr "Solo alcune modalità"
 
-#: ../wxui/main.py:309
+#: ../wxui/main.py:322
 msgid "Only memory tabs may be exported"
-msgstr ""
+msgstr "È possibile esportare solo le schede di memoria"
 
-#: ../wxui/main.py:891
+#: ../wxui/query_sources.py:549
+msgid "Only working repeaters"
+msgstr "Solo ripetitori funzionanti"
+
+#: ../wxui/main.py:1013 ../wxui/main.py:1356
 msgid "Open"
-msgstr ""
+msgstr "Apri"
 
-#: ../wxui/main.py:617
-#, fuzzy
+#: ../wxui/main.py:693
 msgid "Open Recent"
-msgstr "Recenti"
+msgstr "Apri recente"
 
-#: ../wxui/main.py:588
-#, fuzzy
+#: ../wxui/main.py:675
 msgid "Open Stock Config"
-msgstr "Apri configurazione stock"
+msgstr "Apri configurazione standard"
 
-#: ../wxui/main.py:892 ../wxui/main.py:1114
+#: ../wxui/main.py:1014 ../wxui/main.py:1232
 msgid "Open a file"
-msgstr ""
+msgstr "Apri un file"
 
-#: ../wxui/main.py:1464
+#: ../wxui/main.py:1723
 msgid "Open a module"
-msgstr ""
+msgstr "Apri un modulo"
 
-#: ../wxui/main.py:843
+#: ../wxui/main.py:951
 msgid "Open debug log"
-msgstr ""
+msgstr "Apri registro di debug"
 
-#: ../wxui/main.py:468
+#: ../wxui/main.py:524
 msgid "Open in new window"
-msgstr ""
+msgstr "Apri in nuova finestra"
 
-#: ../wxui/query_sources.py:298
+#: ../wxui/query_sources.py:332
+msgid "Open repeaters only"
+msgstr "Apri solo ripetitori"
+
+#: ../wxui/main.py:622
+msgid "Open stock config directory"
+msgstr "Apri directory delle configurazioni standard"
+
+#: ../wxui/query_sources.py:301 ../wxui/query_sources.py:577
 msgid "Optional: -122.0000"
-msgstr ""
+msgstr "Opzionale: -122.0000"
 
-#: ../wxui/query_sources.py:307
-#, fuzzy
+#: ../wxui/query_sources.py:310 ../wxui/query_sources.py:585
 msgid "Optional: 100"
-msgstr "Opzioni"
+msgstr "Opzionale: 100"
 
-#: ../wxui/query_sources.py:292
+#: ../wxui/query_sources.py:295 ../wxui/query_sources.py:571
 msgid "Optional: 45.0000"
-msgstr ""
+msgstr "Opzionale: 45.0000"
 
-#: ../wxui/query_sources.py:313
-msgid "Optional: County, Hospital, etc"
-msgstr ""
+#: ../wxui/query_sources.py:316
+msgid "Optional: County, Hospital, etc."
+msgstr "Opzionale: contea, ospedale, ecc."
 
-#: ../wxui/memedit.py:1704
-#, fuzzy
+#: ../wxui/memedit.py:2010
 msgid "Overwrite memories?"
-msgstr "Sovrascrivere?"
+msgstr "Sovrascrivere le memorie?"
 
 #: ../drivers/ts480.py:513
 msgid ""
@@ -1467,32 +2333,47 @@ msgid ""
 "Only a subset of the over 130 available radio settings\n"
 "are supported in this release.\n"
 msgstr ""
+"I canali P-VFO 100-109 sono considerati impostazioni.\n"
+"In questa versione, è supportato solo un sottoinsieme\n"
+"delle oltre 130 impostazioni radio disponibili.\n"
 
-#: ../wxui/memedit.py:1698
+#: ../sources/przemienniki.py:48
+msgid "Parsing"
+msgstr "Elaborazione"
+
+#: ../wxui/bugreport.py:215
+msgid "Password"
+msgstr "Password"
+
+#: ../wxui/memedit.py:1719
+msgid "Paste"
+msgstr "Incolla"
+
+#: ../wxui/memedit.py:2004
 #, python-format
-msgid "Pasted memories will overwrite %i existing memories"
-msgstr ""
+msgid "Pasted memories will overwrite %s existing memories"
+msgstr "Le memorie incollate sovrascriveranno %s memorie esistenti"
 
-#: ../wxui/memedit.py:1701
+#: ../wxui/memedit.py:2007
 #, python-format
 msgid "Pasted memories will overwrite memories %s"
-msgstr ""
+msgstr "Le memorie incollate sovrascriveranno le memorie %s"
 
-#: ../wxui/memedit.py:1695
+#: ../wxui/memedit.py:2001
 #, python-format
-msgid "Pasted memories will overwrite memory %i"
-msgstr ""
+msgid "Pasted memories will overwrite memory %s"
+msgstr "Le memorie incollate sovrascriveranno la memoria %s"
 
-#: ../wxui/memedit.py:1692
+#: ../wxui/memedit.py:1998
 #, python-format
-msgid "Pasted memory will overwrite memory %i"
-msgstr ""
+msgid "Pasted memory will overwrite memory %s"
+msgstr "La memoria incollata sovrascriverà la memoria %s"
 
-#: ../wxui/main.py:1623
+#: ../wxui/main.py:1895
 msgid "Please be sure to quit CHIRP before installing the new version!"
-msgstr ""
+msgstr "Chiudere CHIRP prima di installare la nuova versione!"
 
-#: ../drivers/ftlx011.py:303
+#: ../drivers/ftlx011.py:302
 msgid ""
 "Please follow this steps carefully:\n"
 "1 - Turn on your radio\n"
@@ -1506,8 +2387,19 @@ msgid ""
 "After cloning remove the cable and power cycle your radio to\n"
 "get into normal mode.\n"
 msgstr ""
+"Seguire attentamente questa procedura:\n"
+"1 - Accendere la radio\n"
+"2 - Connettere il cavo  dell'interfaccia alla radio\n"
+"3 - Fare clic sul pulsante di questa finestra per avviare il download\n"
+"    (potrebbe apparire un'altra finestra di dialogo, fare clic su OK)\n"
+"4 - La radio emetterà un segnale acustico ed il led lampeggerà\n"
+"5 - Verrà visualizzato un timeout di 10 secondi per premere \"MON\" prima\n"
+"    dell'inizio del caricamento dei dati.\n"
+"6 - Se tutto va bene, la radio emetterà un segnale acustico al termine.\n"
+"Dopo la clonazione, rimuovere il cavo e spegnere la radio, per\n"
+"passare alla modalità normale.\n"
 
-#: ../drivers/ftlx011.py:294
+#: ../drivers/ftlx011.py:293
 msgid ""
 "Please follow this steps carefully:\n"
 "1 - Turn on your radio\n"
@@ -1517,233 +2409,363 @@ msgid ""
 "4 - Then press the \"A\" button in your radio to start cloning.\n"
 "    (At the end radio will beep)\n"
 msgstr ""
+"Seguire attentamente questa procedura:\n"
+"1 - Accendere la radio\n"
+"2 - Connettere il cavo  dell'interfaccia alla radio\n"
+"3 - Fare clic sul pulsante di questa finestra per avviare il download\n"
+"    (La radio emetterà un segnale acustico ed il led lampeggerà)\n"
+"4 - Quindi premere il pulsante \"A\" della radio, per avviare la "
+"clonazione.\n"
+"    (Al termine, la radio emetterà un segnale acustico)\n"
 
-#: ../wxui/main.py:1487
+#: ../wxui/main.py:1746
 msgid ""
 "Please note that developer mode is intended for use by developers of the "
 "CHIRP project, or under the direction of a developer. It enables behaviors "
 "and functions that can damage your computer and your radio if not used with "
 "EXTREME care. You have been warned! Proceed anyway?"
 msgstr ""
+"Si noti che la modalità sviluppatore è destinata all'uso da parte degli "
+"sviluppatori del progetto CHIRP o sotto la direzione di uno sviluppatore. "
+"Essa abilita comportamenti e funzioni che possono danneggiare il computer e "
+"la radio se non vengono utilizzati con ESTREMA attenzione. Siete stati "
+"avvertiti! Vuoi procedere comunque?"
 
-#: ../wxui/common.py:165
+#: ../wxui/common.py:194
 msgid "Please wait"
-msgstr ""
+msgstr "Attendere"
 
-#: ../wxui/clone.py:344
+#: ../wxui/clone.py:447
 msgid "Plug in your cable and then click OK"
-msgstr ""
+msgstr "Collegare il cavo e fare clic su OK"
 
-#: ../wxui/clone.py:236
+#: ../wxui/clone.py:314
 msgid "Port"
 msgstr "Porta"
 
-#: ../wxui/memedit.py:273
+#: ../wxui/memedit.py:354
 msgid "Power"
 msgstr "Potenza"
 
-#: ../wxui/developer.py:133
-#, fuzzy
+#: ../wxui/developer.py:140
 msgid "Press enter to set this in memory"
-msgstr "Errore di scrittura della memoria"
+msgstr "Premere invio per impostarlo in memoria"
 
-#: ../wxui/main.py:647
+#: ../wxui/main.py:729
 msgid "Print Preview"
-msgstr ""
+msgstr "Anteprima di stampa"
 
 #: ../wxui/printing.py:29
 msgid "Printing"
-msgstr ""
+msgstr "Stampa in corso"
 
-#: ../wxui/memedit.py:1446
+#: ../wxui/clone.py:481
+msgid "Prolific USB device"
+msgstr "Dispositivo USB Prolific"
+
+#: ../wxui/memedit.py:1698
 msgid "Properties"
-msgstr ""
+msgstr "Proprietà"
 
-#: ../wxui/main.py:1577
+#: ../wxui/main.py:1846
 #, python-format
 msgid "Query %s"
-msgstr ""
+msgstr "Interroga %s"
 
-#: ../wxui/main.py:748
+#: ../wxui/main.py:851
 msgid "Query Source"
-msgstr ""
+msgstr "Interroga fonte"
 
-#: ../wxui/memedit.py:456
+#: ../wxui/memedit.py:537
 msgid "RX DTCS"
-msgstr ""
+msgstr "DTCS RX"
 
-#: ../wxui/main.py:862
+#: ../wxui/main.py:984
 msgid "Radio"
 msgstr "Radio"
 
-#: ../drivers/ft60.py:86 ../drivers/ft450d.py:495 ../drivers/ft817.py:408
+#: ../drivers/ft60.py:85 ../drivers/ft450d.py:568 ../drivers/ft817.py:406
 #, python-format
 msgid "Radio did not ack block %i"
-msgstr ""
+msgstr "La radio non ha accettato il blocco %i"
 
-#: ../wxui/clone.py:494 ../wxui/clone.py:559
-#, fuzzy
+#: ../wxui/clone.py:639 ../wxui/clone.py:731
 msgid "Radio information"
-msgstr "Recupero informazioni bank"
+msgstr "Informazioni sulla radio"
 
-#: ../drivers/ft817.py:365
+#: ../wxui/bugreport.py:333
+msgid "Radio model:"
+msgstr "Modello della radio:"
+
+#: ../drivers/ft817.py:363
 msgid ""
 "Radio sent data after the last awaited block, this happens when the selected "
 "model is a non-US but the radio is a US one. Please choose the correct model "
 "and try again."
 msgstr ""
+"La radio ha inviato i dati dopo l'ultimo blocco atteso; ciò accade quando il "
+"modello selezionato non è statunitense ma la radio è statunitense. Scegliere "
+"il modello corretto e riprovare."
 
-#: ../wxui/query_sources.py:665
+#: ../wxui/query_sources.py:846
 msgid "RadioReference Canada requires a login before you can query"
 msgstr ""
+"RadioReference Canada richiede un login prima di poter effettuare le "
+"interrogazioni"
 
-#: ../wxui/common.py:274
+#: ../wxui/query_sources.py:657
+msgid ""
+"RadioReference.com is the world's largest\n"
+"radio communications data provider\n"
+"<small>Premium account required</small>"
+msgstr ""
+"RadioReference.com è il più grande fornitore\n"
+"del mondo di dati sulle comunicazioni radio\n"
+"<small>È necessario un account premium</small>"
+
+#: ../wxui/memedit.py:135
+msgid "Receive DTCS code"
+msgstr "Ricezione del codice DTCS"
+
+#: ../wxui/memedit.py:128
+msgid "Receive frequency"
+msgstr "Frequenza di ricezione"
+
+#: ../wxui/common.py:481
+msgid "Refresh required"
+msgstr "Aggiornamento necessario"
+
+#: ../wxui/common.py:321
 #, python-format
 msgid "Refreshed memory %s"
-msgstr ""
+msgstr "Memoria aggiornata %s"
 
-#: ../wxui/main.py:783
+#: ../wxui/main.py:891
 msgid "Reload Driver"
-msgstr ""
+msgstr "Ricarica il driver"
 
-#: ../wxui/main.py:792
+#: ../wxui/main.py:900
 msgid "Reload Driver and File"
-msgstr ""
+msgstr "Ricarica il driver e il file"
 
 #: ../wxui/bankedit.py:205
-#, fuzzy
 msgid "Rename bank"
-msgstr "Scrittura nome del bank"
+msgstr "Rinomina banco"
 
-#: ../wxui/main.py:831
-#, fuzzy
+#: ../wxui/query_sources.py:259
+msgid ""
+"RepeaterBook is Amateur Radio's most comprehensive,\n"
+"worldwide, FREE repeater directory."
+msgstr ""
+"RepeaterBook è l'elenco mondiale e GRATUITO\n"
+"più completo di ripetitori per radioamatori."
+
+#: ../wxui/main.py:973
+msgid "Report or update a bug..."
+msgstr "Segnala o aggiorna un bug..."
+
+#: ../wxui/bugreport.py:464
+#, python-format
+msgid "Reporting a new bug: %r"
+msgstr "Segnalazione di un nuovo bug: %r"
+
+#: ../wxui/main.py:939
 msgid "Reporting enabled"
-msgstr "Reporting disattivato"
+msgstr "Reporting abilitato"
 
-#: ../wxui/main.py:1506
+#: ../wxui/main.py:1766
 msgid ""
 "Reporting helps the CHIRP project know which radio models and OS platforms "
 "to spend our limited efforts on. We would really appreciate if you left it "
 "enabled. Really disable reporting?"
 msgstr ""
+"Le segnalazioni aiutano il progetto CHIRP a sapere su quali modelli di radio "
+"e piattaforme OS spendere i nostri limitati sforzi. Vi saremmo grati se le "
+"lasciaste abilitate. Vuoi davvero disabilitare le segnalazioni?"
 
-#: ../wxui/main.py:1501
+#: ../wxui/main.py:1515 ../wxui/main.py:1760
 msgid "Restart Required"
-msgstr ""
+msgstr "Riavvio richiesto"
 
-#: ../wxui/main.py:598
+#: ../wxui/main.py:687
 #, python-format
-msgid "Restore %i tabs"
-msgstr ""
+msgid "Restore %i tab"
+msgid_plural "Restore %i tabs"
+msgstr[0] "Ripristina %i scheda"
+msgstr[1] "Ripristina %i schede"
 
-#: ../wxui/common.py:278
+#: ../wxui/main.py:816
+msgid "Restore tabs on start"
+msgstr "Ripristina schede all'avvio"
+
+#: ../wxui/common.py:325
 msgid "Retrieved settings"
-msgstr ""
+msgstr "Impostazioni recuperate"
 
-#: ../wxui/main.py:893
+#: ../wxui/main.py:1015
 msgid "Save"
-msgstr ""
+msgstr "Salva"
 
-#: ../wxui/main.py:1235
+#: ../wxui/main.py:1390
 msgid "Save before closing?"
-msgstr ""
+msgstr "Salvare prima di chiudere?"
 
-#: ../wxui/main.py:894 ../wxui/main.py:1189
+#: ../wxui/main.py:1016 ../wxui/main.py:1315
 msgid "Save file"
-msgstr ""
+msgstr "Salva file"
 
-#: ../wxui/common.py:280
+#: ../wxui/common.py:327
 msgid "Saved settings"
-msgstr ""
+msgstr "Impostazioni salvate"
 
-#: ../wxui/main.py:773
-#, fuzzy
-msgid "Select Bandplan"
-msgstr "Seleziona colonne"
+#: ../wxui/memedit.py:142
+msgid "Scan control (skip, include, priority, etc)"
+msgstr "Controllo della scansione (salto, inclusione, priorità, ecc.)"
 
-#: ../wxui/query_sources.py:375
-#, fuzzy
+#: ../drivers/uvk5.py:895
+msgid "Scanlists"
+msgstr "Elenco delle scansioni"
+
+#: ../drivers/ksun_m6.py:418 ../drivers/uvk5.py:891
+msgid "Scrambler"
+msgstr "Scrambler"
+
+#: ../wxui/developer.py:568
+msgid "Security Risk"
+msgstr "Rischio di sicurezza"
+
+#: ../wxui/main.py:881
+msgid "Select Bandplan..."
+msgstr "Seleziona bandplan..."
+
+#: ../wxui/query_sources.py:389 ../wxui/query_sources.py:606
 msgid "Select Bands"
-msgstr "Seleziona colonne"
+msgstr "Seleziona le bande"
 
-#: ../wxui/query_sources.py:396
-#, fuzzy
+#: ../wxui/main.py:1498
+msgid "Select Language"
+msgstr "Seleziona la lingua"
+
+#: ../wxui/query_sources.py:410
 msgid "Select Modes"
-msgstr "Seleziona colonne"
+msgstr "Seleziona le modalità"
 
-#: ../wxui/main.py:1562
+#: ../wxui/main.py:1830
 msgid "Select a bandplan"
-msgstr ""
-
-#: ../wxui/query_sources.py:284
-msgid "Service"
-msgstr ""
-
-#: ../wxui/main.py:201
-msgid "Settings"
-msgstr ""
-
-#: ../wxui/memedit.py:1552
-msgid "Show Raw Memory"
-msgstr "Mostra memorie Raw"
-
-#: ../wxui/main.py:849
-msgid "Show debug log location"
-msgstr ""
-
-#: ../wxui/memedit.py:747
-msgid "Show extra fields"
-msgstr ""
-
-#: ../wxui/memedit.py:1749
-#, fuzzy
-msgid "Some memories are incompatible with this radio"
-msgstr ""
-"La memoria incollata {number} non e' compatibile con questa radio perche':"
-
-#: ../wxui/memedit.py:1669
-msgid "Some memories are not deletable"
-msgstr ""
-
-#: ../wxui/memedit.py:1514
-#, fuzzy, python-format
-msgid "Sort %i memories"
-msgstr "Diff memorie Raw"
-
-#: ../wxui/memedit.py:1517
-#, python-format
-msgid "Sort %i memories ascending"
-msgstr ""
-
-#: ../wxui/memedit.py:1536
-#, python-format
-msgid "Sort %i memories descending"
-msgstr ""
-
-#: ../wxui/memedit.py:1423
-msgid "Sort by column:"
-msgstr ""
-
-#: ../wxui/memedit.py:1422
-#, fuzzy
-msgid "Sort memories"
-msgstr "Sovrascrivere?"
-
-#: ../wxui/query_sources.py:454
-msgid "State"
-msgstr ""
+msgstr "Seleziona un blandplan"
 
 #: ../wxui/query_sources.py:287
+msgid "Service"
+msgstr "Servizio"
+
+#: ../wxui/main.py:214
+msgid "Settings"
+msgstr "Impostazioni"
+
+#: ../drivers/uvk5.py:2102
+msgid "Settings are read-only due to unsupported firmware version"
+msgstr ""
+"Le impostazioni sono di sola lettura a causa della versione del firmware non "
+"supportata"
+
+#: ../wxui/memedit.py:140
+msgid "Shift amount (or transmit frequency) controlled by duplex"
+msgstr "Shift (o frequenza di trasmissione) controllato dal duplex"
+
+#: ../wxui/memedit.py:1827 ../wxui/developer.py:91
+msgid "Show Raw Memory"
+msgstr "Mostra memoria raw"
+
+#: ../wxui/main.py:957
+msgid "Show debug log location"
+msgstr "Mostra posizione del log di debug"
+
+#: ../wxui/memedit.py:943
+msgid "Show extra fields"
+msgstr "Mostra campi aggiuntivi"
+
+#: ../wxui/main.py:962
+msgid "Show image backup location"
+msgstr "Mostra posizione del backup dell'immagine"
+
+#: ../wxui/memedit.py:2096
+msgid "Some memories are incompatible with this radio"
+msgstr "Alcune memorie sono incompatibili con questa radio"
+
+#: ../wxui/memedit.py:1943
+msgid "Some memories are not deletable"
+msgstr "Alcune memorie non sono eliminabili"
+
+#: ../wxui/memedit.py:1783
+#, python-format
+msgid "Sort %i memory"
+msgid_plural "Sort %i memories"
+msgstr[0] "Ordina %i memoria"
+msgstr[1] "Ordina %i memorie"
+
+#: ../wxui/memedit.py:1787
+#, python-format
+msgid "Sort %i memory ascending"
+msgid_plural "Sort %i memories ascending"
+msgstr[0] "%i memoria in ordine crescente"
+msgstr[1] "%i memorie in ordine crescente"
+
+#: ../wxui/memedit.py:1809
+#, python-format
+msgid "Sort %i memory descending"
+msgid_plural "Sort %i memories descending"
+msgstr[0] "%i memoria in ordine decrescente"
+msgstr[1] "%i memorie in ordine decrescente"
+
+#: ../wxui/memedit.py:1675
+msgid "Sort by column:"
+msgstr "Ordina per colonna:"
+
+#: ../wxui/memedit.py:1674
+msgid "Sort memories"
+msgstr "Ordina memorie"
+
+#: ../sources/przemienniki.py:60
+msgid "Sorting"
+msgstr "Ordinamento"
+
+#: ../wxui/query_sources.py:472
+msgid "State"
+msgstr "Stato"
+
+#: ../wxui/query_sources.py:290
 msgid "State/Province"
-msgstr ""
+msgstr "Stato/Provincia"
 
-#: ../wxui/main.py:1550
+#: ../wxui/main.py:1818
 msgid "Success"
-msgstr ""
+msgstr "Successo"
 
-#: ../drivers/ft450d.py:372
+#: ../wxui/bugreport.py:600
+msgid "Successfully sent bug report:"
+msgstr "Segnalazione del bug inviata con successo:"
+
+#: ../wxui/memedit.py:136
+msgid "TX-RX DTCS polarity (normal or reversed)"
+msgstr "Polarità DTCS TX-RX (normale o invertita)"
+
+#: ../drivers/ft4.py:720
 msgid ""
-"The FT-450 radio driver loads the 'Special Channels' tab\n"
+"Tested and mostly works, but may give you issues\n"
+"when using lesser common radio variants.\n"
+"Proceed at your own risk, and let us know about issues!"
+msgstr ""
+"Testato e per lo più funzionante, ma potrebbe dare problemi\n"
+"quando si utilizzano varianti di radio meno comuni.\n"
+"Procedete a vostro rischio e pericolo e fateci sapere se ci sono problemi!"
+
+#: ../wxui/query_sources.py:480
+msgid "The DMR-MARC Worldwide Network"
+msgstr "La rete mondiale DMR-MARC"
+
+#: ../drivers/ft450d.py:416
+msgid ""
+"The FT-450D radio driver loads the 'Special Channels' tab\n"
 "with the PMS scanning range memories (group 11), 60meter\n"
 "channels (group 12), the QMB (STO/RCL) memory, the HF and\n"
 "50m HOME memories and all the A and B VFO memories.\n"
@@ -1753,56 +2775,206 @@ msgid ""
 "This driver also populates the 'Other' tab in the channel\n"
 "memory Properties window. This tab contains values for\n"
 "those channel memory settings that don't fall under the\n"
-"standard Chirp display columns.\n"
+"standard Chirp display columns. With FT450 support, the gui now\n"
+"uses the mode 'DIG' to represent data modes and a new column\n"
+"'DATA MODE' to select USER-U, USER-L and RTTY \n"
 msgstr ""
+"Il driver della radio FT-450D carica la scheda 'Special Channels'\n"
+"con le memorie della gamma di scansione PMS (gruppo 11), i canali\n"
+"60 metri (gruppo 12), la memoria QMB (STO/RCL), le memorie HF e\n"
+"50 metri e tutte le memorie del VFO A e B.\n"
+"Sono presenti memorie del VFO dell'ultima frequenza selezionata in\n"
+"ogni banda. Viene memorizzata anche l'ultima configurazione della sintonia.\n"
+"Questi canali speciali consentono una modifica limitata del campo.\n"
+"Questo driver popola anche la scheda \"Altro\" nella finestra\n"
+"delle proprietà della memoria del canale. Questa scheda contiene i valori\n"
+"di memoria del canale che non rientrano nelle colonne di visualizzazione\n"
+"standard del display Chirp. Con il supporto dell'FT450, la gui adesso\n"
+"utilizza la modalità 'DIG' per rappresentare i modi di trasmissione dati e "
+"una\n"
+"nuova colonna 'DATA MODE' per selezionare USER-U, USER-L e RTTY. \n"
 
-#: ../drivers/boblov_x3plus.py:118
+#: ../drivers/boblov_x3plus.py:119
 msgid ""
 "The X3Plus driver is currently experimental.\n"
 "There are no known issues but you should proceed with caution.\n"
 "Please save an unedited copy of your first successful\n"
 "download to a CHIRP Radio Images (*.img) file.\n"
 msgstr ""
+"Il driver X3Plus è attualmente sperimentale.\n"
+"Non ci sono problemi noti, ma è necessario procedere con cautela.\n"
+"Si consiglia di salvare una copia non modificata del primo download\n"
+"riuscito in un file CHIRP Radio Images (*.img).\n"
 
-#: ../wxui/memedit.py:1476
-#, fuzzy
+#: ../wxui/developer.py:565
+msgid ""
+"The author of this module is not a recognized CHIRP developer. It is "
+"recommended that you not load this module as it could pose a security risk. "
+"Proceed anyway?"
+msgstr ""
+"L'autore di questo modulo non è uno sviluppatore CHIRP riconosciuto. Si "
+"raccomanda di non caricare questo modulo, perché potrebbe rappresentare un "
+"rischio per la sicurezza. Vuoi procedere comunque?"
+
+#: ../wxui/bugreport.py:169
+msgid ""
+"The debug log file is not available when CHIRP is run interactively from the "
+"command-line. Thus, this tool will not upload what you expect. It is "
+"recommended that you quit now and run CHIRP non-interactively (or with stdin "
+"redirected to /dev/null)"
+msgstr ""
+"Il file di log di debug non è disponibile quando CHIRP viene eseguito "
+"interattivamente dalla riga di comando. Pertanto, questo strumento non "
+"caricherà ciò che ci si aspetterebbe. Si consiglia di uscire ora ed eseguire "
+"CHIRP in modalità non interattiva (oppure con lo stdin reindirizzato a /dev/"
+"null)"
+
+#: ../wxui/bugreport.py:449
+msgid "The following information will be submitted:"
+msgstr "Saranno trasmesse le seguenti informazioni:"
+
+#: ../wxui/main.py:1347
+#, python-format
+msgid ""
+"The recommended procedure for importing memories is to open the source file "
+"and copy/paste memories from it into your target image. If you continue with "
+"this import function, CHIRP will replace all memories in your currently-open "
+"file with those in %(file)s. Would you like to open this file to copy/paste "
+"memories across, or proceed with the import?"
+msgstr ""
+"La procedura consigliata per importare le memorie consiste nell'aprire il "
+"file di origine e nel copiare/incollare le memorie da esso nell'immagine di "
+"destinazione. Se si prosegue con questa funzione di importazione, CHIRP "
+"sostituirà tutte le memorie del file attualmente aperto con quelle presenti "
+"in %(file)s. Si desidera aprire il file per copiare/incollare le memorie o "
+"procedere con l'importazione?"
+
+#: ../wxui/memedit.py:1744
 msgid "This Memory"
-msgstr "Mostra memorie Raw"
+msgstr "Questa memoria"
 
-#: ../drivers/id5100.py:333
+#: ../drivers/id5100.py:332
 msgid ""
 "This driver has been tested with v3 of the ID-5100. If your radio is not "
 "fully updated please help by opening a bug report with a debug log so we can "
 "add support for the other revisions."
 msgstr ""
+"Questo driver è stato testato con la versione 3 dell'ID-5100. Se la vostra "
+"radio non è completamente aggiornata, vi preghiamo di aiutarci, aprendo una "
+"segnalazione di bug con un log di debug, in modo da poter aggiungere il "
+"supporto per le altre revisioni."
 
-#: ../drivers/th_uv88.py:495
-msgid "This is an early stage beta driver\n"
+#: ../drivers/radtel_rt490.py:1345 ../drivers/radtel_rt490.py:1347
+#: ../drivers/radtel_rt490.py:1349
+msgid "This driver is in development and should be considered as experimental."
 msgstr ""
+"Questo driver è in fase di sviluppo e deve essere considerato sperimentale."
 
-#: ../drivers/th_uv88.py:497
+#: ../drivers/uvk5.py:723
+msgid ""
+"This image is missing firmware information. It may have been generated with "
+"an old or modified version of CHIRP. It is advised that you download a fresh "
+"image from your radio and use that going forward for the best safety and "
+"compatibility."
+msgstr ""
+"Questa immagine manca di informazioni sul firmware. Potrebbe essere stata "
+"generata con una versione vecchia o modificata di CHIRP. Si consiglia di "
+"scaricare una nuova immagine dalla radio e di utilizzarla in futuro, per "
+"garantire la massima sicurezza e compatibilità."
+
+#: ../wxui/main.py:1579
+msgid ""
+"This is a live-mode radio, which means changes are sent to the radio in real-"
+"time as you make them. Upload is not necessary!"
+msgstr ""
+"Questa è una radio in modalità live, il che significa che le modifiche "
+"vengono inviate alla radio in tempo reale mentre vengono apportate. Il "
+"caricamento non è necessario!"
+
+#: ../wxui/main.py:1585
+msgid ""
+"This is a radio-independent file and cannot be uploaded directly to a radio. "
+"Open a radio image (or download one from a radio) and then copy/paste items "
+"from this tab into that one in order to upload"
+msgstr ""
+"Questo è un file indipendente dalla radio e non può essere caricato "
+"direttamente su una radio. Aprire un'immagine della radio (o scaricarne una "
+"da una radio) e quindi copiare/incollare gli elementi di questa scheda in "
+"quella per caricarla"
+
+#: ../drivers/th_uv88.py:560
+msgid "This is an early stage beta driver\n"
+msgstr "Questo è un driver beta in fase iniziale\n"
+
+#: ../drivers/th_uv88.py:562
 msgid "This is an early stage beta driver - upload at your own risk\n"
 msgstr ""
+"Si tratta di un driver beta in fase iniziale: caricatelo a vostro rischio e "
+"pericolo.\n"
 
-#: ../drivers/bj9900.py:112
+#: ../drivers/uvk5.py:650
+msgid ""
+"This is an experimental driver for the Quansheng UV-K5. It may harm your "
+"radio, or worse. Use at your own risk.\n"
+"\n"
+"Before attempting to do any changes please download the memory image from "
+"the radio with chirp and keep it. This can be later used to recover the "
+"original settings. \n"
+"\n"
+"some details are not yet implemented"
+msgstr ""
+"Questo è un driver sperimentale per il Quansheng UV-K5. Potrebbe danneggiare "
+"la radio, o peggio. Usatelo a vostro rischio e pericolo.\n"
+"\n"
+"Prima di effettuare qualsiasi modifica, scaricare l'immagine della memoria "
+"dalla radio con chirp e conservarla. Questa può essere utilizzata in seguito "
+"per recuperare le impostazioni originali.\n"
+"\n"
+"Alcuni dettagli non sono ancora stati implementati"
+
+#: ../drivers/bj9900.py:108
 msgid ""
 "This is experimental support for BJ-9900 which is still under development.\n"
 "Please ensure you have a good backup with OEM software.\n"
 "Also please send in bug and enhancement requests!\n"
 "You have been warned. Proceed at your own risk!"
 msgstr ""
+"Si tratta di un supporto sperimentale per il BJ-9900, ancora in fase di "
+"sviluppo.\n"
+"Assicurarsi di avere un buon backup con il software OEM.\n"
+"Si prega, inoltre, di inviare richieste di bug e miglioramenti!\n"
+"Siete stati avvertiti. Procedete a vostro rischio e pericolo!"
 
-#: ../wxui/memedit.py:1480
-#, fuzzy
+#: ../wxui/bugreport.py:374
+msgid ""
+"This is the ticket number for an already-created issue on the chirpmyradio."
+"com website"
+msgstr ""
+"Questo è il numero di ticket di un problema già creato sul sito web "
+"chirpmyradio.com"
+
+#: ../wxui/memedit.py:1748
 msgid "This memory and shift all up"
-msgstr "Elimina (e sposta sopra)"
+msgstr "Questa memoria e sposta tutto in alto"
 
-#: ../wxui/memedit.py:1478
-#, fuzzy
+#: ../wxui/memedit.py:1746
 msgid "This memory and shift block up"
-msgstr "Elimina (e sposta sopra)"
+msgstr "Questa memoria e sposta il blocco in alto"
 
-#: ../drivers/fd268.py:302 ../drivers/fd268.py:308
+#: ../drivers/uvk5_egzumer.py:1468
+msgid ""
+"This option may break your radio! Each radio has a unique set of calibration "
+"data and uploading the data from the image will cause physical harm to the "
+"radio if it is from a different piece of hardware. Do not use this unless "
+"you know what you are doing and accept the risk of destroying your radio!"
+msgstr ""
+"Questa opzione potrebbe causare danni alla radio! Ogni radio ha un set unico "
+"di dati di calibrazione e, il caricamento dei dati dall'immagine, causerà "
+"danni fisici alla radio se proviene da un hardware diverso. Non utilizzare "
+"questa opzione, a meno che non si sappia cosa si stia facendo e si accetti "
+"il rischio di distruggere la radio!"
+
+#: ../drivers/fd268.py:303 ../drivers/fd268.py:309
 msgid ""
 "This radio has a tricky way of enter into program mode,\n"
 "even the original software has a few tries to get inside.\n"
@@ -1810,665 +2982,309 @@ msgid ""
 "can take a few seconds, if don't work, try again a few times.\n"
 "If you can get into it, please check the radio and cable.\n"
 msgstr ""
+"Questa radio ha un modo complesso per entrare in modalità programma,\n"
+"anche il software originale richiede alcuni tentativi per entrare.\n"
+"Proverò 8 volte (la maggior parte delle volte ne bastano circa 3) e questo\n"
+"può richiedere alcuni secondi, se non funziona, riprovare più volte.\n"
+"Se riuscite a entrare, controllate la radio ed il cavo.\n"
 
-#: ../wxui/developer.py:479
+#: ../drivers/uvk5.py:1885
+msgid ""
+"This should only be enabled if you are using modified firmware that supports "
+"wider frequency coverage. Enabling this will cause CHIRP not to enforce OEM "
+"restrictions and may lead to undefined or unregulated behavior. Use at your "
+"own risk!"
+msgstr ""
+"Questa opzione deve essere attivata solo se si utilizza un firmware "
+"modificato che supporta una copertura di frequenza più ampia. L'attivazione "
+"di questa opzione fa sì che CHIRP non applichi le restrizioni OEM e può "
+"portare ad un comportamento non definito o non regolamentato. Utilizzare a "
+"proprio rischio e pericolo!"
+
+#: ../wxui/bugreport.py:137
+msgid ""
+"This tool will upload details about your system to an existing issue on the "
+"CHIRP tracker. It requires your username and password for chirpmyradio.com "
+"in order to work. Information about your system, including your debug log, "
+"config file, and any open image files will be uploaded. An attempt will be "
+"made to redact any personal information before it leaves your system."
+msgstr ""
+"Questo strumento carica i dettagli del vostro sistema in un problema "
+"esistente sul tracker di CHIRP. Per funzionare, richiede il nome utente e la "
+"password di chirpmyradio.com. Verranno caricate informazioni sul sistema, "
+"compresi il log di debug, il file di configurazione e qualsiasi file "
+"immagine aperto. Si cercherà di eliminare tutte le informazioni personali "
+"prima che lascino il sistema."
+
+#: ../wxui/developer.py:575
 msgid "This will load a module from a website issue"
-msgstr ""
+msgstr "Caricherà un modulo dal sito"
 
-#: ../wxui/memedit.py:359
+#: ../wxui/memedit.py:440
 msgid "Tone"
-msgstr "Tone"
+msgstr "Tono"
 
-#: ../wxui/memedit.py:807
+#: ../wxui/memedit.py:1004
 msgid "Tone Mode"
-msgstr "Modalita' tono"
+msgstr "Modalità tono"
 
-#: ../wxui/memedit.py:361
-#, fuzzy
+#: ../wxui/memedit.py:442
 msgid "Tone Squelch"
-msgstr "ToneSql"
+msgstr "Squelch del tono"
 
-#: ../wxui/memedit.py:303
-#, fuzzy
-msgid "Tuning Step"
-msgstr "Step sintonia"
+#: ../wxui/memedit.py:130
+msgid "Tone squelch mode"
+msgstr "Modalità squelch del tono"
 
-#: ../wxui/clone.py:338 ../wxui/clone.py:345 ../wxui/clone.py:356
-#: ../wxui/clone.py:363 ../wxui/clone.py:367
-msgid "USB Port Finder"
+#: ../wxui/memedit.py:143
+msgid "Transmit Power"
+msgstr "Potenza di trasmissione"
+
+#: ../wxui/memedit.py:139
+msgid "Transmit shift, split mode, or transmit inhibit"
 msgstr ""
+"Shift della trasmissione, modalità split o inibizione della trasmissione"
 
-#: ../wxui/clone.py:354
+#: ../wxui/memedit.py:131
+msgid "Transmit tone"
+msgstr "Tono di trasmissione"
+
+#: ../wxui/memedit.py:134
+msgid "Transmit/receive DTCS code for DTCS mode, else transmit code"
+msgstr ""
+"Trasmette/riceve il codice DTCS per la modalità DTCS, altrimenti trasmette "
+"il codice"
+
+#: ../wxui/memedit.py:133
+msgid "Transmit/receive modulation (FM, AM, SSB, etc)"
+msgstr "Trasmissione/ricezione di modulazione (FM, AM, SSB, ecc.)"
+
+#: ../wxui/memedit.py:132
+msgid "Transmit/receive tone for TSQL mode, else receive tone"
+msgstr ""
+"Tono di trasmissione/ricezione per la modalità TSQL, altrimenti tono di "
+"ricezione"
+
+#: ../wxui/memedit.py:384 ../wxui/memedit.py:1018
+msgid "Tuning Step"
+msgstr "Passo della sintonia"
+
+#: ../wxui/clone.py:441 ../wxui/clone.py:448 ../wxui/clone.py:459
+#: ../wxui/clone.py:467 ../wxui/clone.py:471
+msgid "USB Port Finder"
+msgstr "Trova porta USB"
+
+#: ../wxui/clone.py:457
 msgid ""
 "Unable to determine port for your cable. Check your drivers and connections."
 msgstr ""
+"Impossibile determinare la porta per il cavo. Controllare i driver e i "
+"collegamenti."
 
-#: ../wxui/memedit.py:1231
+#: ../wxui/memedit.py:1473
 msgid "Unable to edit memory before radio is loaded"
-msgstr ""
+msgstr "Impossibile modificare la memoria prima di averla caricata dalla radio"
 
-#: ../wxui/main.py:1147
-#, fuzzy, python-format
+#: ../wxui/main.py:1273
+#, python-format
 msgid "Unable to find stock config %r"
-msgstr "Apri configurazione stock"
+msgstr "Impossibile trovare la configurazione standard %r"
 
-#: ../wxui/main.py:1268
-#, fuzzy
+#: ../wxui/memedit.py:1957
+msgid "Unable to import while the view is sorted"
+msgstr "Impossibile importare mentre la visualizzazione è ordinata"
+
+#: ../wxui/common.py:227
 msgid "Unable to open the clipboard"
-msgstr "Impossibile rilevare radio sulla porta {port}"
+msgstr "Impossibile aprire gli appunti"
 
-#: ../drivers/ft817.py:322
+#: ../sources/przemienniki.py:46
+msgid "Unable to query"
+msgstr "Impossibile eseguire la ricerca"
+
+#: ../drivers/ft817.py:320
 msgid ""
 "Unable to read last block. This often happens when the selected model is US "
 "but the radio is a non-US one (or widebanded). Please choose the correct "
 "model and try again."
 msgstr ""
+"Impossibile leggere l'ultimo blocco. Questo accade spesso, quando il modello "
+"selezionato è US, ma la radio è un modello non US (o widebanded). Scegliere "
+"il modello corretto e riprovare."
 
-#: ../wxui/main.py:1542
-#, fuzzy, python-format
+#: ../wxui/common.py:687
+#, python-format
 msgid "Unable to reveal %s on this system"
-msgstr "Impossibile effettuare modifiche su questo modello"
+msgstr "Impossibile rivelare %s su questo sistema"
 
-#: ../wxui/memedit.py:160
-#, fuzzy, python-format
+#: ../wxui/memedit.py:244
+#, python-format
 msgid "Unable to set %s on this memory"
-msgstr "Impossibile effettuare modifiche su questo modello"
+msgstr "Impossibile impostare %s su questa memoria"
 
-#: ../wxui/query_sources.py:524
+#: ../wxui/main.py:1589
+msgid "Unable to upload this file"
+msgstr "Impossibile caricare questo file"
+
+#: ../wxui/query_sources.py:698
 msgid "United States"
-msgstr ""
+msgstr "Stati Uniti"
 
-#: ../wxui/clone.py:337
+#: ../wxui/clone.py:440
 msgid "Unplug your cable (if needed) and then click OK"
-msgstr ""
+msgstr "Scollegare il cavo (se necessario) e quindi fare clic su OK"
 
-#: ../wxui/clone.py:574
+#: ../drivers/thd74.py:327
+#, python-format
+msgid "Unsupported model %r"
+msgstr "Modello non supportato %r"
+
+#: ../wxui/bugreport.py:158
+msgid "Update an existing bug"
+msgstr "Aggiorna un bug esistente"
+
+#: ../wxui/bugreport.py:466
+#, python-format
+msgid "Updating bug %s"
+msgstr "Aggiornamento del bug %s"
+
+#: ../wxui/clone.py:746
 msgid "Upload instructions"
+msgstr "Istruzioni per il caricamento"
+
+#: ../drivers/uvk5.py:2089
+msgid "Upload is disabled due to unsupported firmware version"
 msgstr ""
+"Il caricamento è disabilitato a causa di una versione del firmware non "
+"supportata"
 
-#: ../wxui/main.py:742 ../wxui/main.py:900
-#, fuzzy
+#: ../wxui/main.py:1022
 msgid "Upload to radio"
-msgstr "Scrivi su Radio"
+msgstr "Carica sulla radio"
 
-#: ../wxui/common.py:276
+#: ../wxui/main.py:845
+msgid "Upload to radio..."
+msgstr "Carica sulla radio..."
+
+#: ../wxui/common.py:323
 #, python-format
 msgid "Uploaded memory %s"
-msgstr ""
+msgstr "Memoria caricata %s"
 
-#: ../wxui/main.py:710
+#: ../wxui/main.py:801
 msgid "Use fixed-width font"
-msgstr ""
+msgstr "Usa carattere a larghezza fissa"
 
-#: ../wxui/main.py:718
+#: ../wxui/main.py:809
 msgid "Use larger font"
-msgstr ""
+msgstr "Usa carattere più grande"
 
-#: ../wxui/developer.py:247
+#: ../wxui/bugreport.py:205
+msgid "Username"
+msgstr "Nome utente"
+
+#: ../wxui/developer.py:256
 #, python-format
 msgid "Value does not fit in %i bits"
-msgstr ""
+msgstr "Il valore non rientra in %i bit"
 
-#: ../wxui/common.py:386
+#: ../wxui/common.py:519
 #, python-format
 msgid "Value must be at least %.4f"
-msgstr ""
+msgstr "Il valore deve essere almeno %.4f"
 
-#: ../wxui/common.py:390
+#: ../wxui/common.py:523
 #, python-format
 msgid "Value must be at most %.4f"
-msgstr ""
+msgstr "Il valore deve essere al massimo %.4f"
 
-#: ../wxui/developer.py:290
+#: ../wxui/developer.py:300
 #, python-format
 msgid "Value must be exactly %i decimal digits"
-msgstr ""
+msgstr "Il valore deve essere di esattamente %i cifre decimali"
 
-#: ../wxui/developer.py:245 ../wxui/developer.py:288
+#: ../wxui/developer.py:254 ../wxui/developer.py:298
 msgid "Value must be zero or greater"
-msgstr ""
+msgstr "Il valore deve essere maggiore o uguale a zero"
 
-#: ../wxui/clone.py:239
+#: ../wxui/memedit.py:2338
+msgid "Values"
+msgstr "Valori"
+
+#: ../wxui/clone.py:317
 msgid "Vendor"
 msgstr "Produttore"
 
-#: ../wxui/main.py:861
-#, fuzzy
+#: ../wxui/main.py:983
 msgid "View"
-msgstr "Vista"
+msgstr "Visualizza"
 
-#: ../wxui/memedit.py:1315
+#: ../wxui/common.py:465
+msgid "WARNING!"
+msgstr "ATTENZIONE!"
+
+#: ../wxui/bugreport.py:174 ../wxui/memedit.py:1559 ../wxui/main.py:1810
 msgid "Warning"
-msgstr ""
+msgstr "Attenzione"
 
-#: ../wxui/memedit.py:1314
+#: ../wxui/memedit.py:1558
 #, python-format
 msgid "Warning: %s"
-msgstr ""
+msgstr "Attenzione: %s"
 
-#: ../wxui/main.py:411
+#: ../wxui/main.py:442
 msgid "Welcome"
-msgstr ""
+msgstr "Benvenuto"
 
-#: ../wxui/__init__.py:37
+#: ../wxui/__init__.py:58
 msgid "Would you like CHIRP to install a desktop icon for you?"
-msgstr ""
+msgstr "Installare un'icona sul desktop?"
 
-#: ../wxui/clone.py:361
+#: ../wxui/bugreport.py:265
+msgid ""
+"You have opened multiple issues within the last week. CHIRP limits the "
+"number of issues you can open to avoid abuse. If you really need to open "
+"another, please do so via the website."
+msgstr ""
+"Hai aperto più segnalazioni nell'ultima settimana. Per evitare abusi, CHIRP "
+"limita il numero di segnalazioni che è possibile aprire. Se hai davvero "
+"bisogno di aprirne un altro, fallo tramite il sito."
+
+#: ../wxui/clone.py:478
+msgid ""
+"Your Prolific-based USB device will not work without reverting to an older "
+"version of the driver. Visit the CHIRP website to read more about how to "
+"resolve this?"
+msgstr ""
+"Il dispositivo USB basato su Prolific non funzionerà senza tornare a una "
+"versione precedente del driver. Visitare il sito web di CHIRP, per saperne "
+"di più su come risolvere questo problema?"
+
+#: ../wxui/clone.py:465
 msgid "Your cable appears to be on port:"
-msgstr ""
+msgstr "Il cavo sembra collegato alla porta:"
 
-#: ../wxui/developer.py:169
+#: ../wxui/developer.py:176
 msgid "bits"
-msgstr ""
+msgstr "bit"
 
-#: ../wxui/developer.py:165
+#: ../wxui/developer.py:172
 msgid "bytes"
-msgstr ""
+msgstr "byte"
 
-#: ../wxui/developer.py:160
+#: ../wxui/developer.py:167
 msgid "bytes each"
-msgstr ""
+msgstr "byte ciascuno"
 
-#: ../wxui/main.py:1484
+#: ../wxui/main.py:1743
 msgid "disabled"
-msgstr ""
+msgstr "disabilitato"
 
-#: ../wxui/main.py:1484
+#: ../wxui/main.py:1743
 msgid "enabled"
-msgstr ""
+msgstr "abilitato"
 
 #: ../drivers/vx5.py:116
 #, python-brace-format
 msgid "{bank} is full"
-msgstr ""
-
-#~ msgid "%i errors during open, check the debug log for details"
-#~ msgstr "%i errors during open, check the debug log for details"
-
-#~ msgid "Adding memory {number}"
-#~ msgstr "Aggiunta memoria {number}"
-
-#~ msgid "Adjust New Location"
-#~ msgstr "Cambia nuova posizione"
-
-#~ msgid "Auto"
-#~ msgstr "Auto"
-
-#~ msgid "Automatic Repeater Offset"
-#~ msgstr "Offset Ripetitori Automatico"
-
-#~ msgid "Bad value for {col}: {val}"
-#~ msgstr "Valore non valido per {col}: {val}"
-
-#~ msgid "Bank"
-#~ msgstr "Bank"
-
-#~ msgid "Bank Names"
-#~ msgstr "Nomi Bank"
-
-#~ msgid "CHIRP Files"
-#~ msgstr "Files CHIRP"
-
-#~ msgid "CHIRP Native File"
-#~ msgstr "File nativo CHIRP"
-
-#~ msgid "CHIRP Radio Images"
-#~ msgstr "Immagine Radio CHIRP"
-
-#~ msgid "CSV File"
-#~ msgstr "File CSV"
-
-#~ msgid "Callsign"
-#~ msgstr "Nominativo"
-
-#~ msgid "Cancel"
-#~ msgstr "Annulla"
-
-#~ msgid "Cancelled"
-#~ msgstr "Annullato"
-
-#~ msgid "Cannot be imported because"
-#~ msgstr "Non si puo' importare perche'"
-
-#~ msgid "Change language"
-#~ msgstr "Cambia lingua"
-
-#~ msgid ""
-#~ "Choose a language or Auto to use the operating system default. You will "
-#~ "need to restart the application before the change will take effect"
-#~ msgstr ""
-#~ "Scegli una lingua o usa Auto per utilizzare la lingua del sistema "
-#~ "operativo. Devi riavviare l'applicazione per applicare i cambiamenti"
-
-#~ msgid "Clone Progress"
-#~ msgstr "Progressione programmazione"
-
-#~ msgid "Clone failed: {error}"
-#~ msgstr "Programmazione fallita: {error}"
-
-#~ msgid "Columns"
-#~ msgstr "Colonne"
-
-#~ msgid "Confirm overwrites"
-#~ msgstr "Conferma sovrascrittura"
-
-#~ msgid "Copy"
-#~ msgstr "Copia"
-
-#~ msgid "Cut"
-#~ msgstr "Taglia"
-
-#~ msgid "Cutting memory {number}"
-#~ msgstr "Taglia memoria {number}"
-
-#~ msgid "D-STAR"
-#~ msgstr "D-STAR"
-
-#~ msgid "Delete all"
-#~ msgstr "Elimina tutto"
-
-#, fuzzy
-#~ msgid "Delete and shift all up"
-#~ msgstr "Elimina (e sposta sopra)"
-
-#, fuzzy
-#~ msgid "Delete and shift block up"
-#~ msgstr "Elimina (e sposta sopra)"
-
-#~ msgid "Diff of {a} and {b}"
-#~ msgstr "Differenza di {a} e {b}"
-
-#~ msgid "Diff raw memories"
-#~ msgstr "Differenza memorie Raw"
-
-#~ msgid "Diff tabs"
-#~ msgstr "Differenzia tabs"
-
-#~ msgid "Discard Changes?"
-#~ msgstr "Scartare le modifiche?"
-
-#~ msgid "Don't show this again"
-#~ msgstr "Non mostrarlo di nuovo"
-
-#~ msgid "Downloading MYCALL list"
-#~ msgstr "Scaricamento lista MYCALL"
-
-#~ msgid "Downloading RPTCALL list"
-#~ msgstr "Scaricamento lista RPTCALL"
-
-#~ msgid "Downloading URCALL list"
-#~ msgstr "Scaricamento lista URCALL"
-
-#~ msgid "E_xchange"
-#~ msgstr "Scambia"
-
-#~ msgid "Editing new item, taking defaults"
-#~ msgstr "Modifica di un nuovo elemento, verranno usati valori di default"
-
-#~ msgid "Enable Developer Functions"
-#~ msgstr "Abilita Funzioni Sviluppatore"
-
-#~ msgid "Erasing memory {number}"
-#~ msgstr "Cancellatura memoria {number}"
-
-#~ msgid "Error importing memories:"
-#~ msgstr "Errore di importazione memorie:"
-
-#~ msgid "Error reporting is enabled"
-#~ msgstr "Rapporto errori abilitato"
-
-#~ msgid "Exchange memories"
-#~ msgstr "Scambia memorie"
-
-#~ msgid "Export"
-#~ msgstr "Esporta"
-
-#~ msgid "File Exists"
-#~ msgstr "Il File esiste"
-
-#~ msgid "From"
-#~ msgstr "Da"
-
-#~ msgid "Getting bank for memory {num}"
-#~ msgstr "Acquisizione bank per la memoria {num}"
-
-#~ msgid "Getting bank information"
-#~ msgstr "Acquisizione informazioni bank"
-
-#~ msgid "Getting bank information for memory {num}"
-#~ msgstr "Acquisizione informazioni bank per la memoria {num}"
-
-#~ msgid "Getting channel {chan}"
-#~ msgstr "Acquisizione canale {chan}"
-
-#~ msgid "Getting memory {number}"
-#~ msgstr "Acquisita memoria {number}"
-
-#~ msgid "Getting memory {num}"
-#~ msgstr "Acquisizione memoria {num}"
-
-#~ msgid "Getting raw memory {number}"
-#~ msgstr "Acquisizione memoria Raw {number}"
-
-#~ msgid "Go"
-#~ msgstr "Vai"
-
-#~ msgid "Help"
-#~ msgstr "Aiuto"
-
-#~ msgid "Hide Unused Fields"
-#~ msgstr "Nascondi campi inutilizzati"
-
-#~ msgid "ICF Files"
-#~ msgstr "Files ICF"
-
-#~ msgid ""
-#~ "ICF files cannot be edited, only displayed or imported into another file. "
-#~ "Open in read-only mode?"
-#~ msgstr ""
-#~ "I Files ICF non possono essere modificati, solo visualizzati o importati "
-#~ "in un altro file. Aprire in sola lettura?"
-
-#~ msgid ""
-#~ "If you wish to disable this feature you may do so in the <u>Help</u> menu"
-#~ msgstr ""
-#~ "Se vuoi disabilitare questa opzione puoi farlo nel menu <u>Aiuto</u>"
-
-#~ msgid "Import"
-#~ msgstr "Import"
-
-#~ msgid "Import From File"
-#~ msgstr "Importa da File"
-
-#~ msgid "Import from RFinder"
-#~ msgstr "Importa da RFinder"
-
-#~ msgid "Import from RepeaterBook"
-#~ msgstr "Importa da RepeaterBook"
-
-#~ msgid "Import from stock config"
-#~ msgstr "Importa da Configurazione Stock"
-
-#~ msgid "Import stock configuration {name}"
-#~ msgstr "Importazione configurazione stock {name}"
-
-#~ msgid "Importing bank information"
-#~ msgstr "Importazione informazioni bank"
-
-#~ msgid "Incompatible Memory"
-#~ msgstr "Memoria non compatibile"
-
-#~ msgid "Internal Error"
-#~ msgstr "Errore interno"
-
-#~ msgid "Internal Error: Column {name} not found"
-#~ msgstr "Errore interno: nome colonna {name} non trovato"
-
-#~ msgid "Internal Error: Invalid limit {number}"
-#~ msgstr "Errore interno: limite non valido {number}"
-
-#~ msgid "Internal error: Unable to upload to {model}"
-#~ msgstr "Errore interno: impossibile caricare su {model}"
-
-#~ msgid "Inverse"
-#~ msgstr "Inverti"
-
-#~ msgid "Loc"
-#~ msgstr "Pos"
-
-#~ msgid "Location memory will be imported into"
-#~ msgstr "La memoria verra' importata in"
-
-#~ msgid "Location of memory in the file being imported"
-#~ msgstr "Posizione della memoria nel file che viene importato"
-
-#~ msgid "Location {number} is already being imported"
-#~ msgstr "La memoria {number} e' gia' stata importata"
-
-#~ msgid ""
-#~ "Location {number} is already being imported. Choose another value for "
-#~ "'New Location' before selection 'Import'"
-#~ msgstr ""
-#~ "La memoria numero {number} e' gia' stata importata. Scegliere un altro "
-#~ "valore per 'Nuova memoria' prima di selezionare 'Importa'"
-
-#~ msgid "Looking for a free spot ({number})"
-#~ msgstr "Ricerca di un posto libero ({number})"
-
-#~ msgid "Memories must be contiguous"
-#~ msgstr "Le memorie devono essere contigue"
-
-#~ msgid "Memory range:"
-#~ msgstr "Range memorie"
-
-#~ msgid "Memory {number}"
-#~ msgstr "Memoria {number}"
-
-#~ msgid "Move down"
-#~ msgstr "Muovi giu"
-
-#~ msgid "Move up"
-#~ msgstr "Sposta su"
-
-#~ msgid "Moved {count} memories"
-#~ msgstr "Spostate {count} memorie"
-
-#~ msgid "Moving memory from {old} to {new}"
-#~ msgstr "Spostata memoria da {old} a {new}"
-
-#~ msgid "Moving {src} to {dst}"
-#~ msgstr "Spostamento da {src} a {dst}"
-
-#~ msgid "My callsign"
-#~ msgstr "Il mio nominativo"
-
-#~ msgid "Name"
-#~ msgstr "Nome"
-
-#~ msgid "None"
-#~ msgstr "Nessuno"
-
-#~ msgid "Note:"
-#~ msgstr "Note:"
-
-#~ msgid "Open recent file {name}"
-#~ msgstr "Apri file recente {name}"
-
-#~ msgid "Open stock configuration {name}"
-#~ msgstr "Apertura configurazione stock {name}"
-
-#~ msgid "Overwrite"
-#~ msgstr "Sovrascrivi"
-
-#~ msgid "Overwrite location {number}?"
-#~ msgstr "Sovrascrivere posizione {number}?"
-
-#~ msgid "Paste"
-#~ msgstr "Incolla"
-
-#~ msgid "Preparing memory list..."
-#~ msgstr "Preparazione lista memorie..."
-
-#~ msgid "Priming memory"
-#~ msgstr "Preparazione memoria"
-
-#~ msgid "RPT1CALL"
-#~ msgstr "RPT1CALL"
-
-#~ msgid "RPT2CALL"
-#~ msgstr "RPT2CALL"
-
-#~ msgid "Raw memory {number}"
-#~ msgstr "Memoria Raw {number}"
-
-#~ msgid "Repeater callsign"
-#~ msgstr "Nominativo Ripetitore"
-
-#~ msgid "Report statistics"
-#~ msgstr "Report statistiche"
-
-#~ msgid "Reverse"
-#~ msgstr "Rovescia"
-
-#~ msgid "Select"
-#~ msgstr "Seleziona"
-
-#~ msgid "Setting index for memory {num}"
-#~ msgstr "Scrittura indice per la memoria {num}"
-
-#~ msgid "Setting memory {number}"
-#~ msgstr "Scrittura memoria {number}"
-
-#~ msgid "Shift"
-#~ msgstr "Shift"
-
-#~ msgid "Show Empty"
-#~ msgstr "Mostra Vuoti"
-
-#~ msgid "Show raw memory"
-#~ msgstr "Mostra memorie Raw"
-
-#~ msgid "Skip"
-#~ msgstr "Salta"
-
-#~ msgid "Special Channels"
-#~ msgstr "Canali Speciali"
-
-#~ msgid "The file {name} already exists. Do you want to overwrite it?"
-#~ msgstr "Il file {name} esiste gia. Vuoi sovrascriverlo?"
-
-#~ msgid ""
-#~ "The reporting feature of CHIRP is designed to help <u>improve quality</u> "
-#~ "by allowing the authors to focus on the radio drivers used most often and "
-#~ "errors experienced by the users. The reports contain no identifying "
-#~ "information and are used only for statistical purposes by the authors. "
-#~ "Your privacy is extremely important, but <u>please consider leaving this "
-#~ "feature enabled to help make CHIRP better!</u>\n"
-#~ "\n"
-#~ "<b>Are you sure you want to disable this feature?</b>"
-#~ msgstr ""
-#~ "La funzione reporting di CHIRP e' fatta per <u>migliorare la qualita'</u> "
-#~ "consentendo agli autori di concentrarsi sulle radio piu' utilizzate e "
-#~ "sugli errori piu' comuni. I report non contengono informazioni personali "
-#~ "e sono utilizzati per soli fini statistici dagli autori. La tua provacy "
-#~ "e' molto importante ma <u>per favore considera di lasciare attiva questa "
-#~ "opzione per aiutarci a migliorare CHIRP!</u>\n"
-#~ "\n"
-#~ "<b>Sei sicuro di disabilitare questa opzione?</b>"
-
-#~ msgid "The {vendor} {model} has multiple independent sub-devices"
-#~ msgstr "Il {vendor} {model} ha sub-device multipli indipendenti"
-
-#~ msgid ""
-#~ "The {vendor} {model} operates in <b>live mode</b>. This means that any "
-#~ "changes you make are immediately sent to the radio. Because of this, you "
-#~ "cannot perform the <u>Save</u> or <u>Upload</u> operations. If you wish "
-#~ "to edit the contents offline, please <u>Export</u> to a CSV file, using "
-#~ "the <b>File menu</b>."
-#~ msgstr ""
-#~ "La radio{vendor} {model} opera in <b>live mode</b>. Questo significa che "
-#~ "qualsiasi modifica viene immediatamente scritta nella radio. A causa di "
-#~ "questo, non puoi utilizzare le funzioni  <u>Salva</u> or <u>Scrivi</u>. "
-#~ "Se vuoi modificare le memorie offline, per favore <u>Esporta</u> le "
-#~ "memorie in un file CSV, usando il menu <b>File</b>."
-
-#~ msgid "There was an error during export: {error}"
-#~ msgstr "Errore durante l'esportazione del file: {error}"
-
-#~ msgid "There was an error during import: {error}"
-#~ msgstr "Errore durante l'apertura del file: {error}"
-
-#~ msgid "There was an error opening {fname}: {error}"
-#~ msgstr "Errore durante l'apertura di {fname}: {error}"
-
-#~ msgid ""
-#~ "There were errors while opening {file}. The affected memories will not be "
-#~ "importable!"
-#~ msgstr ""
-#~ "Ci sono stati degli errori nell'apertura del file {file}. Le memorie "
-#~ "interessate non potranno essere importate!"
-
-#~ msgid ""
-#~ "This operation requires moving all subsequent channels by one spot until "
-#~ "an empty location is reached.  This can take a LONG time.  Are you sure "
-#~ "you want to do this?"
-#~ msgstr ""
-#~ "Questa operazione richiede lo spostamento dei canali seguenti di un passo "
-#~ "alla volta fino alla nuova posizione. L'operazione puo' durare MOLTO "
-#~ "tempo. Sei sicuro di volerlo fare?"
-
-#~ msgid "To"
-#~ msgstr "A"
-
-#~ msgid "URCALL"
-#~ msgstr "URCALL"
-
-#~ msgid "Unsupported file type"
-#~ msgstr "Tipo file non supportato"
-
-#~ msgid "Untitled"
-#~ msgstr "Senza Nome"
-
-#~ msgid "Updating RPTCALL list"
-#~ msgstr "Aggiornamento lista RPTCALL"
-
-#~ msgid "Updating URCALL list"
-#~ msgstr "Aggiornamento lista URCALL"
-
-#~ msgid "Updating bank index for memory {num}"
-#~ msgstr "Aggiornamento indice bank per la memoria {num}"
-
-#~ msgid "Updating bank information for memory {num}"
-#~ msgstr "Aggiornamento informazioni bank per la memoria {num}"
-
-#~ msgid "VX7 Commander"
-#~ msgstr "VX7 Commander"
-
-#~ msgid "VX7 Commander Files"
-#~ msgstr "Files VX7 Commander"
-
-#~ msgid "Visible columns for {radio}"
-#~ msgstr "Colonne visibili per {radio}"
-
-#~ msgid "With significant contributions by:"
-#~ msgstr "Con il significativo contributo di:"
-
-#~ msgid "Writing memory {number}"
-#~ msgstr "Scrittura memoria {number}"
-
-#~ msgid "You can only diff two memories!"
-#~ msgstr "Puoi differenziare solo 2 memorie!"
-
-#~ msgid "Your callsign"
-#~ msgstr "Il tuo nominativo"
-
-#~ msgid "_Copy"
-#~ msgstr "Copia"
-
-#~ msgid "_Cut"
-#~ msgstr "Taglia"
-
-#~ msgid "_Delete"
-#~ msgstr "Elimina"
-
-#~ msgid "_Edit"
-#~ msgstr "Modifica"
-
-#~ msgid "_Paste"
-#~ msgstr "Incolla"
-
-#~ msgid "_Radio"
-#~ msgstr "Radio"
-
-#~ msgid "idle"
-#~ msgstr "pronto"
-
-#~ msgid "{num} errors during open:"
-#~ msgstr "{num} errori durante l'apertura:"
-
-#~ msgid "{vendor} {model} image file"
-#~ msgstr "File immagine {vendor} {model}"
-
-#~ msgid "{vendor} {model} on {port}"
-#~ msgstr "{vendor} {model} su porta {port}"
+msgstr "{bank} è pieno"

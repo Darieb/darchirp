@@ -81,7 +81,7 @@ struct {
      unknown_08311:1,
      chnameshow:1,      // Display Channel Names (Off, On)                 [25]
      voice:1,           // Voice Prompt (Off, On)                          [19]
-     beep:1             // Beep (Off, On)                                  [09]
+     beep:1,            // Beep (Off, On)                                  [09]
      batterysave:1;     // Battery Save aka Receiver Saver (Off, On)       [16]
   u8 unknown_0832:3,
      manual:1,          // Manual (Disabled, Enabled)
@@ -124,9 +124,9 @@ struct {
                         //                      110 6  (default)
                         //                      111 7
   u8 unknown_083B:1,
-     pf1:3,             // PF1 (Off, Reverse, Opt Call, 1750Hz, A/B)       [21]
+     pf1:3,             // PF1 (Off, Reverse, Opt Call, 1750 Hz, A/B)      [21]
      unknown_083B1:1,
-     pf2:3;             // PF2 (Off, Reverse, Opt Call, 1750Hz, A/B)       [22]
+     pf2:3;             // PF2 (Off, Reverse, Opt Call, 1750 Hz, A/B)      [22]
   u8 unknown_083c;      // factory = 05, reset = FF
   u8 unknown_083d;      // factory = 12, reset = FF
   u8 unknown_083e;      // factory = 50, reset = FF
@@ -196,7 +196,7 @@ struct name names[128];
 
 # Radio supports UPPER/lower case and symbols
 CHARSET_ASCII_PLUS = chirp_common.CHARSET_ALPHANUMERIC + \
-                     "!\"#$%&'()*+,-./:;<=>?@[\]^_`"
+                     "!\"#$%&'()*+,-./:;<=>?@[\\]^_`"
 
 POWER_LEVELS = [chirp_common.PowerLevel('Low', watts=1),
                 chirp_common.PowerLevel('High', watts=4)]
@@ -336,7 +336,6 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
     VENDOR = "Retevis"
     MODEL = "RT87 Base"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     _MAGIC = b"PGM2017"
 
     def get_features(self):
@@ -448,7 +447,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
     def _is_txinh(self, _mem):
         raw_tx = ""
         for i in range(0, 4):
-            raw_tx += _mem.tx_freq[i].get_raw()
+            raw_tx += _mem.tx_freq[i].get_raw(asbytes=False)
         return raw_tx == "\xFF\xFF\xFF\xFF"
 
     def _bbcd2num(self, bcdarr, strlen=8):
@@ -478,7 +477,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
         else:
             mem.number = number
 
-        if _mem.get_raw().startswith("\xFF\xFF\xFF\xFF"):
+        if _mem.get_raw(asbytes=False).startswith("\xFF\xFF\xFF\xFF"):
             mem.empty = True
             return mem
 
@@ -520,11 +519,11 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
         # Extra
         mem.extra = RadioSettingGroup("extra", "Extra")
 
-        rs = RadioSettingValueList(LIST_BCL, LIST_BCL[_mem.bcl])
+        rs = RadioSettingValueList(LIST_BCL, current_index=_mem.bcl)
         rset = RadioSetting("bcl", "BCL", rs)
         mem.extra.append(rset)
 
-        rs = RadioSettingValueList(LIST_PTTID, LIST_PTTID[_mem.pttid])
+        rs = RadioSettingValueList(LIST_PTTID, current_index=_mem.pttid)
         rset = RadioSetting("pttid", "PTT-ID", rs)
         mem.extra.append(rset)
 
@@ -532,7 +531,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
         rset = RadioSetting("vox", "VOX", rs)
         mem.extra.append(rset)
 
-        rs = RadioSettingValueList(LIST_OPTION, LIST_OPTION[_mem.option])
+        rs = RadioSettingValueList(LIST_OPTION, current_index=_mem.option)
         rset = RadioSetting("option", "Option", rs)
         mem.extra.append(rset)
 
@@ -597,7 +596,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
 
         # Menu 02: TX.SEL aka PRI
         rs = RadioSettingValueList(LIST_TXSEL,
-                                   LIST_TXSEL[_settings.txsel])
+                                   current_index=_settings.txsel)
         rset = RadioSetting("txsel", "Priority Transmit", rs)
         basic.append(rset)
 
@@ -608,7 +607,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
 
         # Function Setting: VOX Delay Time
         rs = RadioSettingValueList(LIST_VOXDELAYTIME,
-                                   LIST_VOXDELAYTIME[_settings.voxdelaytime])
+                                   current_index=_settings.voxdelaytime)
         rset = RadioSetting("voxdelaytime", "VOX Delay Time", rs)
         basic.append(rset)
 
@@ -637,14 +636,14 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
             idx = LED_VALUES.index(_settings.lamp)
         else:
             idx = LED_VALUES.index(0x04)
-        rs = RadioSettingValueList(LED_CHOICES, LED_CHOICES[idx])
+        rs = RadioSettingValueList(LED_CHOICES, current_index=idx)
         rset = RadioSetting("settings.lamp", "Backlight Time", rs)
         rset.set_apply_callback(apply_lamp_listvalue, _settings.lamp)
         basic.append(rset)
 
         # Menu 08: BRIGHT (Backlight Brightness)
         rs = RadioSettingValueList(LIST_BRIGHTNESS,
-                                   LIST_BRIGHTNESS[_settings.brightness])
+                                   current_index=_settings.brightness)
         rset = RadioSetting("brightness", "Backlight Brightness", rs)
         basic.append(rset)
 
@@ -660,7 +659,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
 
         # Menu 11: TOT (Transmitter Time-out Timer)
         rs = RadioSettingValueList(LIST_TOT,
-                                   LIST_TOT[_settings.tot])
+                                   current_index=_settings.tot)
         rset = RadioSetting("tot", "Time-Out Timer", rs)
         basic.append(rset)
 
@@ -684,7 +683,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
 
         # Menu 17: SCN-REV (Scan Mode)
         rs = RadioSettingValueList(LIST_SCNREV,
-                                   LIST_SCNREV[_settings.scanmode])
+                                   current_index=_settings.scanmode)
         rset = RadioSetting("scanmode", "Scan Mode", rs)
         basic.append(rset)
 
@@ -700,25 +699,25 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
 
         # Menu 20: BATT SHOW (Battery Display Method)
         rs = RadioSettingValueList(LIST_BATTERY,
-                                   LIST_BATTERY[_settings.batterydis])
+                                   current_index=_settings.batterydis)
         rset = RadioSetting("batterydis", "Battery Display Method", rs)
         basic.append(rset)
 
         # Menu 21: PF1 (Side-Key 1)
         rs = RadioSettingValueList(LIST_SIDEKEY,
-                                   LIST_SIDEKEY[_settings.pf1])
+                                   current_index=_settings.pf1)
         rset = RadioSetting("pf1", "Side Key Function 1", rs)
         basic.append(rset)
 
         # Menu 22: PF2 (Side-Key 2)
         rs = RadioSettingValueList(LIST_SIDEKEY,
-                                   LIST_SIDEKEY[_settings.pf2])
+                                   current_index=_settings.pf2)
         rset = RadioSetting("pf2", "Side Key Function 2", rs)
         basic.append(rset)
 
         # Menu 23: OPN.SET (Power-On Display)
         rs = RadioSettingValueList(LIST_POWERON,
-                                   LIST_POWERON[_settings.msgmode])
+                                   current_index=_settings.msgmode)
         rset = RadioSetting("msgmode", "Power-On Display Method", rs)
         basic.append(rset)
 
@@ -826,14 +825,14 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
             idx = DELAY_VALUES.index(_optsig.delay)
         else:
             idx = DELAY_VALUES.index(30)
-        rs = RadioSettingValueList(DELAY_CHOICES, DELAY_CHOICES[idx])
+        rs = RadioSettingValueList(DELAY_CHOICES, current_index=idx)
         rset = RadioSetting("optsig.delay", "Digit Delay", rs)
         rset.set_apply_callback(apply_delay_listvalue, _optsig.delay)
         common.append(rset)
 
         # Common Set: Auto Reset Timer[s]
         rs = RadioSettingValueList(LIST_RESET,
-                                   LIST_RESET[_optsig.autoresettimer])
+                                   current_index=_optsig.autoresettimer)
         rset = RadioSetting("optsig.autoresettimer", "Auto Reset Timer", rs)
         common.append(rset)
 
@@ -855,7 +854,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
             idx = STUN_VALUES.index(_settings.stunmode)
         else:
             idx = STUN_VALUES.index(0xFF)
-        rs = RadioSettingValueList(STUN_CHOICES, STUN_CHOICES[idx])
+        rs = RadioSettingValueList(STUN_CHOICES, current_index=idx)
         rset = RadioSetting("settings.stunmode", "Stun Mode", rs)
         rset.set_apply_callback(apply_stun_listvalue, _settings.stunmode)
         common.append(rset)
@@ -939,13 +938,13 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
 
         # DTMF: DTMF Signaling
         rs = RadioSettingValueList(LIST_DTMFSIG,
-                                   LIST_DTMFSIG[_settings.dtmfsig])
+                                   current_index=_settings.dtmfsig)
         rset = RadioSetting("dtmfsig", "DTMF Signaling", rs)
         dtmf.append(rset)
 
         # DTMF: Intermediate Code
         rs = RadioSettingValueList(LIST_INTCODE,
-                                   LIST_INTCODE[_optsig.intcode])
+                                   current_index=_optsig.intcode)
         rset = RadioSetting("optsig.intcode", "Intermediate Code", rs)
         dtmf.append(rset)
 
@@ -962,14 +961,14 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
             idx = GROUP_VALUES.index(_optsig.groupcode)
         else:
             idx = GROUP_VALUES.index(0x00)
-        rs = RadioSettingValueList(GROUP_CHOICES, GROUP_CHOICES[idx])
+        rs = RadioSettingValueList(GROUP_CHOICES, current_index=idx)
         rset = RadioSetting("optsig.groupcode", "Group Code", rs)
         rset.set_apply_callback(apply_group_listvalue, _optsig.groupcode)
         dtmf.append(rset)
 
         # DTMF: DTMF Code Length
         rs = RadioSettingValueList(LIST_DTMFLEN,
-                                   LIST_DTMFLEN[_optsig.dtmflen - 3])
+                                   current_index=_optsig.dtmflen - 3)
         rset = RadioSetting("optsig.dtmflen", "DTMF Code Length", rs)
         dtmf.append(rset)
 
@@ -1025,7 +1024,7 @@ class Rt87BaseRadio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

@@ -140,7 +140,7 @@ def boolstr(b):
 class AP510Memory(object):
     """Parses and generates AP510 key/value format
 
-    The AP510 sends it's configuration as a set of keys and values. There
+    The AP510 sends its configuration as a set of keys and values. There
     is one key/value pair per line. Line separators are \r\n. Keys are
     deliminated from values with the = symbol.
 
@@ -327,7 +327,7 @@ PATH = [
     'TEMP1-1,WIDE 2-1',
     'WIDE2-1',
 ]
-TABLE = "/\#&0>AW^_acnsuvz"
+TABLE = r"/\#&0>AW^_acnsuvz"
 SYMBOL = "".join(map(chr, range(ord("!"), ord("~")+1)))
 BEACON = ['manual', 'auto', 'auto + manual', 'smart', 'smart + manual']
 ALIAS = ['WIDE1-N', 'WIDE2-N', 'WIDE1-N + WIDE2-N']
@@ -349,6 +349,7 @@ class AP510Radio(chirp_common.CloneModeRadio):
     BAUD_RATE = 9600
     VENDOR = "Sainsonic"
     MODEL = "AP510"
+    NEEDS_COMPAT_SERIAL = True
 
     _model = b"AVRT5"
     mem_upper_limit = 0
@@ -404,7 +405,7 @@ class AP510Radio(chirp_common.CloneModeRadio):
 
     def load_mmap(self, filename):
         """Load the radio's memory map from @filename"""
-        mapfile = file(filename, "rb")
+        mapfile = open(filename, "rb")
         data = mapfile.read()
         if data.startswith('\r\n00=%s 20141215' % self._model):
             self._mmap = AP510Memory20141215(data)
@@ -495,15 +496,17 @@ class AP510Radio(chirp_common.CloneModeRadio):
                         RadioSettingValueInteger(0, 7, ssid3)))
         except NotImplementedError:
             aprs.append(RadioSetting("path", "Path",
-                        RadioSettingValueList(PATH,
-                                              PATH[int(self._mmap.path)])))
+                        RadioSettingValueList(
+                            PATH,
+                            current_index=int(self._mmap.path))))
         aprs.append(RadioSetting("table", "Table or Overlay",
                     RadioSettingValueList(TABLE, self._mmap.symbol[1])))
         aprs.append(RadioSetting("symbol", "Symbol",
                     RadioSettingValueList(SYMBOL, self._mmap.symbol[0])))
         aprs.append(RadioSetting("beacon", "Beacon Mode",
-                    RadioSettingValueList(BEACON,
-                                          BEACON[int(self._mmap.beacon) - 1])))
+                    RadioSettingValueList(
+                        BEACON,
+                        current_index=int(self._mmap.beacon) - 1)))
         aprs.append(RadioSetting("rate", "Beacon Rate (seconds)",
                     RadioSettingValueInteger(10, 9999, self._mmap.rate)))
         aprs.append(RadioSetting("comment", "Comment",
@@ -633,7 +636,8 @@ class AP510Radio(chirp_common.CloneModeRadio):
             system.append(RadioSetting("tf_card", "TF card format",
                           RadioSettingValueList(
                               TF_CARD,
-                              TF_CARD[int(self._mmap.multiple['tf_card'])])))
+                              current_index=(
+                                  int(self._mmap.multiple['tf_card'])))))
         except NotImplementedError:
             pass
 
@@ -753,7 +757,7 @@ class AP510Radio(chirp_common.CloneModeRadio):
                     multiple = self._mmap.multiple
                     multiple['tf_card'] = TF_CARD.index(str(setting.value))
                     self._mmap.multiple = multiple
-            except:
+            except Exception:
                 LOG.debug(setting.get_name())
                 raise
 

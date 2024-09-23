@@ -197,7 +197,6 @@ class UV3RRadio(chirp_common.CloneModeRadio):
     """Baofeng UV-3R"""
     VENDOR = "Baofeng"
     MODEL = "UV-3R"
-    NEEDS_COMPAT_SERIAL = False
 
     def get_features(self):
         rf = chirp_common.RadioFeatures()
@@ -235,7 +234,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
         mem = chirp_common.Memory()
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xff":
+        if _mem.get_raw(asbytes=False)[0] == "\xff":
             mem.empty = True
             return mem
 
@@ -372,7 +371,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
         rs = RadioSetting("backlight", "LCD Back Light",
                           RadioSettingValueList(
                               BACKLIGHT_LIST,
-                              BACKLIGHT_LIST[_settings.backlight]))
+                              current_index=_settings.backlight))
         basic.append(rs)
 
         rs = RadioSetting("beep", "Keypad Beep",
@@ -389,7 +388,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("ste", "Squelch Tail Eliminate",
                           RadioSettingValueList(
-                              STE_LIST, STE_LIST[_settings.ste]))
+                              STE_LIST, current_index=_settings.ste))
         basic.append(rs)
 
         rs = RadioSetting("save", "Battery Saver",
@@ -398,12 +397,12 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("timeout", "Time Out Timer",
                           RadioSettingValueList(
-                              TIMEOUT_LIST, TIMEOUT_LIST[_settings.timeout]))
+                              TIMEOUT_LIST, current_index=_settings.timeout))
         basic.append(rs)
 
         rs = RadioSetting("scanm", "Scan Mode",
                           RadioSettingValueList(
-                              SCANM_LIST, SCANM_LIST[_settings.scanm]))
+                              SCANM_LIST, current_index=_settings.scanm))
         basic.append(rs)
 
         rs = RadioSetting("relaym", "Repeater Sound Response",
@@ -420,12 +419,12 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("pri_ch", "Priority Channel",
                           RadioSettingValueList(
-                              PRI_CH_LIST, PRI_CH_LIST[_settings.pri_ch]))
+                              PRI_CH_LIST, current_index=_settings.pri_ch))
         basic.append(rs)
 
         rs = RadioSetting("ch_flag", "Display Mode",
                           RadioSettingValueList(
-                              CH_FLAG_LIST, CH_FLAG_LIST[_settings.ch_flag]))
+                              CH_FLAG_LIST, current_index=_settings.ch_flag))
         basic.append(rs)
 
         _limit = int(self._memobj.limits.lower_vhf) / 10
@@ -497,7 +496,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("vfo.vhf.duplex", "Shift Direction",
                           RadioSettingValueList(
-                              DUPLEX_LIST, DUPLEX_LIST[_vfo.vhf.duplex]))
+                              DUPLEX_LIST, current_index=_vfo.vhf.duplex))
         vfo_preset.append(rs)
 
         def convert_bytes_to_offset(bytes):
@@ -517,18 +516,18 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("vfo.vhf.power", "Power Level",
                           RadioSettingValueList(
-                              POWER_LIST, POWER_LIST[_vfo.vhf.power]))
+                              POWER_LIST, current_index=_vfo.vhf.power))
         vfo_preset.append(rs)
 
         rs = RadioSetting("vfo.vhf.bandwidth", "Bandwidth",
                           RadioSettingValueList(
                               BANDWIDTH_LIST,
-                              BANDWIDTH_LIST[_vfo.vhf.bandwidth]))
+                              current_index=_vfo.vhf.bandwidth))
         vfo_preset.append(rs)
 
         rs = RadioSetting("vfo.vhf.step", "Step",
                           RadioSettingValueList(
-                              STEP_LIST, STEP_LIST[_vfo.vhf.step]))
+                              STEP_LIST, current_index=_vfo.vhf.step))
         vfo_preset.append(rs)
 
         def apply_uhf_freq(setting, obj):
@@ -544,7 +543,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("vfo.uhf.duplex", "Shift Direction",
                           RadioSettingValueList(
-                              DUPLEX_LIST, DUPLEX_LIST[_vfo.uhf.duplex]))
+                              DUPLEX_LIST, current_index=_vfo.uhf.duplex))
         vfo_preset.append(rs)
 
         def apply_uhf_offset(setting, obj):
@@ -559,18 +558,18 @@ class UV3RRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("vfo.uhf.power", "Power Level",
                           RadioSettingValueList(
-                              POWER_LIST, POWER_LIST[_vfo.uhf.power]))
+                              POWER_LIST, current_index=_vfo.uhf.power))
         vfo_preset.append(rs)
 
         rs = RadioSetting("vfo.uhf.bandwidth", "Bandwidth",
                           RadioSettingValueList(
                               BANDWIDTH_LIST,
-                              BANDWIDTH_LIST[_vfo.uhf.bandwidth]))
+                              current_index=_vfo.uhf.bandwidth))
         vfo_preset.append(rs)
 
         rs = RadioSetting("vfo.uhf.step", "Step",
                           RadioSettingValueList(
-                              STEP_LIST, STEP_LIST[_vfo.uhf.step]))
+                              STEP_LIST, current_index=_vfo.uhf.step))
         vfo_preset.append(rs)
 
         fm_preset = RadioSettingGroup("fm_preset", "FM Radio Presets")
@@ -623,7 +622,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -639,7 +638,7 @@ class UV3RRadio(chirp_common.CloneModeRadio):
                 LOG.debug("Setting fm_presets[%1i] = %s" % (index, value))
                 setting = self._memobj.fm_presets
                 setting[index] = value
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

@@ -16,7 +16,7 @@
 import re
 from chirp.pyPEG import keyword, parse as pypeg_parse
 
-TYPES = ["bit", "u8", "u16", "ul16", "u24", "ul24", "u32", "ul32",
+TYPES = ["bit", "lbit", "u8", "u16", "ul16", "u24", "ul24", "u32", "ul32",
          "i8", "i16", "il16", "i24", "il24", "i32", "il32", "char",
          "lbcd", "bbcd"]
 DIRECTIVES = ["seekto", "seek", "printoffset"]
@@ -35,7 +35,7 @@ def count():
 
 
 def bitdef():
-    return symbol, ":", count, -1
+    return symbol, ":", count
 
 
 def _bitdeflist():
@@ -43,7 +43,7 @@ def _bitdeflist():
 
 
 def bitfield():
-    return -2, _bitdeflist
+    return _bitdeflist
 
 
 def array():
@@ -119,9 +119,6 @@ def parse(data):
 
         def __iter__(self):
             return self
-
-        def next(self):
-            return self.__next__()
 
         def __next__(self):
             self.line += 1

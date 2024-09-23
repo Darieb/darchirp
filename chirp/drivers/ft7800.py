@@ -20,9 +20,8 @@ import re
 from chirp.drivers import yaesu_clone
 from chirp import chirp_common, memmap, directory, bitwise, errors
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettings
+    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettings
 
 from collections import defaultdict
 
@@ -31,20 +30,33 @@ LOG = logging.getLogger(__name__)
 ACK = b'\x06'
 
 MEM_FORMAT = """
+struct mem_struct {
+  u8 used:1,
+     unknown1:1,
+     mode:2,
+     unknown2:1,
+     duplex:3;
+  bbcd freq[3];
+  u8 clockshift:1,
+     tune_step:3,
+     unknown5:1, // TODO: tmode has extended settings, at least 4 bits
+     tmode:3;
+  bbcd split[3];
+  u8 power:2,
+     tone:6;
+  u8 unknown6:1,
+     dtcs:7;
+  u8 unknown7[2];
+  u8 offset;
+  u8 unknown9[3];
+};
+
 #seekto 0x002A;
 u8  banks_unk2;
 u8  current_channel;
 u8  unk3;
 u8  unk4;
 u8  current_menu;
-
-#seekto 0x0035;
-u8  banks_unk1;
-
-#seekto 0x00C8;
-struct {
-    u8  memory[16];
-} dtmf[16];
 
 #seekto 0x003A;
 struct {
@@ -87,29 +99,13 @@ struct {
     u8  unk6;
 } settings;
 
-struct mem_struct {
-  u8 used:1,
-     unknown1:1,
-     mode:2,
-     unknown2:1,
-     duplex:3;
-  bbcd freq[3];
-  u8 clockshift:1,
-     tune_step:3,
-     unknown5:1, // TODO: tmode has extended settings, at least 4 bits
-     tmode:3;
-  bbcd split[3];
-  u8 power:2,
-     tone:6;
-  u8 unknown6:1,
-     dtcs:7;
-  u8 unknown7[2];
-  u8 offset;
-  u8 unknown9[3];
-};
-
 #seekto 0x0048;
 struct mem_struct vfos[5];
+
+#seekto 0x00C8;
+struct {
+    u8  memory[16];
+} dtmf[16];
 
 #seekto 0x01C8;
 struct mem_struct homes[5];
@@ -256,7 +252,6 @@ class FTx800Radio(yaesu_clone.YaesuCloneModeRadio):
     BAUD_RATE = 9600
     VENDOR = "Yaesu"
     MODES = list(MODES)
-    NEEDS_COMPAT_SERIAL = False
     _block_size = 64
 
     POWER_LEVELS_VHF = [chirp_common.PowerLevel("Hi", watts=50),
@@ -534,7 +529,9 @@ class FT7800Radio(FTx800Radio):
     TMODES = ["", "Tone", "TSQL", "TSQL-R", "DTCS"]
 
     def get_bank_model(self):
-        return FT7800BankModel(self)
+        if not hasattr(self, '_banks'):
+            self._banks = FT7800BankModel(self)
+        return self._banks
 
     def get_features(self):
         rf = FTx800Radio.get_features(self)
@@ -589,7 +586,7 @@ class FT7800Radio(FTx800Radio):
         opts = ["off"] + ["%0.1f" % (t / 60.0) for t in range(30, 750, 30)]
         basic.append(RadioSetting(
                 "apo", "APO time (hrs)",
-                RadioSettingValueList(opts, opts[_settings.apo])))
+                RadioSettingValueList(opts, current_index=_settings.apo)))
 
         basic.append(RadioSetting(
                 "beep_scan", "Beep: Scan",
@@ -604,62 +601,76 @@ class FT7800Radio(FTx800Radio):
                 RadioSettingValueBoolean(_settings.beep_key)))
 
         opts = ["T/RX Normal", "RX Reverse", "TX Reverse", "T/RX Reverse"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "dcs_polarity", "DCS polarity",
-                RadioSettingValueList(opts, opts[_settings.dcs_polarity])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.dcs_polarity)))
 
         opts = ["off", "dim 1", "dim 2", "dim 3"]
         basic.append(RadioSetting(
                 "dimmer", "Dimmer",
-                RadioSettingValueList(opts, opts[_settings.dimmer])))
+                RadioSettingValueList(opts, current_index=_settings.dimmer)))
 
         opts = ["manual", "auto", "1-auto"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "hyper_write", "Hyper Write",
-                RadioSettingValueList(opts, opts[_settings.hyper_write])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.hyper_write)))
 
         opts = ["", "key", "dial", "key+dial", "ptt",
                 "ptt+key", "ptt+dial", "all"]
         basic.append(RadioSetting(
                 "lock", "Lock mode",
-                RadioSettingValueList(opts, opts[_settings.lock])))
+                RadioSettingValueList(opts, current_index=_settings.lock)))
 
         opts = ["MH-42", "MH-48"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "microphone_type", "Microphone Type",
-                RadioSettingValueList(opts, opts[_settings.microphone_type])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.microphone_type)))
 
         opts = ["off"] + ["S-%d" % n for n in range(2, 10)] + ["S-Full"]
         basic.append(RadioSetting(
                 "rf_sql", "RF Squelch",
-                RadioSettingValueList(opts, opts[_settings.rf_sql])))
+                RadioSettingValueList(opts, current_index=_settings.rf_sql)))
 
         opts = ["time", "hold", "busy"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "scan_resume", "Scan Resume",
-                RadioSettingValueList(opts, opts[_settings.scan_resume])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.scan_resume)))
 
         opts = ["single", "continuous"]
-        basic.append(RadioSetting(
+        basic.append(
+            RadioSetting(
                 "smart_search", "Smart Search",
-                RadioSettingValueList(opts, opts[_settings.smart_search])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.smart_search)))
 
         opts = ["off"] + ["%d" % t for t in range(1, 31)]
         basic.append(RadioSetting(
                 "tot", "Time-out timer (mins)",
-                RadioSettingValueList(opts, opts[_settings.tot])))
+                RadioSettingValueList(opts, current_index=_settings.tot)))
 
         # dtmf tab
 
         opts = ["50", "100", "250", "450", "750", "1000"]
-        dtmf.append(RadioSetting(
+        dtmf.append(
+            RadioSetting(
                 "dtmf_delay", "DTMF delay (ms)",
-                RadioSettingValueList(opts, opts[_settings.dtmf_delay])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.dtmf_delay)))
 
         opts = ["50", "75", "100"]
-        dtmf.append(RadioSetting(
+        dtmf.append(
+            RadioSetting(
                 "dtmf_speed", "DTMF speed (ms)",
-                RadioSettingValueList(opts, opts[_settings.dtmf_speed])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.dtmf_speed)))
 
         for i in range(16):
             name = "dtmf%02d" % i
@@ -679,14 +690,18 @@ class FT7800Radio(FTx800Radio):
         # arts tab
 
         opts = ["off", "in range", "always"]
-        arts.append(RadioSetting(
+        arts.append(
+            RadioSetting(
                 "arts_mode", "ARTS beep",
-                RadioSettingValueList(opts, opts[_settings.arts_mode])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.arts_mode)))
 
         opts = ["15", "25"]
-        arts.append(RadioSetting(
+        arts.append(
+            RadioSetting(
                 "arts_interval", "ARTS interval",
-                RadioSettingValueList(opts, opts[_settings.arts_interval])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.arts_interval)))
 
         arts.append(RadioSetting(
                 "arts_cwid_enable", "CW ID",
@@ -701,14 +716,18 @@ class FT7800Radio(FTx800Radio):
         # prog buttons
 
         opts = ["WX", "Reverse", "Repeater", "SQL Off", "Lock", "Dimmer"]
-        prog.append(RadioSetting(
+        prog.append(
+            RadioSetting(
                 "prog_panel_acc", "Prog Panel - Low(ACC)",
-                RadioSettingValueList(opts, opts[_settings.prog_panel_acc])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.prog_panel_acc)))
 
         opts = ["Reverse", "Home"]
-        prog.append(RadioSetting(
+        prog.append(
+            RadioSetting(
                 "prog_tone_vm", "TONE | V/M",
-                RadioSettingValueList(opts, opts[_settings.prog_tone_vm])))
+                RadioSettingValueList(
+                    opts, current_index=_settings.prog_tone_vm)))
 
         opts = ["" for n in range(26)] + \
             ["Priority", "Low", "Tone", "MHz", "Reverse", "Home", "Band",
@@ -717,19 +736,19 @@ class FT7800Radio(FTx800Radio):
 
         prog.append(RadioSetting(
                 "prog_p1", "P1",
-                RadioSettingValueList(opts, opts[_settings.prog_p1])))
+                RadioSettingValueList(opts, current_index=_settings.prog_p1)))
 
         prog.append(RadioSetting(
                 "prog_p2", "P2",
-                RadioSettingValueList(opts, opts[_settings.prog_p2])))
+                RadioSettingValueList(opts, current_index=_settings.prog_p2)))
 
         prog.append(RadioSetting(
                 "prog_p3", "P3",
-                RadioSettingValueList(opts, opts[_settings.prog_p3])))
+                RadioSettingValueList(opts, current_index=_settings.prog_p3)))
 
         prog.append(RadioSetting(
                 "prog_p4", "P4",
-                RadioSettingValueList(opts, opts[_settings.prog_p4])))
+                RadioSettingValueList(opts, current_index=_settings.prog_p4)))
 
         return top
 
@@ -743,7 +762,7 @@ class FT7800Radio(FTx800Radio):
             try:
                 _settings = self._memobj.settings
                 setting = element.get_name()
-                if re.match('dtmf\d', setting):
+                if re.match(r'dtmf\d', setting):
                     # set dtmf fields
                     dtmfstr = str(element.value).strip()
                     newval = []
@@ -767,7 +786,7 @@ class FT7800Radio(FTx800Radio):
                 oldval = getattr(_settings, setting)
                 LOG.debug("Setting %s(%s) <= %s" % (setting, oldval, newval))
                 setattr(_settings, setting, newval)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -794,6 +813,11 @@ struct {
   u8 name[6];
 } memory[500];
 
+#seekto 0x%X;
+struct {
+   u32 bitmap[16];
+} bank_channels[10];
+
 #seekto 0x51C8;
 struct {
   u8 skip0:2,
@@ -801,12 +825,6 @@ struct {
      skip2:2,
      skip3:2;
 } flags[250];
-
-#seekto 0x%X;
-struct {
-   u32 bitmap[16];
-} bank_channels[10];
-
 
 #seekto 0x7B48;
 u8 checksum;
@@ -869,7 +887,9 @@ class FT8800Radio(FTx800Radio):
         return [FT8800RadioLeft(self._mmap), FT8800RadioRight(self._mmap)]
 
     def get_bank_model(self):
-        return FT8800BankModel(self)
+        if not hasattr(self, '_banks'):
+            self._banks = FT8800BankModel(self)
+        return self._banks
 
     def _checksums(self):
         return [yaesu_clone.YaesuChecksum(0x0000, 0x56C7)]

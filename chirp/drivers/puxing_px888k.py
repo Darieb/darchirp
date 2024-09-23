@@ -174,7 +174,7 @@ struct {
 
         // 5
         u8 allow_keypad:1,
-           relay_without_disable_tail:1
+           relay_without_disable_tail:1,
            _unknown_0C65:1,
            call_channel_active:1,
            vox_gain:4;
@@ -242,8 +242,8 @@ struct {
         // 1
         u8 _unknown_0C91_1:3,
            channel_stepping:1,
-           unknown_0C91_2:1
-           receive_range:2
+           unknown_0C91_2:1,
+           receive_range:2,
            unknown_0C91_3:1;
 
         // 2-3
@@ -291,7 +291,7 @@ struct {
            compander:1,
            txpower:1,
            modulation_width:1,
-           txrx_reverse:1
+           txrx_reverse:1,
            bcl:2;
 
         // D
@@ -344,7 +344,7 @@ struct {
         u8 rxtx_stun_code_length;
         u8 cancel_rxtx_stun_code_length;
         u8 cancel_rxtx_stun_code[4];
-        u8 _unknown_0D4E[2];
+        u8 _unknown_0D5E[2];
 
 // 0x0d60
         struct {
@@ -495,7 +495,7 @@ SCRAMBLER_MODES = OFF_INT[0:9]
 PTT_ID_EDGES = ["Off", "BOT", "EOT", "Both"]
 OPTSIGN_MODES = ["None", "DTMF", "5-Tone", "MSK"]
 
-VFO_STRIDE = ['5kHz', '6.25kHz', '10kHz', '12.5kHz', '25kHz']
+VFO_STRIDE = ['5 kHz', '6.25 kHz', '10 kHz', '12.5 kHz', '25 kHz']
 AB = ['A', 'B']
 WATCH_MODES = ['Single watch', 'Dual watch']
 AB_MODES = ['VFO', 'Memory index', 'Memory name', 'Memory frequency']
@@ -505,7 +505,7 @@ WAIT_TIMES = [("0.3s", 6), ("0.5s", 10)] +\
 
 BUTTON_MODES = ["Send call list data",
                 "Emergency alarm",
-                "Send 1750Hz signal",
+                "Send 1750 Hz signal",
                 "Open squelch"]
 BOOT_MESSAGE_TYPES = ["Off", "Battery voltage", "Custom message"]
 TALKBACK = ['Off', 'Chinese', 'English']
@@ -549,8 +549,8 @@ FIVE_TONE_ALERT_TRANSPOND = list(zip(['Off', 'Alert tone',
                                       'Transpond', 'Transpond-ID code'],
                                      [255] + list(range(1, 4))))
 
-BFM_BANDS = ['87.5-108MHz', '76.0-91.0MHz', '76.0-108.0MHz', '65.0-76.0MHz']
-BFM_STRIDE = ['100kHz', '50kHz']
+BFM_BANDS = ['87.5-108 MHz', '76.0-91.0 MHz', '76.0-108.0 MHz', '65.0-76.0 MHz']
+BFM_STRIDE = ['100 kHz', '50 kHz']
 
 
 def piperead(pipe, amount):
@@ -816,7 +816,7 @@ def encode_5tone(data, fieldlen):
 
 
 def decode_freq(data):
-    """decode frequency data for the broadcast fm radio memories"""
+    """decode frequency data for the broadcast FM radio memories"""
     data_out = ''
     if data[0] != 0xff:
         data_out = chirp_common.format_freq(
@@ -825,7 +825,7 @@ def decode_freq(data):
 
 
 def encode_freq(data, fieldlen):
-    """encode frequency data for the broadcast fm radio memories"""
+    """encode frequency data for the broadcast FM radio memories"""
     data_out = bytearray(b'\xff')*fieldlen
     if data != '':
         data_out = encode_halfbytes((('%%0%di' % (fieldlen << 1)) %
@@ -1099,7 +1099,6 @@ class Puxing_PX888K_Radio(chirp_common.CloneModeRadio):
     VENDOR = "Puxing"
     MODEL = "PX-888K"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     @classmethod
     def match_model(cls, filedata, filename):
@@ -1327,7 +1326,7 @@ class Puxing_PX888K_Radio(chirp_common.CloneModeRadio):
                              _data.ptt_id_edge,
                              PTT_ID_EDGES),
                 list_setting("Optional signal before/after transmission, " +
-                             "this setting overrides the PTT ID setting.",
+                             "this setting overrides the PTT ID setting",
                              "Opt Signal",
                              _data.opt_signal,
                              OPTSIGN_MODES))
@@ -1826,7 +1825,7 @@ class Puxing_PX888K_Radio(chirp_common.CloneModeRadio):
                          NO_YES),
             ]
 
-        # broadcast fm radio settings
+        # broadcast FM radio settings
         broadcast_settings = [
             list_setting("band", "Frequency interval",
                          _broadcast.receive_range,

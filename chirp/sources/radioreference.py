@@ -20,15 +20,12 @@ from chirp import chirp_common, errors
 from chirp.sources import base
 from chirp.wxui import config
 
+from suds.client import Client
+from suds import WebFault
+from suds.plugin import MessagePlugin
+
 LOG = logging.getLogger(__name__)
 CONF = config.get()
-
-try:
-    from suds.client import Client
-    from suds import WebFault
-    HAVE_SUDS = True
-except ImportError:
-    HAVE_SUDS = False
 
 MODES = {
     "FM":     "FM",
@@ -80,13 +77,14 @@ class RadioReferenceRadio(base.NetworkResultRadio):
     def __init__(self):
         chirp_common.NetworkSourceRadio.__init__(self, None)
 
-        if not HAVE_SUDS:
-            raise errors.RadioError(
-                "Suds library required for RadioReference.com import.\n" +
-                "Try installing your distribution's python-suds package.")
+        class UnicodeFilter(MessagePlugin):
+            def received(self, context):
+                decoded = context.reply.decode('latin1')
+                reencoded = decoded.encode('utf-8')
+                context.reply = reencoded
 
         self._auth = {"appKey": self.APPKEY, "username": "", "password": ""}
-        self._client = Client(self.URL)
+        self._client = Client(self.URL, plugins=[UnicodeFilter()])
         self._freqs = []
         self._modes = None
         self._zipcounty = None
@@ -150,9 +148,14 @@ class RadioReferenceRadio(base.NetworkResultRadio):
                                                              self._auth)
                 self._freqs += result
                 status_cur += 1
-                status.send_status(
-                    'Fetching %s:%s' % (cat.cName, subcat.scName),
-                    status_cur / status_max * 100)
+                try:
+                    status.send_status(
+                        'Fetching %s:%s' % (cat.cName, subcat.scName),
+                        status_cur / status_max * 100)
+                except AttributeError:
+                    LOG.debug('Category %r subcat %r has no name',
+                              cat.cName, subcat.scid)
+                    pass
 
         for agency in county.agencyList:
             agency = self._client.service.getAgencyInfo(agency.aid, self._auth)
@@ -164,10 +167,15 @@ class RadioReferenceRadio(base.NetworkResultRadio):
                                                                  self._auth)
                     self._freqs += result
                     status_cur += 1
+                    try:
+                        sc_name = subcat.scName
+                    except AttributeError:
+                        sc_name = 'Unknown Category'
+
                     status.send_status(
                         'Fetching agency %s %s:%s' % (agency.aid,
                                                       cat.cName,
-                                                      subcat.scName),
+                                                      sc_name),
                         status_cur / status_max * 100)
         status.send_end()
 

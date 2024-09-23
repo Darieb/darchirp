@@ -29,8 +29,8 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
                 RadioSettingValueBoolean, RadioSettingValueList, \
-                RadioSettingValueInteger, RadioSettingValueString, \
-                RadioSettingValueFloat, RadioSettings
+                RadioSettingValueInteger, RadioSettingValueFloat, \
+                RadioSettings
 
 import struct
 import logging
@@ -380,7 +380,7 @@ def _model_match(cls, data):
 
 def _decode_ranges(low, high):
     """Unpack the data in the ranges zones in the memmap and return
-    a tuple with the integer corresponding to the Mhz it means"""
+    a tuple with the integer corresponding to the MHz it means"""
     return (int(low) * 100000, int(high) * 100000)
 
 
@@ -435,7 +435,7 @@ struct {
   u8 fmrange;       // fm range 1 = low[65-76](ASIA), 0 = high[76-108](AMERICA)
   u8 alarm;         // alarm (count down timer)
                     //    d0 - d16 in half hour increments => off, 0.5 - 8.0 h
-  u8 voice;         // voice prompt 0 = off, 1 = english, 2 = chinese
+  u8 voice;         // voice prompt 0 = off, 1 = English, 2 = Chinese
   u8 volume;        // volume 1-7 as per the radio steps
                     //    set to #FF by original software on upload
                     //    chirp uploads actual value and works.
@@ -458,7 +458,6 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
     """Baofeng BT-F1 radio & possibly alike radios"""
     VENDOR = "Baofeng"
     MODEL = "BF-T1"
-    NEEDS_COMPAT_SERIAL = False
     _vhf_range = (130000000, 174000000)
     _uhf_range = (400000000, 520000000)
     _upper = 20
@@ -634,7 +633,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         else:
             mem.number = number
 
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw(asbytes=False)[0] == "\xFF":
             mem.empty = True
             return mem
 
@@ -741,7 +740,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         # ## Basic Settings
         rs = RadioSetting("tx_pwr", "TX Power",
                           RadioSettingValueList(
-                            POWER_LIST, POWER_LIST[_settings.tx_pwr]))
+                            POWER_LIST, current_index=_settings.tx_pwr))
         basic.append(rs)
 
         rs = RadioSetting("channel", "Active Channel",
@@ -765,29 +764,28 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
         basic.append(rs)
 
         rs = RadioSetting("scantype", "Scan Type",
-                          RadioSettingValueList(SCAN_TYPE_LIST, SCAN_TYPE_LIST[
-                              _settings.scantype]))
+                          RadioSettingValueList(SCAN_TYPE_LIST, current_index=_settings.scantype))
         basic.append(rs)
 
         rs = RadioSetting("timeout", "Time Out Timer (seconds)",
                           RadioSettingValueList(
-                            TOT_LIST, TOT_LIST[_settings.timeout]))
+                            TOT_LIST, current_index=_settings.timeout))
         basic.append(rs)
 
         rs = RadioSetting("voice", "Voice Prompt",
                           RadioSettingValueList(
-                            LANGUAGE_LIST, LANGUAGE_LIST[_settings.voice]))
+                            LANGUAGE_LIST, current_index=_settings.voice))
         basic.append(rs)
 
         rs = RadioSetting("alarm", "Alarm Time",
                           RadioSettingValueList(
-                            TIMER_LIST, TIMER_LIST[_settings.alarm]))
+                            TIMER_LIST, current_index=_settings.alarm))
         basic.append(rs)
 
         rs = RadioSetting("backlight", "Backlight",
                           RadioSettingValueList(
                             BACKLIGHT_LIST,
-                            BACKLIGHT_LIST[_settings.backlight]))
+                            current_index=_settings.backlight))
         basic.append(rs)
 
         rs = RadioSetting("blo", "Busy Lockout",
@@ -817,7 +815,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         rs = RadioSetting("fmrange", "FM Range",
                           RadioSettingValueList(
-                            FM_RANGE_LIST, FM_RANGE_LIST[_settings.fmrange]))
+                            FM_RANGE_LIST, current_index=_settings.fmrange))
         fm.append(rs)
 
         # callbacks for the FM VFO
@@ -877,7 +875,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
 
         rs = RadioSetting("relaym", "Relay Mode",
                           RadioSettingValueList(RELAY_MODE_LIST,
-                                                RELAY_MODE_LIST[_settings.relaym]))
+                                                current_index=_settings.relaym))
         adv.append(rs)
 
         return group
@@ -904,7 +902,7 @@ class BFT1(chirp_common.CloneModeRadio, chirp_common.ExperimentalRadio):
                     setattr(_settings, name, value)
 
                 LOG.debug("Setting %s: %s" % (name, value))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

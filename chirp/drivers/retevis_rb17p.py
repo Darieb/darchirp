@@ -26,24 +26,10 @@ from chirp.settings import RadioSetting, RadioSettingGroup, \
 LOG = logging.getLogger(__name__)
 
 MEM_FORMAT = """
-#seekto 0x1000;
+#seekto 0x0010;
 struct {
-    lbcd rxfreq[4];
-    lbcd txfreq[4];
-    lbcd rxtone[2];
-    lbcd txtone[2];
-    u8 unknown1:4,
-       compander:1,
-       unknown2:1,
-       highpower:1,
-       unknown3:1;
-    u8 unknown4:3,
-       wide:1,
-       scan:1,
-       unknown4:1,
-       bcl:2;
-    u8 unknown6[2];
-} memory[128];
+  char name[10];      // 10-character Alpha Tag
+} names[128];
 #seekto 0x0810;
 struct {
     u8 unknown01:5,
@@ -76,10 +62,24 @@ struct {
        unknown14:1,
        sidekey:3;
 } settings;
-#seekto 0x0010;
+#seekto 0x1000;
 struct {
-  char name[10];      // 10-character Alpha Tag
-} names[128];
+    lbcd rxfreq[4];
+    lbcd txfreq[4];
+    lbcd rxtone[2];
+    lbcd txtone[2];
+    u8 unknown1:4,
+       compander:1,
+       unknown2:1,
+       highpower:1,
+       unknown3:1;
+    u8 unknown4:3,
+       wide:1,
+       scan:1,
+       unknown5:1,
+       bcl:2;
+    u8 unknown6[2];
+} memory[128];
 
 """
 
@@ -94,18 +94,6 @@ TIMEOUTTIMER_LIST = ["60 seconds", "120 seconds", "180 seconds"]
 VOXDELAY_LIST = ["0.3", "0.5", "1", "1.5", "2", "2.5"]
 VOXLEVEL_LIST = ["Off", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
 WORKMODE_LIST = ["Frequencies", "Channel Numbers", "Names"]
-
-SETTING_LISTS = {
-    "alarmtype": ALARMTYPE_LIST,
-    "backlight": BACKLIGHT_LIST,
-    "batterysave": BATTERYSAVE_LIST,
-    "scanmode": SCANMODE_LIST,
-    "sidekey": SIDEKEY_LIST,
-    "timeouttimer": TIMEOUTTIMER_LIST,
-    "voxdelay": VOXDELAY_LIST,
-    "voxlevel": VOXLEVEL_LIST,
-    "workmode": WORKMODE_LIST
-}
 
 BCL = ["Off", "Carrier", "QT/DCS"]
 
@@ -238,7 +226,6 @@ class RB17P_Base(chirp_common.CloneModeRadio):
     VENDOR = "Retevis"
     MODEL = "RB17P Base"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     BLOCK_SIZE = 0x40
 
     VALID_BANDS = [(400000000, 470000000)]
@@ -258,7 +245,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
     def get_features(self):
         rf = chirp_common.RadioFeatures()
         rf.has_settings = True
-        rf.valid_modes = ["NFM", "FM"]  # 12.5 KHz, 25 kHz.
+        rf.valid_modes = ["NFM", "FM"]  # 12.5 kHz, 25 kHz.
         rf.valid_skips = ["", "S"]
         rf.valid_tmodes = ["", "Tone", "TSQL", "DTCS", "Cross"]
         rf.valid_duplexes = ["", "-", "+", "split", "off"]
@@ -332,17 +319,17 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         mem.number = number
         mem.freq = int(_mem.rxfreq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rxfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rxfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
 
-        if _mem.txfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.txfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             mem.duplex = "off"
             mem.offset = 0
         elif int(_mem.rxfreq) == int(_mem.txfreq):
@@ -370,7 +357,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
 
         mem.extra = RadioSettingGroup("Extra", "extra")
         rs = RadioSetting("bcl", "Busy Channel Lockout",
-                          RadioSettingValueList(BCL, BCL[_mem.bcl]))
+                          RadioSettingValueList(BCL, current_index=_mem.bcl))
         mem.extra.append(rs)
         rs = RadioSetting("compander", "Compander",
                           RadioSettingValueBoolean(_mem.compander))
@@ -393,7 +380,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
                     mem.power = self.POWER_LEVELS[1]
                     immutable = ["duplex", "offset", "mode", "power"]
                 elif mem.freq in GMRS_FREQS3:
-                    # GMRS repeater channels, always either simplex or +5MHz
+                    # GMRS repeater channels, always either simplex or +5 MHz
                     if mem.duplex != '+':
                         mem.duplex = ''
                         mem.offset = 0
@@ -420,18 +407,18 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         _nam = self._memobj.names[mem.number - 1]
 
         if mem.empty:
-            _mem.set_raw("\xFF" * (_mem.size() // 8))
-            _nam.set_raw("\xFF" * (_nam.size() // 8))
+            _mem.set_raw(b"\xFF" * (_mem.size() // 8))
+            _nam.set_raw(b"\xFF" * (_nam.size() // 8))
 
             return
 
-        _mem.set_raw("\x00" * (_mem.size() // 8))
+        _mem.set_raw(b"\x00" * (_mem.size() // 8))
 
         _mem.rxfreq = mem.freq / 10
 
         if mem.duplex == "off":
             for i in range(0, 4):
-                _mem.txfreq[i].set_raw("\xFF")
+                _mem.txfreq[i].set_raw(b"\xFF")
         elif mem.duplex == "split":
             _mem.txfreq = mem.offset / 10
         elif mem.duplex == "+":
@@ -470,7 +457,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         rs = RadioSetting("workmode", "Work Mode",
                           RadioSettingValueList(
                               WORKMODE_LIST,
-                              WORKMODE_LIST[(_settings.workmode) - 1]))
+                              current_index=(_settings.workmode) - 1))
         basic.append(rs)
 
         # Menu 04 - Squelch
@@ -483,7 +470,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         rs = RadioSetting("batterysave", "Battery Save",
                           RadioSettingValueList(
                               BATTERYSAVE_LIST,
-                              BATTERYSAVE_LIST[_settings.batterysave]))
+                              current_index=_settings.batterysave))
         basic.append(rs)
 
         # Menu 06 - Dual Watch
@@ -495,7 +482,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         rs = RadioSetting("backlight", "Backlight Duration",
                           RadioSettingValueList(
                               BACKLIGHT_LIST,
-                              BACKLIGHT_LIST[_settings.backlight]))
+                              current_index=_settings.backlight))
         basic.append(rs)
 
         # Menu 09 - Beep Tone
@@ -512,8 +499,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         rs = RadioSetting("timeouttimer", "Timeout timer",
                           RadioSettingValueList(
                               TIMEOUTTIMER_LIST,
-                              TIMEOUTTIMER_LIST[
-                                  (_settings.timeouttimer) - 1]))
+                              current_index=(_settings.timeouttimer) - 1))
         basic.append(rs)
 
         # Menu 12 - Roger Tone
@@ -525,7 +511,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         rs = RadioSetting("sidekey", "Side Key",
                           RadioSettingValueList(
                               SIDEKEY_LIST,
-                              SIDEKEY_LIST[_settings.sidekey]))
+                              current_index=_settings.sidekey))
         basic.append(rs)
 
         # Menu 14 - Auto Key Lock
@@ -542,28 +528,28 @@ class RB17P_Base(chirp_common.CloneModeRadio):
         rs = RadioSetting("scanmode", "Scan mode",
                           RadioSettingValueList(
                               SCANMODE_LIST,
-                              SCANMODE_LIST[_settings.scanmode]))
+                              current_index=_settings.scanmode))
         basic.append(rs)
 
         # Alarm Type
         rs = RadioSetting("alarmtype", "Alarm Type",
                           RadioSettingValueList(
                               ALARMTYPE_LIST,
-                              ALARMTYPE_LIST[_settings.alarmtype]))
+                              current_index=_settings.alarmtype))
         basic.append(rs)
 
         # VOX Level
         rs = RadioSetting("voxlevel", "Vox level",
                           RadioSettingValueList(
                               VOXLEVEL_LIST,
-                              VOXLEVEL_LIST[_settings.voxlevel]))
+                              current_index=_settings.voxlevel))
         basic.append(rs)
 
         # VOX Delay
         rs = RadioSetting("voxdelay", "Vox delay",
                           RadioSettingValueList(
                               VOXDELAY_LIST,
-                              VOXDELAY_LIST[_settings.voxdelay]))
+                              current_index=_settings.voxdelay))
         basic.append(rs)
 
         return top
@@ -595,7 +581,7 @@ class RB17P_Base(chirp_common.CloneModeRadio):
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -621,7 +607,7 @@ class RB17PRadio(RB17P_Base):
         msgs = super().validate_memory(mem)
 
         _msg_duplex = 'Duplex must be "off" for this frequency'
-        _msg_offset = 'Only simplex or +5MHz offset allowed on GMRS'
+        _msg_offset = 'Only simplex or +5 MHz offset allowed on GMRS'
 
         if mem.freq not in GMRS_FREQS:
             if mem.duplex != "off":

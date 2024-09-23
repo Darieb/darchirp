@@ -21,28 +21,28 @@ from chirp import bitwise
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
     RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError, RadioSettings
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
 MEM_FORMAT = """
 #seekto 0x0184;
 struct {
-  u8 unknown:4,
+  u8 unknown1:4,
      sql:4;              // squelch level
-  u8 unknown0x0185;
+  u8 unknown2;
   u8 obeep:1,            // open beep
      dw_off:1,           // dual watch (inverted)
      kbeep:1,            // key beep
      rbeep:1,            // roger beep
-     unknown:2,
+     unknown3:2,
      ctdcsb:1,           // ct/dcs busy lock
-     unknown:1;
+     unknown4:1;
   u8 alarm:1,            // alarm key
-     unknown1:1,
+     unknown5:1,
      aliasen_off:1,      // alias enable (inverted)
      save:1,             // battery save
-     unknown2:2,
+     unknown6:2,
      mrcha:1,            // mr/cha
      vfomr:1;            // vfo/mr
   u8 keylock_off:1,      // key lock (inverted)
@@ -53,20 +53,20 @@ struct {
      lamp:2;             // backlight
   u8 opendis:2,          // open display
      fmen_off:1,         // fm enable (inverted)
-     unknown1:1,
+     unknown7:1,
      fmscan_off:1,       // fm scan (inverted)
      fmdw:1,             // fm dual watch
-     unknown2:2;
+     unknown8:2;
   u8 step:4,             // step
      vol:4;              // volume
   u8 apo:4,              // auto power off
      tot:4;              // time out timer
-  u8 unknown0x018C;
+  u8 unknown9;
   u8 voxdt:4,            // vox delay time
      voxgain:4;          // vox gain
-  u8 unknown0x018E;
-  u8 unknown0x018F;
-  u8 unknown:3,
+  u8 unknown10;
+  u8 unknown11;
+  u8 unknown12:3,
      lptime:5;           // long press time
   u8 keyp2long:4,        // p2 key long press
      keyp2short:4;       // p2 key short press
@@ -74,34 +74,34 @@ struct {
      keyp1short:4;       // p1 key short press
   u8 keyp3long:4,        // p3 key long press
      keyp3short:4;       // p3 key short press
-  u8 unknown0x0194;
+  u8 unknown13;
   u8 menuen:1,           // menu enable
      absel:1,            // a/b select
-     unknown:2
+     unknown14:2,
      keymshort:4;        // m key short press
-  u8 unknown:4,
+  u8 unknown15:4,
      dtmfst:1,           // dtmf sidetone
      ackdecode:1,        // ack decode
      monitor:2;          // monitor
-  u8 unknown1:3,
+  u8 unknown16:3,
      reset:1,            // reset enable
-     unknown2:1,
+     unknown17:1,
      keypadmic_off:1,    // keypad mic (inverted)
-     unknown3:2;
-  u8 unknown0x0198;
-  u8 unknown1:3,
+     unknown18:2;
+  u8 unknown19;
+  u8 unknown20:3,
      dtmftime:5;         // dtmf digit time
-  u8 unknown1:3,
+  u8 unknown21:3,
      dtmfspace:5;        // dtmf digit space time
-  u8 unknown1:2,
+  u8 unknown22:2,
      dtmfdelay:6;        // dtmf first digit delay
-  u8 unknown1:1,
+  u8 unknown23:1,
      dtmfpretime:7;      // dtmf pretime
-  u8 unknown1:2,
+  u8 unknown24:2,
      dtmfdelay2:6;       // dtmf * and # digit delay
-  u8 unknown1:3,
+  u8 unknown25:3,
      smfont_off:1,       // small font (inverted)
-     unknown:4;
+     unknown26:4;
 } settings;
 
 #seekto 0x01cd;
@@ -170,7 +170,7 @@ SQL_LIST = ["%s" % x for x in range(0, 10)]
 SCANM_LIST = ["CO", "TO"]
 TOT_LIST = ["OFF"] + ["%s seconds" % x for x in range(10, 130, 10)]
 _STEP_LIST = [2.5, 5., 6.25, 10., 12.5, 25.]
-STEP_LIST = ["{} KHz".format(x) for x in _STEP_LIST]
+STEP_LIST = ["{} kHz".format(x) for x in _STEP_LIST]
 MONITOR_LIST = ["CTC/DCS", "DTMF", "CTC/DCS and DTMF", "CTC/DCS or DTMF"]
 VFOMR_LIST = ["MR", "VFO"]
 MRCHA_LIST = ["MR CHA", "Freq. MR"]
@@ -199,7 +199,7 @@ PFKEYLONG_LIST = ["OFF",
                   "VFO/MR",
                   "DTMF",
                   "CALL",
-                  "Transmit 1750Hz",
+                  "Transmit 1750 Hz",
                   "A/B",
                   "Talk Around",
                   "Reverse"
@@ -217,7 +217,7 @@ PFKEYSHORT_LIST = ["OFF",
                    "VFO/MR",
                    "DTMF",
                    "CALL",
-                   "Transmit 1750Hz",
+                   "Transmit 1750 Hz",
                    "A/B",
                    "Talk Around",
                    "Reverse"
@@ -225,7 +225,7 @@ PFKEYSHORT_LIST = ["OFF",
 
 MODES = ["NFM", "FM"]
 WTFTONES = tuple(float(x) for x in range(56, 64))
-TONES = WTFTONES + chirp_common.TONES
+TONES = tuple(sorted(WTFTONES + chirp_common.TONES))
 DTCS_CODES = tuple(sorted((17, 50, 645) + chirp_common.DTCS_CODES))
 TMODES = ["", "Tone", "DTCS", "DTCS"]
 
@@ -297,7 +297,7 @@ def do_ident(radio):
 
 
 def do_download(radio):
-    do_ident(radio)
+    # Ident should have already been done by the detect_from_serial()
 
     data = b""
     data += b"\xFF" * (0 - len(data))
@@ -355,21 +355,13 @@ def finish(radio):
     ack = radio.pipe.read(8)
 
 
-# Declaring Aliases
-class LT898UV(chirp_common.Alias):
-    VENDOR = "LUITON"
-    MODEL = "LT-898UV"
-
-
 @directory.register
 class LeixenVV898Radio(chirp_common.CloneModeRadio):
 
     """Leixen VV-898"""
     VENDOR = "Leixen"
     MODEL = "VV-898"
-    ALIASES = [LT898UV, ]
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     _file_ident = b"Leixen"
     _model_ident = b'LX-\x89\x85\x63'
@@ -392,6 +384,21 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
                       'defaults': 3}
     _power_levels = [chirp_common.PowerLevel("Low", watts=4),
                      chirp_common.PowerLevel("High", watts=10)]
+
+    @classmethod
+    def detect_from_serial(cls, pipe):
+        radio = cls(pipe)
+        do_ident(radio)
+        send(radio, make_frame(b"R", 0x0168, b'\x10'))
+        _addr, _data = recv(radio)
+        ident = _data[8:14]
+        LOG.debug('Got ident from radio:\n%s' % util.hexprint(ident))
+        for rclass in cls.detected_models():
+            if ident == rclass._model_ident:
+                return rclass
+        # Reset the radio if we didn't find a match
+        finish(radio)
+        raise errors.RadioError('Unable to detect a supported model')
 
     def get_features(self):
         rf = chirp_common.RadioFeatures()
@@ -418,7 +425,8 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         rf.valid_skips = ["", "S"]
         rf.valid_tuning_steps = _STEP_LIST
         rf.valid_bands = [(136000000, 174000000),
-                          (400000000, 470000000)]
+                          (400000000, 480000000)]
+        rf.valid_tones = TONES
         rf.valid_dtcs_codes = DTCS_CODES
         rf.memory_bounds = (1, 199)
         return rf
@@ -471,7 +479,7 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
                                        (rx_tmode, rx_tone, rx_pol))
 
     def _is_txinh(self, _mem):
-        raw_tx = ""
+        raw_tx = b""
         for i in range(0, 4):
             raw_tx += _mem.tx_freq[i].get_raw()
         return raw_tx == b"\xFF\xFF\xFF\xFF"
@@ -487,7 +495,7 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         mem = chirp_common.Memory()
         mem.number = number
 
-        if _mem.get_raw()[:4] == "\xFF\xFF\xFF\xFF":
+        if _mem.get_raw()[:4] == b"\xFF\xFF\xFF\xFF":
             mem.empty = True
             return mem
 
@@ -519,49 +527,49 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         opts = ["On", "Off"]
         rs = RadioSetting("blckoff", "Busy Channel Lockout",
                           RadioSettingValueList(
-                              opts, opts[_mem.blckoff]))
+                              opts, current_index=_mem.blckoff))
         mem.extra.append(rs)
         opts = ["Off", "On"]
         rs = RadioSetting("tailcut", "Squelch Tail Elimination",
                           RadioSettingValueList(
-                              opts, opts[_mem.tailcut]))
+                              opts, current_index=_mem.tailcut))
         mem.extra.append(rs)
         apro = _mem.apro if _mem.apro < 0x5 else 0
         opts = ["Off", "Compander", "Scrambler", "TX Scrambler",
                 "RX Scrambler"]
         rs = RadioSetting("apro", "Audio Processing",
                           RadioSettingValueList(
-                              opts, opts[apro]))
+                              opts, current_index=apro))
         mem.extra.append(rs)
         opts = ["On", "Off"]
         rs = RadioSetting("voxoff", "VOX",
                           RadioSettingValueList(
-                              opts, opts[_mem.voxoff]))
+                              opts, current_index=_mem.voxoff))
         mem.extra.append(rs)
         opts = ["On", "Off"]
         rs = RadioSetting("pttidoff", "PTT ID",
                           RadioSettingValueList(
-                              opts, opts[_mem.pttidoff]))
+                              opts, current_index=_mem.pttidoff))
         mem.extra.append(rs)
         opts = ["On", "Off"]
         rs = RadioSetting("dtmfoff", "DTMF",
                           RadioSettingValueList(
-                              opts, opts[_mem.dtmfoff]))
+                              opts, current_index=_mem.dtmfoff))
         mem.extra.append(rs)
         opts = ["Name", "Frequency"]
         aliasop = RadioSetting("aliasop", "Display",
                                RadioSettingValueList(
-                                   opts, opts[_mem.aliasop]))
+                                   opts, current_index=_mem.aliasop))
         mem.extra.append(aliasop)
         opts = ["On", "Off"]
         rs = RadioSetting("reverseoff", "Reverse Frequency",
                           RadioSettingValueList(
-                              opts, opts[_mem.reverseoff]))
+                              opts, current_index=_mem.reverseoff))
         mem.extra.append(rs)
         opts = ["On", "Off"]
         rs = RadioSetting("talkaroundoff", "Talk Around",
                           RadioSettingValueList(
-                              opts, opts[_mem.talkaroundoff]))
+                              opts, current_index=_mem.talkaroundoff))
         mem.extra.append(rs)
 
         return mem
@@ -621,12 +629,8 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
             aliasop = None
         if mem.name:
             _mem.aliasop = False
-            if aliasop and not aliasop.changed():
-                aliasop.value = "Name"
         else:
             _mem.aliasop = True
-            if aliasop and not aliasop.changed():
-                aliasop.value = "Frequency"
 
         for setting in mem.extra:
             setattr(_mem, setting.get_name(), setting.value)
@@ -645,43 +649,43 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         #
         rs = RadioSetting("apo", "Auto Power Off",
                           RadioSettingValueList(
-                              APO_LIST, APO_LIST[_settings.apo]))
+                              APO_LIST, current_index=_settings.apo))
         cfg_grp.append(rs)
         rs = RadioSetting("sql", "Squelch Level",
                           RadioSettingValueList(
-                              SQL_LIST, SQL_LIST[_settings.sql]))
+                              SQL_LIST, current_index=_settings.sql))
         cfg_grp.append(rs)
         rs = RadioSetting("scanm", "Scan Mode",
                           RadioSettingValueList(
-                              SCANM_LIST, SCANM_LIST[_settings.scanm]))
+                              SCANM_LIST, current_index=_settings.scanm))
         cfg_grp.append(rs)
         rs = RadioSetting("tot", "Time Out Timer",
                           RadioSettingValueList(
-                              TOT_LIST, TOT_LIST[_settings.tot]))
+                              TOT_LIST, current_index=_settings.tot))
         cfg_grp.append(rs)
         rs = RadioSetting("step", "Step",
                           RadioSettingValueList(
-                              STEP_LIST, STEP_LIST[_settings.step]))
+                              STEP_LIST, current_index=_settings.step))
         cfg_grp.append(rs)
         rs = RadioSetting("monitor", "Monitor",
                           RadioSettingValueList(
-                              MONITOR_LIST, MONITOR_LIST[_settings.monitor]))
+                              MONITOR_LIST, current_index=_settings.monitor))
         cfg_grp.append(rs)
         rs = RadioSetting("vfomr", "VFO/MR",
                           RadioSettingValueList(
-                              VFOMR_LIST, VFOMR_LIST[_settings.vfomr]))
+                              VFOMR_LIST, current_index=_settings.vfomr))
         cfg_grp.append(rs)
         rs = RadioSetting("mrcha", "MR/CHA",
                           RadioSettingValueList(
-                              MRCHA_LIST, MRCHA_LIST[_settings.mrcha]))
+                              MRCHA_LIST, current_index=_settings.mrcha))
         cfg_grp.append(rs)
         rs = RadioSetting("vol", "Volume",
                           RadioSettingValueList(
-                              VOL_LIST, VOL_LIST[_settings.vol]))
+                              VOL_LIST, current_index=_settings.vol))
         cfg_grp.append(rs)
         rs = RadioSetting("opendis", "Open Display",
                           RadioSettingValueList(
-                              OPENDIS_LIST, OPENDIS_LIST[_settings.opendis]))
+                              OPENDIS_LIST, current_index=_settings.opendis))
         cfg_grp.append(rs)
 
         def _filter(name):
@@ -708,16 +712,16 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("lamp", "Backlight",
                           RadioSettingValueList(
-                              LAMP_LIST, LAMP_LIST[_settings.lamp]))
+                              LAMP_LIST, current_index=_settings.lamp))
         cfg_grp.append(rs)
         rs = RadioSetting("keylockm", "Key Lock Mode",
                           RadioSettingValueList(
                               KEYLOCKM_LIST,
-                              KEYLOCKM_LIST[_settings.keylockm]))
+                              current_index=_settings.keylockm))
         cfg_grp.append(rs)
         rs = RadioSetting("absel", "A/B Select",
                           RadioSettingValueList(ABSEL_LIST,
-                                                ABSEL_LIST[_settings.absel]))
+                                                current_index=_settings.absel))
         cfg_grp.append(rs)
 
         rs = RadioSetting("obeep", "Open Beep",
@@ -772,11 +776,11 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         cfg_grp.append(rs)
         rs = RadioSetting("voxgain", "VOX Gain",
                           RadioSettingValueList(
-                              VOXGAIN_LIST, VOXGAIN_LIST[_settings.voxgain]))
+                              VOXGAIN_LIST, current_index=_settings.voxgain))
         cfg_grp.append(rs)
         rs = RadioSetting("voxdt", "VOX Delay Time",
                           RadioSettingValueList(
-                              VOXDT_LIST, VOXDT_LIST[_settings.voxdt]))
+                              VOXDT_LIST, current_index=_settings.voxdt))
         cfg_grp.append(rs)
         rs = RadioSetting("vir", "VOX Inhibit on Receive",
                           RadioSettingValueBoolean(_settings.vir))
@@ -788,27 +792,27 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         val = (_settings.dtmftime) - 5
         rs = RadioSetting("dtmftime", "DTMF Digit Time",
                           RadioSettingValueList(
-                              DTMFTIME_LIST, DTMFTIME_LIST[val]))
+                              DTMFTIME_LIST, current_index=val))
         adv_grp.append(rs)
         val = (_settings.dtmfspace) - 5
         rs = RadioSetting("dtmfspace", "DTMF Digit Space Time",
                           RadioSettingValueList(
-                              DTMFTIME_LIST, DTMFTIME_LIST[val]))
+                              DTMFTIME_LIST, current_index=val))
         adv_grp.append(rs)
         val = (_settings.dtmfdelay) // 5
         rs = RadioSetting("dtmfdelay", "DTMF 1st Digit Delay",
                           RadioSettingValueList(
-                              DTMFDELAY_LIST, DTMFDELAY_LIST[val]))
+                              DTMFDELAY_LIST, current_index=val))
         adv_grp.append(rs)
         val = (_settings.dtmfpretime) // 10 - 1
         rs = RadioSetting("dtmfpretime", "DTMF Pretime",
                           RadioSettingValueList(
-                              DTMFPRETIME_LIST, DTMFPRETIME_LIST[val]))
+                              DTMFPRETIME_LIST, current_index=val))
         adv_grp.append(rs)
         val = (_settings.dtmfdelay2) // 5
         rs = RadioSetting("dtmfdelay2", "DTMF * and # Digit Delay",
                           RadioSettingValueList(
-                              DTMFDELAY2_LIST, DTMFDELAY2_LIST[val]))
+                              DTMFDELAY2_LIST, current_index=val))
         adv_grp.append(rs)
         rs = RadioSetting("ackdecode", "ACK Decode",
                           RadioSettingValueBoolean(_settings.ackdecode))
@@ -830,41 +834,41 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
         val = (_settings.lptime) - 5
         rs = RadioSetting("lptime", "Long Press Time",
                           RadioSettingValueList(
-                              LPTIME_LIST, LPTIME_LIST[val]))
+                              LPTIME_LIST, current_index=val))
         key_grp.append(rs)
         rs = RadioSetting("keyp1long", "P1 Long Key",
                           RadioSettingValueList(
                               PFKEYLONG_LIST,
-                              PFKEYLONG_LIST[_settings.keyp1long]))
+                              current_index=_settings.keyp1long))
         key_grp.append(rs)
         rs = RadioSetting("keyp1short", "P1 Short Key",
                           RadioSettingValueList(
                               PFKEYSHORT_LIST,
-                              PFKEYSHORT_LIST[_settings.keyp1short]))
+                              current_index=_settings.keyp1short))
         key_grp.append(rs)
         rs = RadioSetting("keyp2long", "P2 Long Key",
                           RadioSettingValueList(
                               PFKEYLONG_LIST,
-                              PFKEYLONG_LIST[_settings.keyp2long]))
+                              current_index=_settings.keyp2long))
         key_grp.append(rs)
         rs = RadioSetting("keyp2short", "P2 Short Key",
                           RadioSettingValueList(
                               PFKEYSHORT_LIST,
-                              PFKEYSHORT_LIST[_settings.keyp2short]))
+                              current_index=_settings.keyp2short))
         key_grp.append(rs)
         rs = RadioSetting("keyp3long", "P3 Long Key",
                           RadioSettingValueList(
                               PFKEYLONG_LIST,
-                              PFKEYLONG_LIST[_settings.keyp3long]))
+                              current_index=_settings.keyp3long))
         key_grp.append(rs)
         rs = RadioSetting("keyp3short", "P3 Short Key",
                           RadioSettingValueList(
                               PFKEYSHORT_LIST,
-                              PFKEYSHORT_LIST[_settings.keyp3short]))
+                              current_index=_settings.keyp3short))
         key_grp.append(rs)
 
         val = RadioSettingValueList(PFKEYSHORT_LIST,
-                                    PFKEYSHORT_LIST[_settings.keymshort])
+                                    current_index=_settings.keymshort)
         val.set_mutable(_settings.menuen == 0)
         rs = RadioSetting("keymshort", "M Short Key", val)
         key_grp.append(rs)
@@ -940,7 +944,7 @@ class LeixenVV898Radio(chirp_common.CloneModeRadio):
                     else:
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -965,13 +969,21 @@ class JetstreamJT270MRadio(LeixenVV898Radio):
     _model_ident = b'LX-\x89\x85\x53'
 
 
+class LT898UV(LeixenVV898Radio):
+    VENDOR = "LUITON"
+    MODEL = "LT-898UV"
+
+    @classmethod
+    def match_model(cls, filedata, filename):
+        return False
+
+
 @directory.register
 class JetstreamJT270MHRadio(LeixenVV898Radio):
 
     """Jetstream JT270MH"""
     VENDOR = "Jetstream"
     MODEL = "JT270MH"
-    ALIASES = []
 
     _file_ident = b"Leixen"
     _model_ident = b'LX-\x89\x85\x85'
@@ -984,10 +996,12 @@ class JetstreamJT270MHRadio(LeixenVV898Radio):
     _power_levels = [chirp_common.PowerLevel("Low", watts=5),
                      chirp_common.PowerLevel("Mid", watts=10),
                      chirp_common.PowerLevel("High", watts=25)]
+    # Base radio has offset zero to distinguish from sub devices
+    _offset = 0
 
     def get_features(self):
         rf = super(JetstreamJT270MHRadio, self).get_features()
-        rf.has_sub_devices = self.VARIANT == ''
+        rf.has_sub_devices = self._offset == 0
         rf.memory_bounds = (1, 99)
         return rf
 
@@ -1012,21 +1026,12 @@ class JetstreamJT270MHRadioB(JetstreamJT270MHRadio):
     _offset = 2
 
 
-class VV898E(chirp_common.Alias):
-
-    '''Leixen has called this radio both 898E and S historically, ident is
-    identical'''
-    VENDOR = "Leixen"
-    MODEL = "VV-898E"
-
-
 @directory.register
 class LeixenVV898SRadio(LeixenVV898Radio):
 
     """Leixen VV-898S, also VV-898E which is identical"""
     VENDOR = "Leixen"
     MODEL = "VV-898S"
-    ALIASES = [VV898E, ]
 
     _model_ident = b'LX-\x89\x85\x75'
     _mem_formatter = {'unknownormode': 'mode:1',
@@ -1037,3 +1042,41 @@ class LeixenVV898SRadio(LeixenVV898Radio):
     _power_levels = [chirp_common.PowerLevel("Low", watts=5),
                      chirp_common.PowerLevel("Med", watts=10),
                      chirp_common.PowerLevel("High", watts=25)]
+
+
+@directory.register
+class VV898E(LeixenVV898SRadio):
+    '''Leixen has called this radio both 898E and S historically, ident is
+    identical'''
+    VENDOR = "Leixen"
+    MODEL = "VV-898E"
+
+    @classmethod
+    def match_model(cls, filedata, filename):
+        return False
+
+
+@directory.register
+@directory.detected_by(LeixenVV898SRadio)
+class VV898SDualBank(JetstreamJT270MHRadio):
+    '''Newer VV898S 1.06+ firmware that features dual memory banks'''
+    VENDOR = "Leixen"
+    MODEL = "VV-898S"
+    VARIANT = "Dual Bank"
+
+    @classmethod
+    def match_model(cls, filedata, filename):
+        return False
+
+
+@directory.register
+@directory.detected_by(VV898E)
+class VV898EDualBank(JetstreamJT270MHRadio):
+    '''Newer VV898E 1.06+ firmware that features dual memory banks'''
+    VENDOR = "Leixen"
+    MODEL = "VV-898E"
+    VARIANT = "Dual Bank"
+
+    @classmethod
+    def match_model(cls, filedata, filename):
+        return False

@@ -30,22 +30,6 @@ jobs:
           path: unit_report.html
 
   driver:
-    name: Driver tests (Python 3.8)
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Run tox
-        uses: ./.github/actions/py3-tox
-        with:
-          tox_target: fast-driver
-      - name: Archive results
-        uses: actions/upload-artifact@v3
-        with:
-          name: driver_report
-          path: driver_report.html
-
-  driver-py:
     name: Driver tests (Python 3.10)
     runs-on: ubuntu-22.04
     steps:
@@ -55,6 +39,25 @@ jobs:
         uses: ./.github/actions/py3-tox
         with:
           tox_target: fast-driver
+
+  driver-next:
+    name: Driver tests (Python 3.12)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install python 3.12
+        uses: actions/setup-python@v5
+        id: pyinst
+        with:
+          python-version: '3.12'
+      - run: "sudo ln -s ${{ steps.pyinst.outputs.python-path }} /usr/local/bin/python3.12"
+      - run: "echo $PATH; ls -l /usr/local/bin"
+      - name: Run tox
+        uses: ./.github/actions/py3-tox
+        with:
+          tox_target: fast-driver
+          py_version: '3.12'
 
   matrix:
     name: Create support matrix

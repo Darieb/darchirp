@@ -21,6 +21,7 @@ it checks the CHIRP_DEBUG, CHIRP_LOG, and CHIRP_LOG_LEVEL environment
 variables.
 """
 
+import contextlib
 import os
 import sys
 import logging
@@ -150,7 +151,7 @@ class Logger(object):
     def set_log_level_by_name(self, level):
         self.set_log_level(log_level_names[level])
 
-    instance = None
+    instance: object
 
 
 Logger.instance = Logger()
@@ -189,3 +190,27 @@ def handle_options(options):
 
     if logger.early_level > logging.DEBUG:
         logger.LOG.debug(version_string())
+
+
+class LookbackHandler(logging.Handler):
+    def __init__(self):
+        super().__init__()
+        self._history = []
+
+    def emit(self, record):
+        self._history.append(record)
+
+    def get_history(self):
+        return self._history
+
+
+@contextlib.contextmanager
+def log_history(level, root=None):
+    root = logging.getLogger(root)
+    handler = LookbackHandler()
+    handler.setLevel(level)
+    try:
+        root.addHandler(handler)
+        yield handler
+    finally:
+        root.removeHandler(handler)

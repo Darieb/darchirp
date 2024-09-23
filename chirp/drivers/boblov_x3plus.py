@@ -50,6 +50,7 @@ class BoblovX3Plus(chirp_common.CloneModeRadio,
     VENDOR = 'Boblov'
     MODEL = 'X3Plus'
     BAUD_RATE = 9600
+    NEEDS_COMPAT_SERIAL = True
     CHANNELS = 16
 
     MEM_FORMAT = """
@@ -137,7 +138,7 @@ class BoblovX3Plus(chirp_common.CloneModeRadio,
 
         rf = chirp_common.RadioFeatures()
         rf.has_settings = True
-        rf.valid_modes = ['NFM', 'FM']  # 12.5 KHz, 25 kHz.
+        rf.valid_modes = ['NFM', 'FM']  # 12.5 kHz, 25 kHz.
         rf.valid_power_levels = self.X3P_POWER_LEVELS
         rf.valid_skips = ['', 'S']
         rf.valid_tmodes = ['', 'Tone', 'TSQL', 'DTCS', 'Cross']
@@ -259,14 +260,15 @@ class BoblovX3Plus(chirp_common.CloneModeRadio,
         mem.number = number
         mem.freq = int(rmem.rxfreq) * 10
 
-        # A blank (0MHz) or 0xFFFFFFFF frequency is considered empty
-        if mem.freq == 0 or rmem.rxfreq.get_raw() == '\xFF\xFF\xFF\xFF':
+        # A blank (0 MHz) or 0xFFFFFFFF frequency is considered empty
+        if mem.freq == 0 or (
+                rmem.rxfreq.get_raw(asbytes=False) == '\xFF\xFF\xFF\xFF'):
             LOG.debug('empty channel %d', number)
             mem.freq = 0
             mem.empty = True
             return mem
 
-        if rmem.txfreq.get_raw() == '\xFF\xFF\xFF\xFF':
+        if rmem.txfreq.get_raw(asbytes=False) == '\xFF\xFF\xFF\xFF':
             mem.duplex = 'off'
             mem.offset = 0
         elif int(rmem.rxfreq) == int(rmem.txfreq):

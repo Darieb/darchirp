@@ -23,15 +23,13 @@ from chirp import errors
 from chirp import memmap
 from chirp import util
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
-    RadioSettingValueList, RadioSettingValueString, RadioSettingValueBoolean, \
-    RadioSettingValueInteger, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError
+    RadioSettingValueList, RadioSettingValueString, RadioSettingValueInteger
 
 LOG = logging.getLogger(__name__)
 
 #
-#  Chirp Driver for TYT TH-9000D (models: 2M (144 Mhz), 1.25M (220 Mhz)
-#                                 and 70cm (440 Mhz)  radios)
+#  Chirp Driver for TYT TH-9000D (models: 2M (144 MHz), 1.25M (220 MHz)
+#                                 and 70 cm (440 MHz) radios)
 #
 #  Version 1.0
 #
@@ -58,19 +56,8 @@ BGBRIGHT_LIST = ["%s" % x for x in range(1, 32)]
 SQUELCH_LIST = ["Off"] + ["Level %s" % x for x in range(1, 20)]
 TIMEOUT_LIST = ["Off"] + ["%s min" % x for x in range(1, 30)]
 TXPWR_LIST = ["60W", "25W"]  # maximum power for Hi setting
-TBSTFREQ_LIST = ["1750Hz", "2100Hz", "1000Hz", "1450Hz"]
+TBSTFREQ_LIST = ["1750 Hz", "2100 Hz", "1000 Hz", "1450 Hz"]
 BEEP_LIST = ["Off", "On"]
-
-SETTING_LISTS = {
-        "auto_power_off": APO_LIST,
-        "bg_color": BGCOLOR_LIST,
-        "bg_brightness": BGBRIGHT_LIST,
-        "squelch": SQUELCH_LIST,
-        "timeout_timer": TIMEOUT_LIST,
-        "choose_tx_power": TXPWR_LIST,
-        "tbst_freq": TBSTFREQ_LIST,
-        "voice_prompt": BEEP_LIST
-}
 
 MEM_FORMAT = """
 #seekto 0x0000;
@@ -144,7 +131,7 @@ struct {
 """
 #  TH9000  memory map
 #  section: 5  TX/RX Range
-#     used to set the TX/RX range of the radio (e.g.  222-228Mhz for 220 meter)
+#     used to set the TX/RX range of the radio (e.g. 222-228 MHz for 220 meter)
 #     possible to set range for tx/rx
 #
 MEM_FORMAT = MEM_FORMAT + """
@@ -196,8 +183,8 @@ struct {
 #  1         u8 unknown;
 #  1         u8 bg_color ;       bg color, menu index,  blue 0 , orange 1,
 #                                purple 2
-#  1         u8 tbst_freq ;      tbst freq , menu 0 = 1750Hz, 1=2100 ,
-#                                2=1000 , 3=1450hz
+#  1         u8 tbst_freq ;      tbst freq, menu 0=1750 Hz, 1=2100,
+#                                2=1000, 3=1450 Hz
 #  1         u8 timeout_timer;   timeout timer, hex, value = minutes,
 #                                0= no timeout
 #  1         u8 unknown;
@@ -418,6 +405,7 @@ def _ident(radio):
 
         if response == b"QX\06":
             exito = True
+            break
 
     # check if we had EXITO
     if exito is False:
@@ -531,7 +519,6 @@ class Th9000Radio(chirp_common.CloneModeRadio,
     VENDOR = "TYT"
     MODEL = "TH9000 Base"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     valid_freq = [(900000000, 999000000)]
 
     _memsize = MMAPSIZE
@@ -560,6 +547,7 @@ class Th9000Radio(chirp_common.CloneModeRadio,
         rf.valid_cross_modes = ['Tone->DTCS', 'DTCS->Tone',
                                 '->Tone', '->DTCS', 'Tone->Tone']
         rf.valid_power_levels = POWER_LEVELS
+        rf.valid_tones = TONES
         rf.valid_dtcs_codes = chirp_common.ALL_DTCS_CODES
         rf.valid_bands = self.valid_freq
         rf.valid_tuning_steps = TUNING_STEPS
@@ -655,7 +643,7 @@ class Th9000Radio(chirp_common.CloneModeRadio,
 
         mem.skip = "S" if skipflag == 1 else ""
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
 
@@ -742,44 +730,52 @@ class Th9000Radio(chirp_common.CloneModeRadio,
         rs = RadioSetting("startname", "Startup Label", val)
         basic.append(rs)
 
-        rs = RadioSetting("bg_color", "LCD Color",
-                          RadioSettingValueList(BGCOLOR_LIST, BGCOLOR_LIST[
-                                                _settings.bg_color]))
+        rs = RadioSetting(
+            "bg_color", "LCD Color",
+            RadioSettingValueList(
+                BGCOLOR_LIST, current_index=_settings.bg_color))
         basic.append(rs)
 
-        rs = RadioSetting("bg_brightness", "LCD Brightness",
-                          RadioSettingValueList(BGBRIGHT_LIST, BGBRIGHT_LIST[
-                                                _settings.bg_brightness]))
+        rs = RadioSetting(
+            "bg_brightness", "LCD Brightness",
+            RadioSettingValueList(
+                BGBRIGHT_LIST, current_index=_settings.bg_brightness))
         basic.append(rs)
 
-        rs = RadioSetting("squelch", "Squelch Level",
-                          RadioSettingValueList(SQUELCH_LIST, SQUELCH_LIST[
-                                                _settings.squelch]))
+        rs = RadioSetting(
+            "squelch", "Squelch Level",
+            RadioSettingValueList(
+                SQUELCH_LIST, current_index=_settings.squelch))
         basic.append(rs)
 
-        rs = RadioSetting("timeout_timer", "Timeout Timer (TOT)",
-                          RadioSettingValueList(TIMEOUT_LIST, TIMEOUT_LIST[
-                                                _settings.timeout_timer]))
+        rs = RadioSetting(
+            "timeout_timer", "Timeout Timer (TOT)",
+            RadioSettingValueList(
+                TIMEOUT_LIST, current_index=_settings.timeout_timer))
         basic.append(rs)
 
-        rs = RadioSetting("auto_power_off", "Auto Power Off (APO)",
-                          RadioSettingValueList(APO_LIST, APO_LIST[
-                                                _settings.auto_power_off]))
+        rs = RadioSetting(
+            "auto_power_off", "Auto Power Off (APO)",
+            RadioSettingValueList(
+                APO_LIST, current_index=_settings.auto_power_off))
         basic.append(rs)
 
-        rs = RadioSetting("voice_prompt", "Beep Prompt",
-                          RadioSettingValueList(BEEP_LIST, BEEP_LIST[
-                                                 _settings.voice_prompt]))
+        rs = RadioSetting(
+            "voice_prompt", "Beep Prompt",
+            RadioSettingValueList(
+                BEEP_LIST, current_index=_settings.voice_prompt))
         basic.append(rs)
 
-        rs = RadioSetting("tbst_freq", "Tone Burst Frequency",
-                          RadioSettingValueList(TBSTFREQ_LIST, TBSTFREQ_LIST[
-                                                _settings.tbst_freq]))
+        rs = RadioSetting(
+            "tbst_freq", "Tone Burst Frequency",
+            RadioSettingValueList(
+                TBSTFREQ_LIST, current_index=_settings.tbst_freq))
         basic.append(rs)
 
-        rs = RadioSetting("choose_tx_power", "Max Level of TX Power",
-                          RadioSettingValueList(TXPWR_LIST, TXPWR_LIST[
-                                                _settings.choose_tx_power]))
+        rs = RadioSetting(
+            "choose_tx_power", "Max Level of TX Power",
+            RadioSettingValueList(
+                TXPWR_LIST, current_index=_settings.choose_tx_power))
         basic.append(rs)
 
         (flow, fhigh) = self.valid_freq[0]
@@ -787,25 +783,25 @@ class Th9000Radio(chirp_common.CloneModeRadio,
         fhigh /= 1000
         fmidrange = (fhigh - flow) / 2
 
-        rs = RadioSetting("txrangelow", "TX Freq, Lower Limit (khz)",
+        rs = RadioSetting("txrangelow", "TX Freq, Lower Limit (kHz)",
                           RadioSettingValueInteger(
                               flow, flow + fmidrange,
                               int(_freqrange.txrangelow) / 10))
         freqrange.append(rs)
 
-        rs = RadioSetting("txrangehi", "TX Freq, Upper Limit (khz)",
+        rs = RadioSetting("txrangehi", "TX Freq, Upper Limit (kHz)",
                           RadioSettingValueInteger(
                               fhigh-fmidrange, fhigh,
                               int(_freqrange.txrangehi) / 10))
         freqrange.append(rs)
 
-        rs = RadioSetting("rxrangelow", "RX Freq, Lower Limit (khz)",
+        rs = RadioSetting("rxrangelow", "RX Freq, Lower Limit (kHz)",
                           RadioSettingValueInteger(
                               flow, flow+fmidrange,
                               int(_freqrange.rxrangelow) / 10))
         freqrange.append(rs)
 
-        rs = RadioSetting("rxrangehi", "RX Freq, Upper Limit (khz)",
+        rs = RadioSetting("rxrangehi", "RX Freq, Upper Limit (kHz)",
                           RadioSettingValueInteger(
                               fhigh-fmidrange, fhigh,
                               int(_freqrange.rxrangehi) / 10))
@@ -855,7 +851,7 @@ class Th9000Radio(chirp_common.CloneModeRadio,
                         LOG.debug("Setting %s = %s" % (setting,
                                   element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

@@ -7,20 +7,21 @@ setup(name='chirp',
       include_package_data=True,
       version=0,
       url='https://chirp.danplanet.com',
-      python_requires=">=3.7,<4",
+      python_requires=">=3.10,<4",
       install_requires=[
           'pyserial',
           'requests',
-          'six',
-          'future',
-          'importlib-resources;python_version<"3.10"',
           'yattag',
+          'suds',
       ],
       extras_require={
           'wx': ['wxPython'],
       },
       entry_points={
-          'console_scripts': ["chirp=chirp.wxui:chirpmain",
-                              "chirpc=chirp.cli.main:main"],
+          'console_scripts': [
+              "chirp=chirp.wxui:chirpmain",
+              "chirpc=chirp.cli.main:main",
+              "experttune=chirp.cli.experttune:main",
+          ],
       },
       )

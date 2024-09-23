@@ -26,7 +26,7 @@ DESC = {
 # Bands are broken up like this so that other plans can import bits.
 
 BANDS_2100M = (
-  bandplan.Band((135700, 137800), "137khz Band", mode="CW"),
+  bandplan.Band((135700, 137800), "137 kHz Band", mode="CW"),
 )
 
 BANDS_160M = (
@@ -134,6 +134,6 @@ BANDS_23CM = (
   bandplan.Band((1296000000, 1297000000), "Earth Moon Earth"),
 )
 
-BANDS = BANDS_2100M + BANDS_160M + BANDS_80M + BANDS_40M + BANDS_30M
-BANDS = BANDS + BANDS_20M + BANDS_17M + BANDS_15M + BANDS_12M + BANDS_10M
-BANDS = BANDS + BANDS_6M + BANDS_2M + BANDS_70CM + BANDS_23CM
+BANDS = BANDS_2100M + BANDS_160M + BANDS_80M + BANDS_40M + BANDS_30M + \
+        BANDS_20M + BANDS_17M + BANDS_15M + BANDS_12M + BANDS_10M + \
+        BANDS_6M + BANDS_2M + BANDS_70CM + BANDS_23CM

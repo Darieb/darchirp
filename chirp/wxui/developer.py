@@ -17,6 +17,7 @@ import functools
 import logging
 import os
 import serial
+import sys
 import tempfile
 
 import requests
@@ -25,11 +26,15 @@ import wx.richtext
 import wx.lib.scrolledpanel
 
 from chirp import bitwise
+from chirp import util
+import chirp.wxui
 from chirp.wxui import common
 from chirp.wxui import report
 
 LOG = logging.getLogger(__name__)
 BrowserChanged, EVT_BROWSER_CHANGED = wx.lib.newevent.NewCommandEvent()
+FROZEN = getattr(sys, 'frozen', False)
+developer_mode = chirp.wxui.developer_mode
 
 
 def simple_diff(a, b, diffsonly=False):
@@ -80,8 +85,10 @@ class MemoryDialog(wx.Dialog):
         if isinstance(mem, tuple):
             mem_a, mem_b = mem
             self._diff_memories(mem_a, mem_b)
+            self.SetTitle(_('Diff Raw Memories'))
         else:
             self._raw_memory(mem)
+            self.SetTitle(_('Show Raw Memory'))
 
         self.SetSize(640, 480)
         self.Centre()
@@ -181,6 +188,7 @@ class ChirpStringEditor(ChirpEditor):
 
         self._entry.Bind(wx.EVT_TEXT, self._edited)
         self._entry.Bind(wx.EVT_TEXT_ENTER, self._changed)
+        self._entry.SetEditable(not FROZEN)
 
     def refresh(self):
         self._entry.SetValue(str(self._obj))
@@ -220,6 +228,7 @@ class ChirpIntegerEditor(ChirpEditor):
             entry = wx.TextCtrl(self, value=fmt.format(int(self._obj)),
                                 style=wx.TE_PROCESS_ENTER)
             entry.SetFont(self._fixed_font)
+            entry.SetEditable(not FROZEN)
             sizer.Add(label, 0, wx.ALIGN_CENTER)
             sizer.Add(entry, 1, flag=wx.EXPAND)
             self._entries[name] = entry
@@ -271,6 +280,7 @@ class ChirpBCDEditor(ChirpEditor):
         self._entry = wx.TextCtrl(self, value=str(int(self._obj)),
                                   style=wx.TE_PROCESS_ENTER)
         self._entry.SetFont(self._fixed_font)
+        self._entry.SetEditable(not FROZEN)
         sizer.Add(self._entry, 1, wx.EXPAND)
         self._entry.Bind(wx.EVT_TEXT, self._edited)
         self._entry.Bind(wx.EVT_TEXT_ENTER, self._changed)
@@ -348,10 +358,12 @@ class ChirpBrowserPanel(wx.lib.scrolledpanel.ScrolledPanel):
             self._initialize()
 
             label = wx.StaticText(self)
-            pos = wx.StaticText(self, label='%i bits (%i bytes) at 0x%06x' % (
+            pos = wx.StaticText(
+                self, label='%i bits (%i bytes) at 0x%06x-0x%06x' % (
                     self._memobj.size(),
                     self._memobj.size() // 8,
-                    self._memobj.get_offset()))
+                    self._memobj.get_offset(),
+                    self._memobj.get_offset() + self._memobj.size() // 8))
             self._sizer.Add(label, 0, wx.ALIGN_CENTER)
             self._sizer.Add(pos, 1, flag=wx.EXPAND)
 
@@ -436,7 +448,65 @@ class ChirpBrowserTreeBook(wx.Treebook):
 
 
 class FakeSerial(serial.SerialBase):
-    pass
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self._fake_buf = bytearray()
+
+    @property
+    def in_waiting(self):
+        return len(self._fake_buf)
+
+    def write(self, buf):
+        LOG.debug('Fake serial write:\n%s' % util.hexprint(buf))
+
+    def read(self, count=None):
+        if count is None:
+            count = len(self._fake_buf)
+        data = self._fake_buf[:count]
+        self._fake_buf = self._fake_buf[count:]
+        LOG.debug('Fake serial read %i: %s', count, util.hexprint(data))
+        return data
+
+    def flush(self):
+        LOG.debug('Fake serial flushed')
+
+
+class FakeAT778(FakeSerial):
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        from chirp.drivers import anytone778uv
+        self._emulated = anytone778uv.RetevisRT95vox
+
+    def write(self, buf):
+        if buf == b'PROGRAM':
+            self._fake_buf.extend(buf + b'QX\x06')
+        elif buf == b'\x02':
+            model = list(self._emulated.ALLOWED_RADIO_TYPES.keys())[0]
+            version = self._emulated.ALLOWED_RADIO_TYPES[model][0]
+            self._fake_buf.extend(buf + b'\x49%7.7s\x00%6.6s\x06' % (
+                model.encode().ljust(7, b'\x00'),
+                version.encode().ljust(6, b'\x00')))
+        else:
+            raise Exception('Full clone not implemented')
+        super().write(buf)
+
+
+class FakeEchoSerial(FakeSerial):
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self._buf = []
+
+    def write(self, buf):
+        super().write(buf)
+        self._buf.extend(b for b in buf)
+
+    def read(self, count):
+        super().read(count)
+        try:
+            return bytes([self._buf.pop(0)])
+        except IndexError:
+            LOG.warning('Empty echo buffer')
+            return b''
 
 
 class IssueModuleLoader:
@@ -447,7 +517,7 @@ class IssueModuleLoader:
 
     def get_attachments_from_issue(self, issue):
         r = self.session.get(
-            'https://chirp.danplanet.com/issues/%i.json' % issue,
+            'https://chirpmyradio.com/issues/%i.json' % issue,
             params={'include': 'attachments'})
         LOG.debug('Fetched attachments for issue %i (status %s)' % (
             issue, r.status_code))
@@ -457,6 +527,21 @@ class IssueModuleLoader:
                 a['filename'].endswith('.py') and
                 a.get('content_type', '').startswith('text/') and
                 a['filesize'] < (256 * 1024)]
+
+    def get_user_is_developer(self, uid):
+        r = self.session.get('https://chirpmyradio.com/users/%i.json' % uid,
+                             params={'include': 'memberships'})
+        LOG.debug('Fetched info for user %i (status %s)',
+                  uid, r.status_code)
+        r.raise_for_status()
+        data = r.json()
+        try:
+            membership = data['user']['memberships'][0]
+        except IndexError:
+            LOG.debug('User %s(%i) has no roles', data['user']['login'], uid)
+            return False
+        roles = [r['name'] for r in membership['roles']]
+        return 'Developer' in roles or 'Manager' in roles
 
     def get_attachment_from_user(self, issue, attachments):
         attachment_strings = {
@@ -473,6 +558,17 @@ class IssueModuleLoader:
             len(choices) - 1,
             parent=self._parent)
         if choice:
+            isdev = self.get_user_is_developer(
+                attachment_strings[choice]['author']['id'])
+            if not isdev:
+                r = wx.MessageBox(
+                    _('The author of this module is not a recognized '
+                      'CHIRP developer. It is recommended that you not '
+                      'load this module as it could pose a security risk. '
+                      'Proceed anyway?'), _('Security Risk'),
+                    wx.YES_NO | wx.NO_DEFAULT)
+                if r != wx.YES:
+                    return
             return attachment_strings[choice]
 
     def run(self):

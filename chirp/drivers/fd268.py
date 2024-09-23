@@ -177,7 +177,7 @@ def do_magic(radio):
     status.msg = "Linking to radio, please wait."
     radio.status_fn(status)
 
-    # every byte of this magic chain must be send separatedly
+    # every byte of this magic chain must be send separately
     magic = "\x02PROGRA"
 
     # start the fun, finger crossed please...
@@ -286,6 +286,7 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
     VENDOR = "Feidaxin"
     MODEL = "FD-268 & alike Radios"
     BAUD_RATE = 9600
+    NEEDS_COMPAT_SERIAL = True
     _memsize = MEM_SIZE
     _upper = 99
     _VFO_DEFAULT = 0
@@ -379,7 +380,7 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
 
     def _decode_tone(self, val):
         """Parse the tone data to decode from mem, it returns"""
-        if val.get_raw() == "\xFF\xFF":
+        if val.get_raw(asbytes=False) == "\xFF\xFF":
             return '', None, None
 
         val = int(val)
@@ -418,7 +419,7 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
         mem.number = number
 
         # empty
-        if _mem.get_raw()[0] == "\xFF":
+        if _mem.get_raw(asbytes=False)[0] == "\xFF":
             mem.empty = True
             return mem
 
@@ -427,7 +428,7 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
 
         # checking if tx freq is empty, this is "possible" on the
         # original soft after a warning, and radio is happy with it
-        if _mem.tx_freq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.tx_freq.get_raw(asbytes=False) == "\xFF\xFF\xFF\xFF":
             mem.duplex = "off"
             mem.offset = 0
         else:
@@ -448,11 +449,11 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
         # Extra setting group, FD-268 don't uset it at all
         # FD-288's & others do it?
         mem.extra = RadioSettingGroup("extra", "Extra")
-        busy = RadioSetting("Busy", "Busy Channel Lockout",
+        busy = RadioSetting("busy_lock", "Busy Channel Lockout",
                             RadioSettingValueBoolean(
                                 bool(_mem.busy_lock)))
         mem.extra.append(busy)
-        scramble = RadioSetting("Scrambler", "Scrambler Option",
+        scramble = RadioSetting("scrambler", "Scrambler Option",
                                 RadioSettingValueBoolean(
                                     bool(_mem.scrambler)))
         mem.extra.append(scramble)
@@ -506,27 +507,23 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
 
         # Basic
         sql = RadioSetting("settings.sql", "Squelch Level",
-                           RadioSettingValueList(LIST_SQL, LIST_SQL[
-                               _mem.settings.sql]))
+                           RadioSettingValueList(LIST_SQL, current_index=_mem.settings.sql))
         basic.append(sql)
 
         tot = RadioSetting("settings.tot", "Time out timer",
-                           RadioSettingValueList(LIST_TOT, LIST_TOT[
-                               _mem.settings.tot]))
+                           RadioSettingValueList(LIST_TOT, current_index=_mem.settings.tot))
         basic.append(tot)
 
         key_lock = RadioSetting("settings.key", "Keyboard Lock",
-                                RadioSettingValueList(KEY_LOCK, KEY_LOCK[
-                                    _mem.settings.key]))
+                                RadioSettingValueList(KEY_LOCK, current_index=_mem.settings.key))
         basic.append(key_lock)
 
         bw = RadioSetting("settings.bw", "Bandwidth",
-                          RadioSettingValueList(BW, BW[_mem.settings.bw]))
+                          RadioSettingValueList(BW, current_index=_mem.settings.bw))
         basic.append(bw)
 
         powerrank = RadioSetting("settings.powerrank", "Power output adjust",
-                                 RadioSettingValueList(POWER_RANK, POWER_RANK[
-                                    _mem.settings.powerrank]))
+                                 RadioSettingValueList(POWER_RANK, current_index=_mem.settings.powerrank))
         basic.append(powerrank)
 
         lamp = RadioSetting("settings.lamp", "LCD Lamp",
@@ -553,21 +550,19 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
         # Work mode settings
         wmset = RadioSetting("settings.wmem", "VFO/MR Mode",
                              RadioSettingValueList(
-                                 W_MODE, W_MODE[_mem.settings.wmem]))
+                                 W_MODE, current_index=_mem.settings.wmem))
         work.append(wmset)
 
         power = RadioSetting("settings.power", "Actual Power",
-                             RadioSettingValueList(POWER_LEVELS, POWER_LEVELS[
-                                 _mem.settings.power]))
+                             RadioSettingValueList(POWER_LEVELS, current_index=_mem.settings.power))
         work.append(power)
 
         active_ch = RadioSetting("settings.active_ch", "Work Channel",
-                                 RadioSettingValueList(ACTIVE_CH, ACTIVE_CH[
-                                     _mem.settings.active_ch]))
+                                 RadioSettingValueList(ACTIVE_CH, current_index=_mem.settings.active_ch))
         work.append(active_ch)
 
         # vfo rx validation
-        if _mem.vfo.vrx_freq.get_raw()[0] == "\xFF":
+        if _mem.vfo.vrx_freq.get_raw(asbytes=False)[0] == "\xFF":
             # if the vfo is not set, the UI cares about the
             # length of the field, so set a default
             LOG.debug("Setting VFO to default %s" % self._VFO_DEFAULT)
@@ -597,11 +592,11 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
             sset = 2
 
         shift = RadioSetting("none.shift", "VFO Shift",
-                             RadioSettingValueList(VSHIFT, VSHIFT[sset]))
+                             RadioSettingValueList(VSHIFT, current_index=sset))
         work.append(shift)
 
         # vfo shift validation if none set it to ZERO
-        if _mem.settings.vfo_shift.get_raw()[0] == "\xFF":
+        if _mem.settings.vfo_shift.get_raw(asbytes=False)[0] == "\xFF":
             # if the shift is not set, the UI cares about the
             # length of the field, so set to zero
             LOG.debug("VFO shift not set, setting it to zero")
@@ -615,15 +610,13 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
         work.append(offset)
 
         step = RadioSetting("settings", "VFO step",
-                            RadioSettingValueList(STEPF, STEPF[
-                                _mem.settings.step]))
+                            RadioSettingValueList(STEPF, current_index=_mem.settings.step))
         work.append(step)
 
         # FD-288 Family ANI settings
         if "FD-288" in self.MODEL:
             ani_mode = RadioSetting("ani_mode", "ANI ID",
-                                    RadioSettingValueList(ANI, ANI[
-                                        _mem.settings.ani_mode]))
+                                    RadioSettingValueList(ANI, current_index=_mem.settings.ani_mode))
             work.append(ani_mode)
 
             # it can't be \xFF
@@ -758,7 +751,7 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
                     try:
                         element.run_apply_callback()
                         continue
-                    except NotImplementedError as e:
+                    except NotImplementedError:
                         raise
 
                 elif sett == "none":
@@ -776,11 +769,11 @@ class FeidaxinFD2x8yRadio(chirp_common.CloneModeRadio):
                         obj = getattr(_mem, sett)
                         setattr(obj, name, element.value)
 
-                    except AttributeError as e:
+                    except AttributeError:
                         m = "Setting %s is not in this setting block" % name
                         LOG.debug(m)
 
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

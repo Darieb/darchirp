@@ -26,33 +26,7 @@ from chirp.settings import RadioSetting, RadioSettingGroup, \
 LOG = logging.getLogger(__name__)
 
 MEM_FORMAT = """
-struct memory {
-  ul32 rxfreq;      // RX Frequency          00-03
-  ul16 rx_tone;     // PL/DPL Decode         04-05
-  ul32 txfreq;      // TX Frequency          06-09
-  ul16 tx_tone;     // PL/DPL Encode         0a-0b
-  ul24 mutecode;    // Mute Code             0c-0e
-  u8 unknown_0:2,   //                       0f
-     mutetype:2,    // Mute Type
-     unknown_1:4;   //
-  u8 isnarrow:1,    // Bandwidth             00
-     lowpower:1,    // Power
-     scan:1,        // Scan Add
-     bcl:2,         // Busy Lock
-     is_airband:1,  // Air Band (AM)
-     unknown_3:1,   //
-     unknown_4:1;   //
-  u8 unknown_5;     //                       01
-  u8 unused_0:4,    //                       02
-     scno:4;        // SC No.
-  u8 unknown_6[3];  //                       03-05
-  char name[10];    //                       06-0f
-};
-
-#seekto 0x1000;
-struct memory channels[999];
-
-#seekto 0x0000;
+// #seekto 0x0000;
 struct {
   char startuplabel[32];  // Startup Label         0000-001f
   char personalid[16];    // Personal ID           0020-002f
@@ -118,6 +92,32 @@ struct {
   ul16 quickch3;          // Quick CH 3            0076-0077
 } settings;
 
+struct memory {
+  ul32 rxfreq;      // RX Frequency          00-03
+  ul16 rx_tone;     // PL/DPL Decode         04-05
+  ul32 txfreq;      // TX Frequency          06-09
+  ul16 tx_tone;     // PL/DPL Encode         0a-0b
+  ul24 mutecode;    // Mute Code             0c-0e
+  u8 unknown_0:2,   //                       0f
+     mutetype:2,    // Mute Type
+     unknown_1:4;   //
+  u8 isnarrow:1,    // Bandwidth             00
+     lowpower:1,    // Power
+     scan:1,        // Scan Add
+     bcl:2,         // Busy Lock
+     is_airband:1,  // Air Band (AM)
+     unknown_3:1,   //
+     unknown_4:1;   //
+  u8 unknown_5;     //                       01
+  u8 unused_0:4,    //                       02
+     scno:4;        // SC No.
+  u8 unknown_6[3];  //                       03-05
+  char name[10];    //                       06-0f
+};
+
+#seekto 0x1000;
+struct memory channels[999];
+
 #seekto 0x8D20;
 struct {
   u8 senddelay;           // Send Delay            8d20
@@ -139,7 +139,7 @@ struct {
   u8 code_len;            // DTMF code length
 } dtmfcode[16];
 
-#seekto 0x8E30;
+// #seekto 0x8E30;
 struct {
   char kill[14];          // Remotely Kill         8e30-8e3d
   u8 unknown_0;           //                       8e3e
@@ -323,7 +323,7 @@ def do_upload(radio):
     status.cur = 0
     status.max = radio._memsize
 
-    # The OEM software reads the 1st block from the radio before comencing
+    # The OEM software reads the 1st block from the radio before commencing
     # with the upload. That behavior will be mirrored here.
     _read_block(radio, radio.START_ADDR, radio.BLOCK_SIZE)
 
@@ -357,7 +357,6 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
     MODEL = "UV-5118plus"
     NAME_LENGTH = 10
     BAUD_RATE = 115200
-    NEEDS_COMPAT_SERIAL = False
 
     BLOCK_SIZE = 0x80
     magic = b"58" + b"\x05\x10\x82"
@@ -406,7 +405,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = self.POWER_LEVELS
         rf.valid_duplexes = ["", "-", "+", "split"]
-        rf.valid_modes = ["FM", "NFM"]  # 25 KHz, 12.5 KHz.
+        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 kHz.
         rf.valid_dtcs_codes = DTCS_CODES
         rf.memory_bounds = (1, self._upper)
         rf.valid_tuning_steps = _STEP_LIST
@@ -493,12 +492,12 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         mem.freq = int(_mem.rxfreq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rxfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rxfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
@@ -521,7 +520,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
         else:
             mem.offset = 0
 
-        mem.name = str(_mem.name).rstrip('\xFF ')
+        mem.name = str(_mem.name).rstrip(" ").replace("\xFF", " ")
 
         mem.mode = _mem.isnarrow and "NFM" or "FM"
 
@@ -541,20 +540,22 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         mem.extra = RadioSettingGroup("Extra", "extra")
 
-        rs = RadioSettingValueList(LIST_BCL, LIST_BCL[_mem.bcl])
+        rs = RadioSettingValueList(LIST_BCL, current_index=_mem.bcl)
         rset = RadioSetting("bcl", "Busy Channel Lockout", rs)
         mem.extra.append(rset)
 
-        rs = RadioSettingValueList(LIST_MUTETYPE, LIST_MUTETYPE[_mem.mutetype])
+        rs = RadioSettingValueList(LIST_MUTETYPE, current_index=_mem.mutetype)
         rset = RadioSetting("mutetype", "Mute Type", rs)
         mem.extra.append(rset)
 
         rs = RadioSettingValueInteger(0, 16777215, _mem.mutecode)
-        rset = RadioSetting("mutecode", "Mute Code (0-16777215)", rs)
+        rset = RadioSetting("mutecode", "Mute Code", rs)
+        rset.set_doc('Value between 0-16777215')
         mem.extra.append(rset)
 
         rs = RadioSettingValueInteger(0, 8, _mem.scno)
-        rset = RadioSetting("scno", "SC No. (0-8)", rs)
+        rset = RadioSetting("scno", "SC No.", rs)
+        rset.set_doc('Value between 0-8')
         mem.extra.append(rset)
 
         return mem
@@ -565,7 +566,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # if empty memory
         if mem.empty:
-            _mem.set_raw("\xFF" * 22 + "\20" * 10)
+            _mem.set_raw("\xFF" * 22 + "\x20" * 10)
             return
 
         _mem.set_raw("\xFF" * 4 + "\x00\x30" + "\xFF" * 4 + "\x00\x30" +
@@ -582,7 +583,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
         else:
             _mem.txfreq = mem.freq / 10
 
-        _mem.name = mem.name.rstrip(' ').ljust(10, '\xFF')
+        _mem.name = mem.name.rstrip('\xFF').ljust(10, '\x20')
 
         _mem.scan = mem.skip != "S"
         _mem.isnarrow = mem.mode == "NFM"
@@ -618,7 +619,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         rs = RadioSettingValueList(LIST_WORKMODE,
-                                   LIST_WORKMODE[_settings.workmode])
+                                   current_index=_settings.workmode)
         rset = RadioSetting("workmode", "Work Mode", rs)
         basic.append(rset)
 
@@ -634,13 +635,13 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # Menu 07 - Roger Beep
         rs = RadioSettingValueList(LIST_ROGER,
-                                   LIST_ROGER[_settings.rogerbeep])
+                                   current_index=_settings.rogerbeep)
         rset = RadioSetting("rogerbeep", "Roger Beep", rs)
         basic.append(rset)
 
         # Menu 09 - TX Priority
         rs = RadioSettingValueList(LIST_TXPRI,
-                                   LIST_TXPRI[_settings.txpriority])
+                                   current_index=_settings.txpriority)
         rset = RadioSetting("txpriority", "TX Priority", rs)
         basic.append(rset)
 
@@ -651,7 +652,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # Menu 11 - Freq Step
         val = min(_settings.frequencystep, 0x0D)
-        rs = RadioSettingValueList(LIST_FREQSTEP, LIST_FREQSTEP[val])
+        rs = RadioSettingValueList(LIST_FREQSTEP, current_index=val)
         rset = RadioSetting("frequencystep", "Frequency Step", rs)
         basic.append(rset)
 
@@ -663,19 +664,19 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # Menu 13 - LED Timer
         val = min(_settings.displaytimer, 0x2A)
-        rs = RadioSettingValueList(LIST_TIMER, LIST_TIMER[val])
+        rs = RadioSettingValueList(LIST_TIMER, current_index=val)
         rset = RadioSetting("displaytimer", "Display Timer", rs)
         basic.append(rset)
 
         # Menu 14 - Lcok Timer
         val = min(_settings.locktimer, 0x2A)
-        rs = RadioSettingValueList(LIST_TIMER, LIST_TIMER[val])
+        rs = RadioSettingValueList(LIST_TIMER, current_index=val)
         rset = RadioSetting("locktimer", "Lock Timer", rs)
         basic.append(rset)
 
         # Menu 15 - TOT
         val = min(_settings.timeouttimer, 0x2A)
-        rs = RadioSettingValueList(LIST_TIMER, LIST_TIMER[val])
+        rs = RadioSettingValueList(LIST_TIMER, current_index=val)
         rset = RadioSetting("timeouttimer", "Timeout Timer", rs)
         basic.append(rset)
 
@@ -728,7 +729,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # Menu 21 - Scan DIR
         rs = RadioSettingValueList(LIST_DIRECTION,
-                                   LIST_DIRECTION[_settings.scandirection])
+                                   current_index=_settings.scandirection)
         rset = RadioSetting("scandirection", "Scan Direction", rs)
         basic.append(rset)
 
@@ -739,31 +740,31 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # Menu 23 - Repeater Mode
         val = min(_settings.talkaround, 0x02)
-        rs = RadioSettingValueList(LIST_REPEATER, LIST_REPEATER[val])
+        rs = RadioSettingValueList(LIST_REPEATER, current_index=val)
         rset = RadioSetting("talkaround", "Talkaround", rs)
         basic.append(rset)
 
         # Menu 37 - K1 Short
         val = min(_settings.key1short, 0x09)
-        rs = RadioSettingValueList(LIST_SKEY, LIST_SKEY[val])
+        rs = RadioSettingValueList(LIST_SKEY, current_index=val)
         rset = RadioSetting("key1short", "Key 1 Short", rs)
         basic.append(rset)
 
         # Menu 36 - K1 Long
         val = min(_settings.key1long, 0x09)
-        rs = RadioSettingValueList(LIST_SKEY, LIST_SKEY[val])
+        rs = RadioSettingValueList(LIST_SKEY, current_index=val)
         rset = RadioSetting("key1long", "Key 1 Long", rs)
         basic.append(rset)
 
         # Menu 39 - K2 Short
         val = min(_settings.key2short, 0x09)
-        rs = RadioSettingValueList(LIST_SKEY, LIST_SKEY[val])
+        rs = RadioSettingValueList(LIST_SKEY, current_index=val)
         rset = RadioSetting("key2short", "Key 2 Short", rs)
         basic.append(rset)
 
         # Menu 38 - K2 Long
         val = min(_settings.key2long, 0x09)
-        rs = RadioSettingValueList(LIST_SKEY, LIST_SKEY[val])
+        rs = RadioSettingValueList(LIST_SKEY, current_index=val)
         rset = RadioSetting("key2long", "Key 2 Long", rs)
         basic.append(rset)
 
@@ -776,7 +777,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         rs = RadioSettingValueList(LIST_AB,
-                                   LIST_AB[_settings.standbyarea])
+                                   current_index=_settings.standbyarea)
         rset = RadioSetting("standbyarea", "Standby Area", rs)
         basic.append(rset)
 
@@ -812,25 +813,25 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
 
         # Menu 40 - DTMF Delay
         val = min(_dtmf.senddelay, 0x14)
-        rs = RadioSettingValueList(LIST_DELAY, LIST_DELAY[val])
+        rs = RadioSettingValueList(LIST_DELAY, current_index=val)
         rset = RadioSetting("dtmf.senddelay", "Send Delay", rs)
         dtmf.append(rset)
 
         # Menu 41 - DTMF Interval
         val = min(_dtmf.sendinterval, 0x11)
-        rs = RadioSettingValueList(LIST_INTERVAL, LIST_INTERVAL[val])
+        rs = RadioSettingValueList(LIST_INTERVAL, current_index=val)
         rset = RadioSetting("dtmf.sendinterval", "Send Interval", rs)
         dtmf.append(rset)
 
         # Menu 42 - DTMF Mode
         rs = RadioSettingValueList(LIST_SENDM,
-                                   LIST_SENDM[_dtmf.sendmode])
+                                   current_index=_dtmf.sendmode)
         rset = RadioSetting("dtmf.sendmode", "Send Mode", rs)
         dtmf.append(rset)
 
         # Menu 43 - DTMF Select
         rs = RadioSettingValueList(LIST_SENDS,
-                                   LIST_SENDS[_dtmf.sendselect])
+                                   current_index=_dtmf.sendselect)
         rset = RadioSetting("dtmf.sendselect", "Send Select", rs)
         dtmf.append(rset)
 
@@ -978,7 +979,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
             idx = TXALLOW_VALUES.index(_settings.range174_240)
         else:
             idx = TXALLOW_VALUES.index(0xFF)
-        rs = RadioSettingValueList(TXALLOW_CHOICES, TXALLOW_CHOICES[idx])
+        rs = RadioSettingValueList(TXALLOW_CHOICES, current_index=idx)
         rset = RadioSetting("range174_240", "174-240 MHz", rs)
         rset.set_apply_callback(apply_txallow_listvalue,
                                 _settings.range174_240)
@@ -988,7 +989,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
             idx = TXALLOW_VALUES.index(_settings.range240_320)
         else:
             idx = TXALLOW_VALUES.index(0xFF)
-        rs = RadioSettingValueList(TXALLOW_CHOICES, TXALLOW_CHOICES[idx])
+        rs = RadioSettingValueList(TXALLOW_CHOICES, current_index=idx)
         rset = RadioSetting("range240_320", "240-320 MHz", rs)
         rset.set_apply_callback(apply_txallow_listvalue,
                                 _settings.range240_320)
@@ -998,7 +999,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
             idx = TXALLOW_VALUES.index(_settings.range320_400)
         else:
             idx = TXALLOW_VALUES.index(0xFF)
-        rs = RadioSettingValueList(TXALLOW_CHOICES, TXALLOW_CHOICES[idx])
+        rs = RadioSettingValueList(TXALLOW_CHOICES, current_index=idx)
         rset = RadioSetting("range320_400", "320-400 MHz", rs)
         rset.set_apply_callback(apply_txallow_listvalue,
                                 _settings.range320_400)
@@ -1008,7 +1009,7 @@ class IradioUV5118plus(chirp_common.CloneModeRadio):
             idx = TXALLOW_VALUES.index(_settings.range480_560)
         else:
             idx = TXALLOW_VALUES.index(0xFF)
-        rs = RadioSettingValueList(TXALLOW_CHOICES, TXALLOW_CHOICES[idx])
+        rs = RadioSettingValueList(TXALLOW_CHOICES, current_index=idx)
         rset = RadioSetting("range480_560", "480-560 MHz", rs)
         rset.set_apply_callback(apply_txallow_listvalue,
                                 _settings.range480_560)

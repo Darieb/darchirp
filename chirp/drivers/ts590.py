@@ -20,11 +20,11 @@ import time
 import logging
 import threading
 from chirp import chirp_common, directory, memmap
-from chirp import bitwise, errors, util
+from chirp import bitwise, errors
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettingValueFloat, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -204,7 +204,6 @@ def _connect_radio(radio):
                 (RADIO_IDS[resp], radio.MODEL)
             raise errors.RadioError(msg)
     raise errors.RadioError("No response from radio")
-    return
 
 
 def read_str(radio, trm=";"):
@@ -562,6 +561,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
     """Kenwood TS-590"""
     VENDOR = "Kenwood"
     MODEL = "TS-590SG_CloneMode"
+    NEEDS_COMPAT_SERIAL = True
     ID = "ID023;"
     SG = True
     # Settings read/write cmd sequence list
@@ -588,10 +588,10 @@ class TS590Radio(chirp_common.CloneModeRadio):
               11: " Auto Announcement",
               12: " MHz step",
               13: " Tuning control adj rate (Hz)",
-              16: " SSB tune step (KHz)",
-              17: " CW/FSK tune step (KHz)",
-              18: " AM tune step (KHz)",
-              19: " FM tune step (KHz)",
+              16: " SSB tune step (kHz)",
+              17: " CW/FSK tune step (kHz)",
+              18: " AM tune step (kHz)",
+              19: " FM tune step (kHz)",
               21: " Max number of Quick Mem chans",
               22: " Temporary MR Chan freq allowed",
               23: " Program Scan slowdown",
@@ -791,14 +791,14 @@ class TS590Radio(chirp_common.CloneModeRadio):
 
         # Channel Extra settings: Only Boolean & List methods, no call-backs
         options = ["Wide", "Narrow"]
-        rx = RadioSettingValueList(options, options[_mem.fmnrw])
+        rx = RadioSettingValueList(options, current_index=_mem.fmnrw)
         # NOTE: first param of RadioSetting is the object attribute name
         rset = RadioSetting("fmnrw", "FM mode", rx)
         rset.set_apply_callback(my_val_list, options, _mem, "fmnrw")
         mem.extra.append(rset)
 
         options = ["Filter A", "Filter B"]
-        rx = RadioSettingValueList(options, options[_mem.filter])
+        rx = RadioSettingValueList(options, current_index=_mem.filter)
         rset = RadioSetting("filter", "Filter A/B", rx)
         rset.set_apply_callback(my_val_list, options, _mem, "filter")
         mem.extra.append(rset)
@@ -969,7 +969,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
             return
 
         def my_mhz_val(setting, obj, atrb, ndx=-1):
-            """ Callback to set freq back to Htz"""
+            """ Callback to set freq back to Hz """
             vx = float(str(setting.value))
             vx = int(vx * mhz1)
             if ndx < 0:
@@ -1057,7 +1057,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
 
         options = ["ANT1", "ANT2"]
         # CAUTION: an1 has value of 1 or 2
-        rx = RadioSettingValueList(options, options[_sets.an1 - 1])
+        rx = RadioSettingValueList(options, current_index=_sets.an1 - 1)
         rset = RadioSetting("settings.an1", "Antenna Selected", rx)
         # Add 1 to the changed value. S/b 1/2
         rset.set_apply_callback(my_val_list, options, _sets, "an1", 1)
@@ -1107,7 +1107,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         options = ["Menu A", "Menu B"]
-        rx = RadioSettingValueList(options, options[_sets.mf])
+        rx = RadioSettingValueList(options, current_index=_sets.mf)
         sx = "Menu Selected"
         rset = RadioSetting("settings.mf", sx, rx)
         rset.set_apply_callback(my_val_list, options, _sets, "mf")
@@ -1137,7 +1137,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
             kx = _chm[mx].xmode
             options = ["None", "LSB", "USB", "CW", "FM", "AM", "FSK",
                        "CW-R", "N/A", "FSK-R"]
-            rx = RadioSettingValueList(options, options[kx])
+            rx = RadioSettingValueList(options, current_index=kx)
             sx = "    VFO-Band %i Tx/Rx Mode" % (mx - 100)
             rset = RadioSetting("ch_mem.xmode/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _chm,
@@ -1228,7 +1228,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["English", "Japanese"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex010])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex010)
             sx = my_labels(10)
             rset = RadioSetting("exset.ex010/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1239,7 +1239,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["Off", "1", "2"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex011])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex011)
             sx = my_labels(11)
             rset = RadioSetting("exset.ex011/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1250,7 +1250,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["0.1", "0.5", "1.0"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex012])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex012)
             sx = my_labels(12)
             rset = RadioSetting("exset.ex012", sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1261,7 +1261,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["250", "500", "1000"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex013])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex013)
             sx = my_labels(13)
             rset = RadioSetting("exset.ex013/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1276,10 +1276,10 @@ class TS590Radio(chirp_common.CloneModeRadio):
             if self.SG:
                 options = ["Off", "0.5", "0.5", "1.0", "2.5",
                            "5.0", "10.0"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex016])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex016)
             sx = my_labels(16)
             if nsg:
-                sx = "014: Tuning step for SSB/CW/FSK (KHz)"
+                sx = "014: Tuning step for SSB/CW/FSK (kHz)"
             rset = RadioSetting("exset.ex016/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
                                     "ex016", 0, mx)
@@ -1290,7 +1290,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
 
             if self.SG:       # this setting only for SG
                 rx = RadioSettingValueList(options,
-                                           options[_mex[mx].ex017])
+                                           current_index=_mex[mx].ex017)
 
                 sx = my_labels(17)
                 rset = RadioSetting("exset.ex017/%d" % mx, sx, rx)
@@ -1305,7 +1305,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                        "20.0", "25.0", "30.0", "50.0", "100.0"]
             if self.SG:
                 options.remove("Off")
-            rx = RadioSettingValueList(options, options[_mex[mx].ex018])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex018)
             sx = my_labels(18)
             rset = RadioSetting("exset.ex018/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1315,7 +1315,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
             else:
                 menb.append(rset)
 
-            rx = RadioSettingValueList(options, options[_mex[mx].ex019])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex019)
             sx = my_labels(19)
             rset = RadioSetting("exset.ex019/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1326,7 +1326,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["3", "5", "10"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex021])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex021)
             sx = my_labels(21)
             rset = RadioSetting("exset.ex021/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1355,7 +1355,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["100", "200", "300", "400", "500"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex024])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex024)
             sx = my_labels(24)
             rset = RadioSetting("exset.ex024/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1375,7 +1375,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["TO", "CO"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex026])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex026)
             sx = my_labels(26)
             rset = RadioSetting("exset.ex026/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1395,7 +1395,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                 menb.append(rset)
 
             options = ["Off", "3", "5", "10", "20", "30"]
-            rx = RadioSettingValueList(options, options[_mex[mx].ex055])
+            rx = RadioSettingValueList(options, current_index=_mex[mx].ex055)
             sx = my_labels(55)
             rset = RadioSetting("exset.ex055/%d" % mx, sx, rx)
             rset.set_apply_callback(my_val_list, options, _mex,
@@ -1561,7 +1561,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                     mx = 9
                 elif _asf[ix].asmode == 4:
                     mx = 10
-            rx = RadioSettingValueList(TS590_MODES, TS590_MODES[mx])
+            rx = RadioSettingValueList(TS590_MODES, current_index=mx)
             rset = RadioSetting("asf.asmode/%d" % ix, "   Mode", rx)
             rset.set_apply_callback(my_asf_mode, _asf, ix)
             amode.append(rset)
@@ -1587,14 +1587,14 @@ class TS590Radio(chirp_common.CloneModeRadio):
         rcurves = ["Off", "HB1", "HB2", "FP", "BB1", "BB2",
                    "FLAT", "U"]
         for ix in range(8):
-            rx = RadioSettingValueList(tcurves, tcurves[_eqx[ix].txeq])
+            rx = RadioSettingValueList(tcurves, current_index=_eqx[ix].txeq)
             rset = RadioSetting("eqx.txeq/%d" % ix, "TX %s Equalizer"
                                 % mohd[ix], rx)
             rset.set_apply_callback(my_val_list, tcurves, _eqx,
                                     "txeq", 0, ix)
             equ.append(rset)
 
-            rx = RadioSettingValueList(rcurves, rcurves[_eqx[ix].rxeq])
+            rx = RadioSettingValueList(rcurves, current_index=_eqx[ix].rxeq)
             rset = RadioSetting("eqx.rxeq/%d" % ix, "RX %s Equalizer"
                                 % mohd[ix], rx)
             rset.set_apply_callback(my_val_list, rcurves, _eqx,
@@ -1634,7 +1634,7 @@ class TS590Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -1652,7 +1652,7 @@ class TS590SRadio(TS590Radio):
     ID = "ID021;"
     SG = False
     # This is the equivalent Menu A/B list for the TS-590S
-    # The equivalnt S param is stored in the SG Mem_Format slot
+    # The equivalent S param is stored in the SG Mem_Format slot
     EX = ["EX087", "EX000", "EX001", "EX003", "EX004", "EX005",
           "EX006", "EX007", "EX008", "EX009", "EX010", "EX011", "EX014",
           "EX014", "EX015", "EX016", "EX017", "EX018", "EX019", "EX020",

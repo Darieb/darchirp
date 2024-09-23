@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 from unittest import mock
 
@@ -9,8 +10,18 @@ from tests import base
 LOG = logging.getLogger(__name__)
 
 
+class SerialException(Exception):
+    pass
+
+
 class SerialNone:
-    def read(self, size):
+    def flush(self):
+        pass
+
+    def inWaiting(self):
+        return len(self.read(256))
+
+    def read(self, size=None):
         return b""
 
     def write(self, data):
@@ -31,15 +42,17 @@ class SerialNone:
 
 
 class SerialError(SerialNone):
-    def read(self, size):
-        raise Exception("Foo")
+    def read(self, size=None):
+        raise SerialException("Foo")
 
     def write(self, data):
-        raise Exception("Bar")
+        raise SerialException("Bar")
 
 
 class SerialGarbage(SerialNone):
-    def read(self, size):
+    def read(self, size=None):
+        if size is None:
+            size = random.randint(0, 128)
         buf = []
         for i in range(0, size):
             buf.append(i % 256)
@@ -47,8 +60,10 @@ class SerialGarbage(SerialNone):
 
 
 class SerialShortGarbage(SerialNone):
-    def read(self, size):
-        return b'\x00' * (size - 1)
+    def read(self, size=None):
+        if size is None:
+            size = random.randint(0, 128)
+        return b'\x01' * (size - 1)
 
 
 class TestCaseClone(base.DriverTest):
@@ -76,6 +91,18 @@ class TestCaseClone(base.DriverTest):
         # behavior on init.
         LOG.info('Initializing radio with fake serial; Radio should not fail')
         orig_mmap = self.parent._mmap
+
+        try:
+            cls = self.RADIO_CLASS.detect_from_serial(serial)
+            if cls and cls != self.RADIO_CLASS:
+                self.fail('Radio detection did not return self')
+        except NotImplementedError:
+            pass
+        except errors.RadioError:
+            pass
+        except SerialException:
+            pass
+
         self.radio = self.RADIO_CLASS(serial)
         self.radio._mmap = orig_mmap
         self.radio.status_fn = lambda s: True

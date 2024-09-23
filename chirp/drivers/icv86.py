@@ -16,11 +16,10 @@
 import logging
 
 from chirp.drivers import icf
-from chirp import chirp_common, memmap, bitwise, errors, directory
+from chirp import chirp_common, bitwise, errors, directory
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, RadioSettings
+    RadioSettingValueBoolean, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -103,7 +102,8 @@ TUNING_STEPS = [5., 10., 12.5, 15., 20., 25., 30., 50.]
 POWER_LEVELS = [
     chirp_common.PowerLevel("High", watts=5.5),
     chirp_common.PowerLevel("Low", watts=0.5),
-    chirp_common.PowerLevel("Mid", watts=2.5)
+    chirp_common.PowerLevel("Mid", watts=2.5),
+    chirp_common.PowerLevel("Extra High", watts=7.0),
 ]
 
 
@@ -163,7 +163,7 @@ class ICV86Radio(icf.IcomCloneModeRadio):
         setmode.append(
             RadioSetting(
                 "lcd", "LCD Backlight",
-                RadioSettingValueList(opts, opts[_settings.lcd])))
+                RadioSettingValueList(opts, current_index=_settings.lcd)))
 
         # Mic Gain
         rs = RadioSetting("mic", "Mic Gain",
@@ -179,14 +179,14 @@ class ICV86Radio(icf.IcomCloneModeRadio):
         setmode.append(
             RadioSetting(
                 "dial_assignment", "Dial Assignment",
-                RadioSettingValueList(opts, opts[_settings.dial_assignment])))
+                RadioSettingValueList(opts, current_index=_settings.dial_assignment)))
 
         # Display Type
         opts = ["Frequency", "Channel", "Name"]
         setmode.append(
             RadioSetting(
                 "disp_type", "Display Type",
-                RadioSettingValueList(opts, opts[_settings.disp_type])))
+                RadioSettingValueList(opts, current_index=_settings.disp_type)))
 
         return settings
 
@@ -207,7 +207,7 @@ class ICV86Radio(icf.IcomCloneModeRadio):
                     setting = element.get_name()
                     LOG.debug("Setting %s = %s" % (setting, element.value))
                     setattr(_settings, setting, element.value)
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 
@@ -365,4 +365,4 @@ class ICV86Radio(icf.IcomCloneModeRadio):
 
     def get_raw_memory(self, number):
         return repr(self._memobj.memory[number]) + \
-            repr(self._memobj.flags[(number)])
+            repr(self._memobj.used[(number)])

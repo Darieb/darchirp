@@ -36,6 +36,8 @@ class ChirpRadioInfo(common.ChirpEditor, common.ChirpSyncEditor):
 
         self._add_features_group()
         self._add_vendor()
+        self._add_metadata()
+        self._add_driver()
 
     def _add_features_group(self):
         pg = wx.propgrid.PropertyGrid(
@@ -52,6 +54,26 @@ class ChirpRadioInfo(common.ChirpEditor, common.ChirpSyncEditor):
             p.Enable(False)
             pg.Append(p)
 
+        pg.Sort()
+
+    def _add_driver(self):
+        pg = wx.propgrid.PropertyGrid(
+            self, style=wx.propgrid.PG_SPLITTER_AUTO_CENTER)
+        self._group_control.AddPage(pg, _('Driver'))
+
+        try:
+            rclass = self._radio._orig_rclass
+        except AttributeError:
+            rclass = self._radio.__class__
+
+        p = wx.propgrid.StringProperty('class', 'class',
+                                       rclass.__name__)
+        p.Enable(False)
+        pg.Append(p)
+        p = wx.propgrid.StringProperty('module', 'module',
+                                       rclass.__module__)
+        p.Enable(False)
+        pg.Append(p)
         pg.Sort()
 
     def _add_vendor(self):
@@ -77,6 +99,26 @@ class ChirpRadioInfo(common.ChirpEditor, common.ChirpSyncEditor):
             p = wx.propgrid.StringProperty(
                 key, key,
                 value=str(value))
+            p.Enable(False)
+            pg.Append(p)
+
+        pg.Sort()
+
+    def _add_metadata(self):
+        if not self._radio.metadata:
+            return
+
+        pg = wx.propgrid.PropertyGrid(
+            self, style=wx.propgrid.PG_SPLITTER_AUTO_CENTER)
+        self._group_control.AddPage(pg, 'Image Metadata')
+        # Don't show the icom fields which are displayed elsewhere, and
+        # don't dump the whole mem_extra blob in here
+        exclude = ('modelid', 'endframe', 'raw', 'memsize',
+                   'mem_extra')
+        for key, value in self._radio.metadata.items():
+            if key in exclude:
+                continue
+            p = wx.propgrid.StringProperty(key, key, value=str(value))
             p.Enable(False)
             pg.Append(p)
 

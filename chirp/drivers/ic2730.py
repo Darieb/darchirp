@@ -18,27 +18,20 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import logging
+import typing
+
 from chirp.drivers import icf
-from chirp import chirp_common, util, directory, bitwise, memmap
-from chirp import errors
+from chirp import chirp_common, directory, bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, InvalidValueError
+    RadioSettingValueFloat, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
-HAS_FUTURE = True
-try:                         # PY3 compliance
-    from builtins import bytes
-except ImportError:
-    HAS_FUTURE = False
-    LOG.debug('python-future package is not '
-              'available; %s requires it' % __name__)
-
 MEM_FORMAT = """
 struct {
-  u24  freq_flags:6
+  u24  freq_flags:6,
        freq:18;
   u16  offset;
   u8   tune_step:4,
@@ -91,11 +84,11 @@ char nam[6];
 
 #seekto 0x4e80;
 struct {
-u24  loflags:6
+u24  loflags:6,
      lofreq:18;
-u24  hiflags:6
+u24  hiflags:6,
      hifreq:18;
-u8  flag:4
+u8  flag:4,
     mode:4;
 u8  tstp;
 char name[6];
@@ -123,7 +116,7 @@ u8  civbaud;
 u8  civtcvr;
 u8  sqlatt;
 u8  sqldly;
-u8  unk5014a:4
+u8  unk5014a:4,
     fanspeed:4;
 u8  unk5015;
 u8  bthvox;
@@ -194,8 +187,8 @@ u8  unk505a;
 u8  unk505b;
 u8  unk505c;
 u8  unk505d;
-u8  unk505e:6
-    rpthangup:1
+u8  unk505e:6,
+    rpthangup:1,
     unk505e2:1;
 u8  unk505f;
 } settings;
@@ -294,7 +287,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
     _raw_frames = True
     _highbit_flip = True
 
-    _icf_data = {
+    _icf_data: dict[str, typing.Any] = {
         'MapRev': 1,
         'EtcData': 0,  # This might be wrong
         'Comment': '',
@@ -762,12 +755,12 @@ class IC2730Radio(icf.IcomCloneModeRadio):
 
         # --- Basic
         options = ["Off", "S-Meter Squelch", "ATT"]
-        rx = RadioSettingValueList(options, options[_sets.sqlatt])
+        rx = RadioSettingValueList(options, current_index=_sets.sqlatt)
         rset = RadioSetting("settings.sqlatt", "Squelch/ATT", rx)
         basic.append(rset)
 
         options = ["Short", "Long"]
-        rx = RadioSettingValueList(options, options[_sets.sqldly])
+        rx = RadioSettingValueList(options, current_index=_sets.sqldly)
         rset = RadioSetting("settings.sqldly", "Squelch Delay", rx)
         basic.append(rset)
 
@@ -780,7 +773,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         basic.append(rset)
 
         options = ["Off", "1m", "3m", "5m", "10m", "15m", "30m"]
-        rx = RadioSettingValueList(options, options[_sets.tot])
+        rx = RadioSettingValueList(options, current_index=_sets.tot)
         rset = RadioSetting("settings.tot", "Tx Timeout", rx)
         basic.append(rset)
 
@@ -803,7 +796,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         basic.append(rset)
 
         options = ["1", "2", "3", "4"]
-        rx = RadioSettingValueList(options, options[_sets.micgain])
+        rx = RadioSettingValueList(options, current_index=_sets.micgain)
         rset = RadioSetting("settings.micgain", "Microphone Gain", rx)
         basic.append(rset)
 
@@ -833,12 +826,12 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         other.append(rset)
 
         options = ["Single", "All", "Ham"]
-        rx = RadioSettingValueList(options, options[_sets.actband])
+        rx = RadioSettingValueList(options, current_index=_sets.actband)
         rset = RadioSetting("settings.actband", "Active Band", rx)
         other.append(rset)
 
         options = ["Slow", "Mid", "Fast", "Auto"]
-        rx = RadioSettingValueList(options, options[_sets.fanspeed])
+        rx = RadioSettingValueList(options, current_index=_sets.fanspeed)
         rset = RadioSetting("settings.fanspeed", "Fan Speed", rx)
         other.append(rset)
 
@@ -847,7 +840,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         other.append(rset)
 
         options = ["Off", "On(Dup)", "On(Dup+Tone)"]
-        rx = RadioSettingValueList(options, options[_sets.autorptr])
+        rx = RadioSettingValueList(options, current_index=_sets.autorptr)
         rset = RadioSetting("settings.autorptr", "Auto Repeater", rx)
         other.append(rset)
 
@@ -857,16 +850,16 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         other.append(rset)
 
         options = ["Low", "Mid", "High"]
-        rx = RadioSettingValueList(options, options[_sets.vhfpower])
+        rx = RadioSettingValueList(options, current_index=_sets.vhfpower)
         rset = RadioSetting("settings.vhfpower", "VHF Power Default", rx)
         other.append(rset)
 
-        rx = RadioSettingValueList(options, options[_sets.uhfpower])
+        rx = RadioSettingValueList(options, current_index=_sets.uhfpower)
         rset = RadioSetting("settings.uhfpower", "UHF Power Default", rx)
         other.append(rset)
 
         rx = RadioSettingValueBoolean(bool(_sets.toneburst))
-        rset = RadioSetting("settings.toneburst", "1750 Htz Tone Burst", rx)
+        rset = RadioSetting("settings.toneburst", "1750 Hz Tone Burst", rx)
         other.append(rset)
 
         rx = RadioSettingValueBoolean(bool(_sets.ifxchg))
@@ -885,7 +878,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         other.append(rset)
 
         options = ["1200", "2400", "4800", "9600", "19200", "Auto"]
-        rx = RadioSettingValueList(options, options[_sets.civbaud])
+        rx = RadioSettingValueList(options, current_index=_sets.civbaud)
         rset = RadioSetting("settings.civbaud", "CI-V Baud Rate (bps)", rx)
         other.append(rset)
 
@@ -895,26 +888,26 @@ class IC2730Radio(icf.IcomCloneModeRadio):
 
         # A/B Band Settings
         options = ["Off", "On", "Bell"]
-        rx = RadioSettingValueList(options, options[_sets.aprichn])
+        rx = RadioSettingValueList(options, current_index=_sets.aprichn)
         rset = RadioSetting("settings.aprichn",
                             "A Band: VFO Priority Watch Mode", rx)
         abset.append(rset)
 
         options = ["2", "4", "6", "8", "10", "12", "14",
                    "16", "18", "20", "Hold"]
-        rx = RadioSettingValueList(options, options[_sets.ascanpause])
+        rx = RadioSettingValueList(options, current_index=_sets.ascanpause)
         rset = RadioSetting("settings.ascanpause",
                             "-- A Band: Scan Pause Time (Secs)", rx)
         abset.append(rset)
 
         options = ["0", "1", "2", "3", "4", "5", "Hold"]
-        rx = RadioSettingValueList(options, options[_sets.ascanresume])
+        rx = RadioSettingValueList(options, current_index=_sets.ascanresume)
         rset = RadioSetting("settings.ascanresume",
                             "-- A Band: Scan Resume Time (Secs)", rx)
         abset.append(rset)
 
         options = ["5", "10", "15"]
-        rx = RadioSettingValueList(options, options[_sets.atmpskiptym])
+        rx = RadioSettingValueList(options, current_index=_sets.atmpskiptym)
         rset = RadioSetting("settings.atmpskiptym",
                             "-- A Band: Temp Skip Time (Secs)", rx)
         abset.append(rset)
@@ -937,31 +930,31 @@ class IC2730Radio(icf.IcomCloneModeRadio):
 
         # Use list for Wx chans since chan 1 = index 0
         options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-        rx = RadioSettingValueList(options, options[_wxch.awxchan])
+        rx = RadioSettingValueList(options, current_index=_wxch.awxchan)
         rset = RadioSetting("abwx.awxchan", "-- A Band: Weather Channel", rx)
         abset.append(rset)
 
         options = ["Off", "On", "Bell"]
-        rx = RadioSettingValueList(options, options[_sets.bprichn])
+        rx = RadioSettingValueList(options, current_index=_sets.bprichn)
         rset = RadioSetting("settings.bprichn",
                             "B Band: VFO Priority Watch Mode", rx)
         abset.append(rset)
 
         options = ["2", "4", "6", "8", "10", "12", "14",
                    "16", "18", "20", "Hold"]
-        rx = RadioSettingValueList(options, options[_sets.bscanpause])
+        rx = RadioSettingValueList(options, current_index=_sets.bscanpause)
         rset = RadioSetting("settings.bscanpause",
                             "-- B Band: Scan Pause Time (Secs)", rx)
         abset.append(rset)
 
         options = ["0", "1", "2", "3", "4", "5", "Hold"]
-        rx = RadioSettingValueList(options, options[_sets.bscanresume])
+        rx = RadioSettingValueList(options, current_index=_sets.bscanresume)
         rset = RadioSetting("settings.bscanresume",
                             "-- B Band: Scan Resume Time (Secs)", rx)
         abset.append(rset)
 
         options = ["5", "10", "15"]
-        rx = RadioSettingValueList(options, options[_sets.btmpskiptym])
+        rx = RadioSettingValueList(options, current_index=_sets.btmpskiptym)
         rset = RadioSetting("settings.btmpskiptym",
                             "-- B Band: Temp Skip Time (Secs)", rx)
         abset.append(rset)
@@ -983,7 +976,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         abset.append(rset)
 
         options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-        rx = RadioSettingValueList(options, options[_wxch.bwxchan])
+        rx = RadioSettingValueList(options, current_index=_wxch.bwxchan)
         rset = RadioSetting("abwx.bwxchan", "-- B Band: Weather Channel", rx)
         abset.append(rset)
 
@@ -994,45 +987,45 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                      "Scan", "Temp Skip", "Mode", "Low", "Dup", "Priority",
                      "Tone", "MW", "Mute", "DTMF Direct", "T-Call"]
         ptr = shortopts.index(MICKEYOPTS[_sets.mickyrxf1])
-        rx = RadioSettingValueList(shortopts, shortopts[ptr])
+        rx = RadioSettingValueList(shortopts, current_index=ptr)
         rset = RadioSetting("settings.mickyrxf1",
                             "During Rx/Standby [F-1]", rx)
         rset.set_apply_callback(mic_keys, _sets, "mickyrxf1")
         mickey.append(rset)
 
         ptr = shortopts.index(MICKEYOPTS[_sets.mickyrxf2])
-        rx = RadioSettingValueList(shortopts, shortopts[ptr])
+        rx = RadioSettingValueList(shortopts, current_index=ptr)
         rset = RadioSetting("settings.mickyrxf2",
                             "During Rx/Standby [F-2]", rx)
         rset.set_apply_callback(mic_keys, _sets, "mickyrxf2")
         mickey.append(rset)
 
         options = ["Off", "Low", "T-Call"]      # NOT a subset of MICKEYOPTS
-        rx = RadioSettingValueList(options, options[_sets.mickytxf1])
+        rx = RadioSettingValueList(options, current_index=_sets.mickytxf1)
         rset = RadioSetting("settings.mickytxf1", "During Tx [F-1]", rx)
         mickey.append(rset)
 
-        rx = RadioSettingValueList(options, options[_sets.mickytxf2])
+        rx = RadioSettingValueList(options, current_index=_sets.mickytxf2)
         rset = RadioSetting("settings.mickytxf2", "During Tx [F-2]", rx)
         mickey.append(rset)
 
         # These next two get the full options list
-        rx = RadioSettingValueList(MICKEYOPTS, MICKEYOPTS[_sets.mickyrxup])
+        rx = RadioSettingValueList(MICKEYOPTS, current_index=_sets.mickyrxup)
         rset = RadioSetting("settings.mickyrxup",
                             "During Rx/Standby [Up]", rx)
         mickey.append(rset)
 
-        rx = RadioSettingValueList(MICKEYOPTS, MICKEYOPTS[_sets.mickyrxdn])
+        rx = RadioSettingValueList(MICKEYOPTS, current_index=_sets.mickyrxdn)
         rset = RadioSetting("settings.mickyrxdn",
                             "During Rx/Standby [Down]", rx)
         mickey.append(rset)
 
         options = ["Off", "Low", "T-Call"]
-        rx = RadioSettingValueList(options, options[_sets.mickytxup])
+        rx = RadioSettingValueList(options, current_index=_sets.mickytxup)
         rset = RadioSetting("settings.mickytxup", "During Tx [Up]", rx)
         mickey.append(rset)
 
-        rx = RadioSettingValueList(options, options[_sets.mickytxdn])
+        rx = RadioSettingValueList(options, current_index=_sets.mickytxdn)
         rset = RadioSetting("settings.mickytxdn", "During Tx [Down]", rx)
         mickey.append(rset)
 
@@ -1046,13 +1039,13 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         bluet.append(rset)
 
         options = ["Headset Only", "Headset & Speaker"]
-        rx = RadioSettingValueList(options, options[_sets.bthdset])
+        rx = RadioSettingValueList(options, current_index=_sets.bthdset)
         rset = RadioSetting("settings.bthdset", "Headset Audio", rx)
         bluet.append(rset)
 
         options = ["Normal", "Microphone", "PTT (Audio:Main)",
                    "PTT(Audio:Controller)"]
-        rx = RadioSettingValueList(options, options[_sets.bthfctn])
+        rx = RadioSettingValueList(options, current_index=_sets.bthfctn)
         rset = RadioSetting("settings.bthfctn", "Headset Function", rx)
         bluet.append(rset)
 
@@ -1061,17 +1054,17 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         bluet.append(rset)
 
         options = ["Off", "1.0", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-        rx = RadioSettingValueList(options, options[_sets.bthvoxlvl])
+        rx = RadioSettingValueList(options, current_index=_sets.bthvoxlvl)
         rset = RadioSetting("settings.bthvoxlvl", "Vox Level", rx)
         bluet.append(rset)
 
         options = ["0.5", "1.0", "1.5", "2.0", "2.5", "3.0"]
-        rx = RadioSettingValueList(options, options[_sets.bthvoxdly])
+        rx = RadioSettingValueList(options, current_index=_sets.bthvoxdly)
         rset = RadioSetting("settings.bthvoxdly", "Vox Delay (Secs)", rx)
         bluet.append(rset)
 
         options = ["Off", "1", "2", "3", "4", "5", "10", "15"]
-        rx = RadioSettingValueList(options, options[_sets.bthvoxtot])
+        rx = RadioSettingValueList(options, current_index=_sets.bthvoxtot)
         rset = RadioSetting("settings.bthvoxtot", "Vox Time-Out (Mins)", rx)
         bluet.append(rset)
 
@@ -1095,40 +1088,40 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                             "ICOM Headset Custom Key Beep", rx)
         bluet.append(rset)
 
-        rx = RadioSettingValueList(MICKEYOPTS, MICKEYOPTS[_sets.bthplaykey])
+        rx = RadioSettingValueList(MICKEYOPTS, current_index=_sets.bthplaykey)
         rset = RadioSetting("settings.bthplaykey",
                             "ICOM Headset Custom Key [Play]", rx)
         bluet.append(rset)
 
-        rx = RadioSettingValueList(MICKEYOPTS, MICKEYOPTS[_sets.bthfwdkey])
+        rx = RadioSettingValueList(MICKEYOPTS, current_index=_sets.bthfwdkey)
         rset = RadioSetting("settings.bthfwdkey",
                             "ICOM Headset Custom Key [Fwd]", rx)
         bluet.append(rset)
 
-        rx = RadioSettingValueList(MICKEYOPTS, MICKEYOPTS[_sets.bthrwdkey])
+        rx = RadioSettingValueList(MICKEYOPTS, current_index=_sets.bthrwdkey)
         rset = RadioSetting("settings.bthrwdkey",
                             "ICOM Headset Custom Key [Rwd]", rx)
         bluet.append(rset)
 
         # ---- Display
         options = ["1: Dark", "2", "3", "4: Bright"]
-        rx = RadioSettingValueList(options, options[_sets.backlight])
+        rx = RadioSettingValueList(options, current_index=_sets.backlight)
         rset = RadioSetting("settings.backlight", "Backlight Level", rx)
         disp.append(rset)
 
         options = ["Off", "Auto-Off", "Auto-1", "Auto-2", "Auto-3"]
-        rx = RadioSettingValueList(options, options[_sets.autodim])
+        rx = RadioSettingValueList(options, current_index=_sets.autodim)
         rset = RadioSetting("settings.autodim", "Auto Dimmer", rx)
         disp.append(rset)
 
         options = ["5", "10"]
-        rx = RadioSettingValueList(options, options[_sets.autodimtot])
+        rx = RadioSettingValueList(options, current_index=_sets.autodimtot)
         rset = RadioSetting("settings.autodimtot",
                             "Auto-Dimmer Timeout (Secs)", rx)
         disp.append(rset)
 
         options = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-        rx = RadioSettingValueList(options, options[_sets.contrast])
+        rx = RadioSettingValueList(options, current_index=_sets.contrast)
         rset = RadioSetting("settings.contrast", "LCD Contrast", rx)
         disp.append(rset)
 
@@ -1141,7 +1134,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         disp.append(rset)
 
         options = ["CH ID", "Frequency"]
-        rx = RadioSettingValueList(options, options[_sets.airbandch])
+        rx = RadioSettingValueList(options, current_index=_sets.airbandch)
         rset = RadioSetting("settings.airbandch", "Air Band Display", rx)
         disp.append(rset)
 
@@ -1167,13 +1160,13 @@ class IC2730Radio(icf.IcomCloneModeRadio):
         sound.append(rset)
 
         options = ["Off", "Mute", "Beep", "Mute & Beep"]
-        rx = RadioSettingValueList(options, options[_sets.subandmute])
+        rx = RadioSettingValueList(options, current_index=_sets.subandmute)
         rset = RadioSetting("settings.subandmute", "Sub Band Mute", rx)
         sound.append(rset)
 
         # --- DTMF Codes
         options = ["100", "200", "300", "500"]
-        rx = RadioSettingValueList(options, options[_sets.dtmfspd])
+        rx = RadioSettingValueList(options, current_index=_sets.dtmfspd)
         rset = RadioSetting("settings.dtmfspd", "DTMF Speed (mSecs)", rx)
         dtmf.append(rset)
 
@@ -1270,13 +1263,13 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                 if ndxm > 2:
                     ndxm = 0
             # end if fhigh > 0
-            rx = RadioSettingValueList(tsopt, tsopt[ndxt])
+            rx = RadioSettingValueList(tsopt, current_index=ndxt)
             rset = RadioSetting("pgmscanedge/%d.tstp" % kx,
                                 "-- Scan %d Freq Step" % kx, rx)
             rset.set_apply_callback(myset_tsopt, _pses, kx, "tstp", bxnd)
             edges.append(rset)
 
-            rx = RadioSettingValueList(mdopt, mdopt[ndxm])
+            rx = RadioSettingValueList(mdopt, current_index=ndxm)
             rset = RadioSetting("pgmscanedge/%d.mode" % kx,
                                 "-- Scan %d Mode" % kx, rx)
             rset.set_apply_callback(myset_mdopt, _pses, kx, "mode", bxnd)
@@ -1306,7 +1299,7 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                             stx += "%0d, " % nx
                     elif (nx >= 8) and (nx < 16):
                         if (_pslg[kx].msk[1] & (1 << (nx - 8))):
-                            sstx += "%0d, " % nx
+                            stx += "%0d, " % nx
                     elif (nx >= 16) and (nx < 24):
                         if (_pslg[kx].msk[2] & (1 << (nx - 16))):
                             stx += "%0d, " % nx
@@ -1325,7 +1318,6 @@ class IC2730Radio(icf.IcomCloneModeRadio):
 
     def set_settings(self, settings):
         _settings = self._memobj.settings
-        _mem = self._memobj
         for element in settings:
             if not isinstance(element, RadioSetting):
                 self.set_settings(element)
@@ -1357,6 +1349,6 @@ class IC2730Radio(icf.IcomCloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise

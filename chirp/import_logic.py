@@ -69,6 +69,14 @@ def ensure_has_calls(radio, memory):
         radio.set_repeater_call_list(rlist)
 
 
+def _import_freq(dst_radio, _srcrf, mem):
+    dst_bands = dst_radio.get_features().valid_bands
+    if not any(lo < mem.freq <= hi for (lo, hi) in dst_bands):
+        raise DestNotCompatible(
+            _('Frequency %s is out of supported range') % (
+                chirp_common.format_freq(mem.freq)))
+
+
 # Filter the name according to the destination's rules
 def _import_name(dst_radio, _srcrf, mem):
     mem.name = dst_radio.filter_name(mem.name)
@@ -114,7 +122,7 @@ def _import_power(dst_radio, _srcrf, mem):
     # If both radios support discrete power levels, we need to decide how to
     # convert the source power level to a valid one for the destination
     # radio.  To do that, find the absolute level of the source value
-    # and calculate the different between it and all the levels of the
+    # and calculate the difference between it and all the levels of the
     # destination, choosing the one that matches most closely. Do this in
     # watts not dBm because we will make the wrong decision otherwise due
     # to the logarithmic scale.
@@ -222,19 +230,28 @@ def _import_duplex(dst_radio, srcrf, mem):
         mem.duplex = ''
 
 
-def import_mem(dst_radio, src_features, src_mem, overrides={}):
+def import_mem(dst_radio, src_features, src_mem, overrides={}, mem_cls=None):
     """Perform import logic to create a destination memory from
     src_mem that will be compatible with @dst_radio"""
     dst_rf = dst_radio.get_features()
 
     if isinstance(src_mem, chirp_common.DVMemory):
-        if not isinstance(dst_radio, chirp_common.IcomDstarSupport):
+        # DV memory import logic: If the radio supports D-STAR and requires
+        # call lists, then we set the call list. Otherwise, if it just
+        # supports DV mode we don't, but allow the memory (i.e. CSV, etc).
+        # If neither, then it's not compatible.
+        if isinstance(dst_radio, chirp_common.IcomDstarSupport):
+            if dst_rf.requires_call_lists:
+                ensure_has_calls(dst_radio, src_mem)
+        elif 'DV' not in dst_rf.valid_modes:
             raise DestNotCompatible(
                 "Destination radio does not support D-STAR")
-        if dst_rf.requires_call_lists:
-            ensure_has_calls(dst_radio, src_mem)
 
-    dst_mem = src_mem.dupe()
+    if mem_cls:
+        dst_mem = mem_cls()
+        dst_mem.clone(src_mem)
+    else:
+        dst_mem = src_mem.dupe()
     # The source's immutable list almost definitely does not match the
     # latter, so eliminate that list here and rely on set_memory() on
     # the destination to enforce anything that should not be set.
@@ -243,7 +260,8 @@ def import_mem(dst_radio, src_features, src_mem, overrides={}):
     for k, v in overrides.items():
         dst_mem.__dict__[k] = v
 
-    helpers = [_import_name,
+    helpers = [_import_freq,
+               _import_name,
                _import_power,
                _import_tone,
                _import_dtcs,

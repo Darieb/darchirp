@@ -21,8 +21,7 @@ from chirp import chirp_common, directory, bitwise
 from chirp import errors
 from chirp import memmap
 from chirp.settings import RadioSettingGroup, RadioSetting, RadioSettings, \
-    RadioSettingValueInteger, RadioSettingValueString, \
-    RadioSettingValueList, RadioSettingValueBoolean, \
+    RadioSettingValueString, RadioSettingValueList, \
     InvalidValueError
 from chirp import util
 
@@ -37,6 +36,16 @@ LOG = logging.getLogger(__name__)
 # 47    RX.MOD      Select the receive mode. Auto FM AM
 
 MEM_SETTINGS_FORMAT = """
+    #seekto 0x047e;
+    struct {
+    u8 unknown1;
+    u8 flag;
+    u16 unknown2;
+    struct {
+    char padded_string[6];              // 36 OPN.MSG   Select MSG then key vm to edit it
+    } message;
+    } opening_message;                  // 36 OPN.MSG   Select the Opening Message when transceiver is ON. OFF/MSG/DC
+
 
 // FT-70DE New Model #5329
 //
@@ -97,22 +106,9 @@ MEM_SETTINGS_FORMAT = """
     u8 unknown4:6,
     gm_ring:2;              // 24 GM RNG    Select the beep option while receiving digital GM info. OFF/IN RNG/ALWAYS
     u8 temp_cf;             // Placeholder as not found
-    u8 unknown5;
     } first_settings;
 
-    #seekto 0x04ed;
-    struct {
-    u8 unknown1:1,
-    unknown2:1,
-    unknown3:1,
-    unknown4:1,
-    unknown5:1,
-    unknown6:1,
-    unknown7:1,
-    unknown8:1;
-    } test_bit_field;
-
-    #seekto 0x04c0;
+    //#seekto 0x04c0;
     struct {
     u8 unknown1:5,
     beep_level:3;           // 05 BEP.LVL   Beep volume setting LEVEL1 - LEVEL4 - LEVEL7
@@ -126,16 +122,16 @@ MEM_SETTINGS_FORMAT = """
     u8 dtmf_delay;                      // 18 DT DLY    DTMF delay
     u8 unknown0[3];
     u8 unknown1:4,
-    unknown1:4;
+    unknown1_2:4;
     u8 lamp;                            // 28 LAMP      Set the duration time of the backlight and keys to be lit
     u8 lock;                            // 30 LOCK      Configure the lock mode setting. KEY/DIAL/K+D/PTT/K+P/D+P/ALL
     u8 unknown2_1;
     u8 mic_gain;                        // 31 MCGAIN    Adjust the microphone gain level
     u8 unknown2_3;
     u8 dw_interval;                     // 21 DW INT Set the priority memory ch mon int during Dual RX 0.1S-5.0S-10.0S
-    u8 ptt_delay;                       // 42 PTT.DLY   Set the PTT delay time. OFF / 20 MS / 50 MS / 100 MS / 200 MS
-    u8 rx_save;                         // 48 RX.SAVE   Set the battery save time. OFF / 0.2 S - 60.0 S
-    u8 scan_restart;                    // 53 SCN.STR   Set the scanning restart time.  0.1 S - 2.0 S - 10.0 S
+    u8 ptt_delay;                       // 42 PTT.DLY   Set the PTT delay time. OFF / 20 ms / 50 ms / 100 ms / 200 ms
+    u8 rx_save;                         // 48 RX.SAVE   Set the battery save time. OFF / 0.2 s - 60.0 s
+    u8 scan_restart;                    // 53 SCN.STR   Set the scanning restart time.  0.1 s - 2.0 s - 10.0 s
     u8 unknown2_5;
     u8 unknown2_6;
     u8 unknown4[5];
@@ -147,7 +143,7 @@ MEM_SETTINGS_FORMAT = """
     unknown8:1,
     ars:1,                              // 45 RPT.ARS   Turn the ARS function on/off.
     dtmf_speed:1,                       // 20 DT SPD    Set DTMF speed
-    unknown8:1,
+    unknown8_1:1,
     dtmf_mode:1;                        // DTMF Mode set from front panel
     u8 busy_led:1,                      // Not Supported ?
     unknown8_2:1,
@@ -191,10 +187,12 @@ MEM_SETTINGS_FORMAT = """
     u8 unknown45;
     u8 prog_key1;           // P1 Set Mode Items to the Programmable Key
     u8 prog_key2;           // P2 Set Mode Items to the Programmable Key
-    u8 unknown48;
-    u8 unknown49;
-    u8 unknown50;
     } scan_settings;
+
+    #seekto 0x54a;
+    struct {
+    u16 in_use;
+    } bank_used[24];
 
     #seekto 0x064b;
     struct {
@@ -214,42 +212,22 @@ MEM_SETTINGS_FORMAT = """
     volume:5;               // # VOL and Dial  Adjust the volume level
     } scan_settings_2;
 
-    #seekto 0x0690;         // Memory or VFO Settings Map?
-    struct {
-    u8 unknown[48];         // Array cannot be 64 elements!
-    u8 unknown1[16];        // Exception: Not implemented for chirp.bitwise.structDataElement
-    } vfo_info_1;
+    //#seekto 0x0690;         // Memory or VFO Settings Map?
+    //struct {
+    //u8 unknown[48];         // Array cannot be 64 elements!
+    //u8 unknown1[16];        // Exception: Not implemented for chirp.bitwise.structDataElement
+    //} vfo_info_1;
 
-    #seekto 0x0710;         // Backup Memory or VFO Settings Map?
-    struct {
-    u8 unknown[48];
-    u8 unknown1[16];
-    } vfo_backup_info_1;
-
-    #seekto 0x047e;
-    struct {
-    u8 unknown1;
-    u8 flag;
-    u16 unknown2;
-    struct {
-    char padded_string[6];              // 36 OPN.MSG   Select MSG then key vm to edit it
-    } message;
-    } opening_message;                  // 36 OPN.MSG   Select the Opening Message when transceiver is ON. OFF/MSG/DC
+    //#seekto 0x0710;         // Backup Memory or VFO Settings Map?
+    //struct {
+    //u8 unknown[48];
+    //u8 unknown1[16];
+    //} vfo_backup_info_1;
 
     #seekto 0x094a;                     // DTMF Memories
     struct {
     u8 memory[16];
     } dtmf[10];
-
-    #seekto 0x154a;
-    struct {
-    u16 channel[100];
-    } bank_members[24];
-
-    #seekto 0x54a;
-    struct {
-    u16 in_use;
-    } bank_used[24];
 
     #seekto 0x0EFE;
     struct {
@@ -258,6 +236,13 @@ MEM_SETTINGS_FORMAT = """
     u8 unknown1[10];
     } bank_info[24];
 
+    #seekto 0x154a;
+    struct {
+    u16 channel[100];
+    } bank_members[24];
+"""
+
+MEM_SETTINGS_FORMAT_HI = """
     #seekto 0xCF30;
     struct {
     u8 unknown0;
@@ -293,6 +278,16 @@ MEM_SETTINGS_FORMAT = """
     """
 
 MEM_FORMAT = """
+    //#seekto 0x280A;
+    struct {
+    u8 nosubvfo:1,
+    unknown:3,
+    pskip:1,                            // PSkip (Select?)
+    skip:1,                             // Skip memory during scan
+    used:1,                             // Memory used
+    valid:1;                            // Always 1?
+    } flag[%d];
+
     #seekto 0x2D4A;
     struct {                            // 32 Bytes per memory entry
     u8 display_tag:1,                   // 0 Display Freq, 1 Display Name
@@ -329,16 +324,6 @@ MEM_FORMAT = """
        bell:1;
     } memory[%d];                        // DN, VW, FM, AM
                                         // AMS DN, AMS VW, AMS FM
-
-    #seekto 0x280A;
-    struct {
-    u8 nosubvfo:1,
-    unknown:3,
-    pskip:1,                            // PSkip (Select?)
-    skip:1,                             // Skip memory during scan
-    used:1,                             // Memory used
-    valid:1;                            // Always 1?
-    } flag[%d];
     """
 
 MEM_CALLSIGN_FORMAT = """
@@ -517,7 +502,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
     _MONI_TCALL = ("Monitor", "Tone-CALL")
     _HOME_REV = ("Home", "Reverse")
     _LOCK = ("KEY", "DIAL", "Key+Dial", "PTT", "Key+PTT", "Dial+PTT", "ALL")
-    _PTT_DELAY = ("Off", "20 MS", "50 MS", "100 MS", "200 MS")
+    _PTT_DELAY = ("Off", "20 ms", "50 ms", "100 ms", "200 ms")
     _BEEP_LEVEL = ("Level 1", "Level 2", "Level 3", "Level 4", "Level 5", "Level 6", "Level 7")
     _SET_MODE = ("Level 1", "Level 2", "Level 3", "Level 4", "Level 5", "Level 6", "Level 7")
     _RX_SAVE = ("OFF", "0.2s", ".3s", ".4s", ".5s", ".6s", ".7s", ".8s", ".9s", "1.0s", "1.5s",
@@ -561,15 +546,16 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
             "2. Connect cable to DATA terminal.\n"
             "3. Unclip battery.\n"
             "4. Press and hold in the [AMS] key and power key while clipping"
-            " \n in back battery the"
+            " \n in back battery the "
             "(\"ADMS\" will appear on the display).\n"
-            "5. Press the [MODE] key (\"-WAIT-\" will appear on the LCD)."
-            " OK</b>\n click <b>Then")
+            "5. Press the [MODE] key (\"-WAIT-\" will appear on the LCD).\n"
+            "<b>Then click OK</b>")
         return rp
 
     def process_mmap(self):
 
-        mem_format = MEM_SETTINGS_FORMAT + MEM_FORMAT + MEM_CALLSIGN_FORMAT + MEM_CHECKSUM_FORMAT
+        mem_format = (MEM_SETTINGS_FORMAT + MEM_FORMAT + MEM_CALLSIGN_FORMAT +
+                      MEM_SETTINGS_FORMAT_HI + MEM_CHECKSUM_FORMAT)
 
         self._memobj = bitwise.parse(mem_format % self._mem_params, self._mmap)
 
@@ -579,11 +565,11 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         rf.valid_modes = list(MODES)
         rf.valid_tmodes = list(TMODES)
         rf.valid_duplexes = list(DUPLEX)
-        rf.valid_tuning_steps = list(STEPS)
+        rf.valid_tuning_steps = [x for x in STEPS if x]
         rf.valid_bands = [(500000, 999900000)]
         rf.valid_skips = SKIPS
         rf.valid_power_levels = POWER_LEVELS
-        rf.valid_characters = "".join(CHARSET)
+        rf.valid_characters = "".join(CHARSET).upper()
         rf.valid_name_length = 6
         rf.memory_bounds = (1, 900)
         rf.can_odd_split = True
@@ -644,7 +630,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         return self._add_ff_pad(mem.name.rstrip(), 6)
 
     def _encode_charsetbits(self, mem):
-        # We only speak english here in chirpville
+        # We only speak English here in chirpville
         return [0x00, 0x00]
 
     def _decode_power_level(self, mem):  # 3 High 2 Mid 1 Low
@@ -744,20 +730,20 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._DTMF_MODE,
-            self._DTMF_MODE[dtmf.dtmf_mode])
+            current_index=dtmf.dtmf_mode)
         rs = RadioSetting("scan_settings.dtmf_mode", "DTMF Mode", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._DTMF_DELAY,
-            self._DTMF_DELAY[dtmf.dtmf_delay])
+            current_index=dtmf.dtmf_delay)
         rs = RadioSetting(
             "scan_settings.dtmf_delay", "DTMF Delay", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._DTMF_SPEED,
-            self._DTMF_SPEED[dtmf.dtmf_speed])
+            current_index=dtmf.dtmf_speed)
         rs = RadioSetting(
             "scan_settings.dtmf_speed", "DTMF Speed", val)
         menu.append(rs)
@@ -790,20 +776,20 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._LAMP_KEY,
-            self._LAMP_KEY[scan_settings.lamp])
+            current_index=scan_settings.lamp)
         rs = RadioSetting("scan_settings.lamp", "Lamp", val)
         menu.append(rs)
 
         val = RadioSettingValueList(
             self._LCD_DIMMER,
-            self._LCD_DIMMER[scan_settings.lcd_dimmer])
+            current_index=scan_settings.lcd_dimmer)
         rs = RadioSetting("scan_settings.lcd_dimmer", "LCD Dimmer", val)
         menu.append(rs)
 
         opening_message = self._memobj.opening_message
         val = RadioSettingValueList(
             self._OPENING_MESSAGE,
-            self._OPENING_MESSAGE[opening_message.flag])
+            current_index=opening_message.flag)
         rs = RadioSetting("opening_message.flag", "Opening Msg Mode", val)
         menu.append(rs)
 
@@ -818,7 +804,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         first_settings = self._memobj.first_settings
         val = RadioSettingValueList(
             self._APO_SELECT,
-            self._APO_SELECT[first_settings.apo])
+            current_index=first_settings.apo)
         rs = RadioSetting("first_settings.apo", "APO", val)
         menu.append(rs)
 
@@ -826,7 +812,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.bclo])
+            current_index=scan_settings.bclo)
         rs = RadioSetting("scan_settings.bclo", "Busy Channel Lockout", val)
         menu.append(rs)
 
@@ -835,7 +821,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         beep_settings = self._memobj.beep_settings
         val = RadioSettingValueList(
             self._BEEP_SELECT,
-            self._BEEP_SELECT[beep_settings.beep_select])
+            current_index=beep_settings.beep_select)
         rs = RadioSetting("beep_settings.beep_select", "Beep", val)
         menu.append(rs)
 
@@ -843,7 +829,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._BEEP_LEVEL,
-            self._BEEP_LEVEL[beep_settings.beep_level])
+            current_index=beep_settings.beep_level)
         rs = RadioSetting("beep_settings", "Beep Level", val)
         menu.append(rs)
 
@@ -851,7 +837,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.beep_edge])
+            current_index=scan_settings.beep_edge)
         rs = RadioSetting("scan_settings.beep_edge", "Beep Band Edge", val)
         menu.append(rs)
 
@@ -859,7 +845,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._ON_OFF,
-            self._ON_OFF[scan_settings.busy_led])
+            current_index=scan_settings.busy_led)
         rs = RadioSetting("scan_settings.busy_led", "Busy LED", val)
         menu.append(rs)
 
@@ -867,7 +853,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._HOME_REV,
-            self._HOME_REV[scan_settings.home_rev])
+            current_index=scan_settings.home_rev)
         rs = RadioSetting("scan_settings.home_rev", "HOME/REV", val)
         menu.append(rs)
 
@@ -875,7 +861,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.home_vfo])
+            current_index=scan_settings.home_vfo)
         rs = RadioSetting("scan_settings.home_vfo", "Home->VFO", val)
         menu.append(rs)
 
@@ -883,7 +869,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._LOCK,
-            self._LOCK[scan_settings.lock])
+            current_index=scan_settings.lock)
         rs = RadioSetting("scan_settings.lock", "Lock Mode", val)
         menu.append(rs)
 
@@ -891,15 +877,15 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._MONI_TCALL,
-            self._MONI_TCALL[scan_settings.moni])
+            current_index=scan_settings.moni)
         rs = RadioSetting("scan_settings.moni", "MONI/T-CALL", val)
         menu.append(rs)
 
-        # 42 PTT.DLY    Set the PTT delay time. OFF / 20 MS / 50 MS / 100 MS / 200 MS
+        # 42 PTT.DLY    Set the PTT delay time. OFF / 20 ms / 50 ms / 100 ms / 200 ms
 
         val = RadioSettingValueList(
             self._PTT_DELAY,
-            self._PTT_DELAY[scan_settings.ptt_delay])
+            current_index=scan_settings.ptt_delay)
         rs = RadioSetting("scan_settings.ptt_delay", "PTT Delay", val)
         menu.append(rs)
 
@@ -907,15 +893,15 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.ars])
+            current_index=scan_settings.ars)
         rs = RadioSetting("scan_settings.ars", "ARS", val)
         menu.append(rs)
 
-        # 48 RX.SAVE    Set the battery save time. OFF / 0.2 S - 60.0 S
+        # 48 RX.SAVE    Set the battery save time. OFF / 0.2 s - 60.0 s
 
         val = RadioSettingValueList(
             self._RX_SAVE,
-            self._RX_SAVE[scan_settings.rx_save])
+            current_index=scan_settings.rx_save)
         rs = RadioSetting("scan_settings.rx_save", "RX SAVE", val)
         menu.append(rs)
 
@@ -923,7 +909,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._VFO_MODE,
-            self._VFO_MODE[scan_settings.vfo_mode])
+            current_index=scan_settings.vfo_mode)
         rs = RadioSetting("scan_settings.vfo_mode", "VFO MODE", val)
         menu.append(rs)
 
@@ -931,7 +917,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._TOT_TIME,
-            self._TOT_TIME[scan_settings.tot])
+            current_index=scan_settings.tot)
         rs = RadioSetting("scan_settings.tot", "Transmit Timeout (TOT)", val)
         menu.append(rs)
 
@@ -939,7 +925,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._MIC_GAIN,
-            self._MIC_GAIN[scan_settings.mic_gain])
+            current_index=scan_settings.mic_gain)
         rs = RadioSetting("scan_settings.mic_gain", "Mic Gain", val)
         menu.append(rs)
 
@@ -948,7 +934,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         scan_settings_2 = self._memobj.scan_settings_2
         val = RadioSettingValueList(
             self._VOLUME,
-            self._VOLUME[scan_settings_2.volume])
+            current_index=scan_settings_2.volume)
         rs = RadioSetting("scan_settings_2.volume", "Volume", val)
         menu.append(rs)
 
@@ -957,7 +943,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         squelch_settings = self._memobj.squelch_settings
         val = RadioSettingValueList(
             self._SQUELCH,
-            self._SQUELCH[squelch_settings.squelch])
+            current_index=squelch_settings.squelch)
         rs = RadioSetting("squelch_settings.squelch", "Squelch", val)
         menu.append(rs)
 
@@ -980,7 +966,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         digital_settings = self._memobj.digital_settings
         val = RadioSettingValueList(
             self._AMS_TX_MODE,
-            self._AMS_TX_MODE[digital_settings.ams_tx_mode])
+            current_index=digital_settings.ams_tx_mode)
         rs = RadioSetting("digital_settings.ams_tx_mode", "AMS TX Mode", val)
         menu.append(rs)
 
@@ -988,7 +974,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._VW_MODE,
-            self._VW_MODE[digital_settings.vw_mode])
+            current_index=digital_settings.vw_mode)
         rs = RadioSetting("digital_settings.vw_mode", "VW Mode", val)
         menu.append(rs)
 
@@ -996,7 +982,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._DG_ID,
-            self._DG_ID[digital_settings.tx_dg_id])
+            current_index=digital_settings.tx_dg_id)
         rs = RadioSetting("digital_settings.tx_dg_id", "TX DG-ID", val)
         menu.append(rs)
 
@@ -1004,7 +990,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._DG_ID,
-            self._DG_ID[digital_settings.rx_dg_id])
+            current_index=digital_settings.rx_dg_id)
         rs = RadioSetting("digital_settings.rx_dg_id", "RX DG-ID", val)
         menu.append(rs)
 
@@ -1025,8 +1011,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._DIG_POP_UP,
-            self._DIG_POP_UP[
-                0 if digital_settings_more.digital_popup == 0 else digital_settings_more.digital_popup - 9])
+            current_index=0 if digital_settings_more.digital_popup == 0 else digital_settings_more.digital_popup - 9)
 
         rs = RadioSetting("digital_settings_more.digital_popup", "Digital Popup", val)
         rs.set_apply_callback(self.apply_digital_popup, digital_settings_more)
@@ -1036,7 +1021,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._STANDBY_BEEP,
-            self._STANDBY_BEEP[digital_settings.standby_beep])
+            current_index=digital_settings.standby_beep)
         rs = RadioSetting("digital_settings.standby_beep", "Standby Beep", val)
         menu.append(rs)
 
@@ -1050,7 +1035,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         first_settings = self._memobj.first_settings
         val = RadioSettingValueList(
             self._GM_RING,
-            self._GM_RING[first_settings.gm_ring])
+            current_index=first_settings.gm_ring)
         rs = RadioSetting("first_settings.gm_ring", "GM Ring", val)
         menu.append(rs)
 
@@ -1059,7 +1044,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         scan_settings = self._memobj.scan_settings
         val = RadioSettingValueList(
             self._GM_INTERVAL,
-            self._GM_INTERVAL[scan_settings.gm_interval])
+            current_index=scan_settings.gm_interval)
         rs = RadioSetting("scan_settings.gm_interval", "GM Interval", val)
         menu.append(rs)
 
@@ -1073,7 +1058,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.dw_rt])
+            current_index=scan_settings.dw_rt)
         rs = RadioSetting("scan_settings.dw_rt", "Dual Watch Priority Channel Revert", val)
         menu.append(rs)
 
@@ -1081,7 +1066,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._SCAN_RESTART,
-            self._SCAN_RESTART[scan_settings.dw_interval])
+            current_index=scan_settings.dw_interval)
         rs = RadioSetting("scan_settings.dw_interval", "Dual Watch Interval", val)
         menu.append(rs)
 
@@ -1090,7 +1075,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         first_settings = self._memobj.first_settings
         val = RadioSettingValueList(
             self._SCAN_RESUME,
-            self._SCAN_RESUME[first_settings.dw_resume_interval])
+            current_index=first_settings.dw_resume_interval)
         rs = RadioSetting("first_settings.dw_resume_interval", "Dual Watch Resume Interval", val)
         menu.append(rs)
 
@@ -1098,7 +1083,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._OFF_ON,
-            self._OFF_ON[scan_settings.scan_lamp])
+            current_index=scan_settings.scan_lamp)
         rs = RadioSetting("scan_settings.scan_lamp", "Scan Lamp", val)
         menu.append(rs)
 
@@ -1106,7 +1091,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
 
         val = RadioSettingValueList(
             self._SCAN_RESTART,
-            self._SCAN_RESTART[scan_settings.scan_restart])
+            current_index=scan_settings.scan_restart)
         rs = RadioSetting("scan_settings.scan_restart", "Scan Restart", val)
         menu.append(rs)
 
@@ -1121,7 +1106,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
         first_settings = self._memobj.first_settings
         val = RadioSettingValueList(
             self._SCAN_RESUME,
-            self._SCAN_RESUME[first_settings.scan_resume])
+            current_index=first_settings.scan_resume)
         rs = RadioSetting("first_settings.scan_resume", "Scan Resume", val)
         menu.append(rs)
 
@@ -1187,7 +1172,7 @@ class FT70Radio(yaesu_clone.YaesuCloneModeRadio):
                 except AttributeError as e:
                     LOG.error("Setting %s is not in the memory map: %s" %
                               (element.get_name(), e))
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

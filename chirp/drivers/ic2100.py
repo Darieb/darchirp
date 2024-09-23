@@ -14,11 +14,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from chirp.drivers import icf
-from chirp import chirp_common, util, directory, bitwise, memmap
+from chirp import chirp_common, util, directory, bitwise
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettingValueFloat, InvalidValueError, RadioSettings
+    RadioSettingValueBoolean
 
 MEM_FORMAT = """
 struct {
@@ -120,7 +118,7 @@ def _get_freq(mem):
         elif mem.freq_1khz == 7:
             freq += 500
         else:
-            raise Exception("Unable to resolve 12.5kHz: %i" % freq)
+            raise Exception("Unable to resolve 12.5 kHz: %i" % freq)
 
     return freq
 
@@ -134,13 +132,13 @@ def _set_freq(mem, freq):
 
 
 def _get_offset(mem):
-    raw = memmap.MemoryMap(mem.get_raw())
-    if ord(raw[5]) & 0x0A:
-        raw[5] = ord(raw[5]) & 0xF0
-        mem.set_raw(raw.get_packed())
+    raw = bytearray(mem.get_raw())
+    if raw[5] & 0x0A:
+        raw[5] = raw[5] & 0xF0
+        mem.set_raw(raw)
         offset = int(mem.offset) * 1000 + 5000
-        raw[5] = ord(raw[5]) | 0x0A
-        mem.set_raw(raw.get_packed())
+        raw[5] = raw[5] | 0x0A
+        mem.set_raw(bytes(raw))
         return offset
     else:
         return int(mem.offset) * 1000
@@ -154,9 +152,9 @@ def _set_offset(mem, offset):
         extra = 0x00
 
     mem.offset = offset / 1000
-    raw = memmap.MemoryMap(mem.get_raw())
-    raw[5] = ord(raw[5]) | extra
-    mem.set_raw(raw.get_packed())
+    raw = bytearray(mem.get_raw())
+    raw[5] = raw[5] | extra
+    mem.set_raw(bytes(raw))
 
 
 def _wipe_memory(mem, char):

@@ -23,21 +23,9 @@ from chirp import bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting
 from chirp.settings import RadioSettingValueBoolean, RadioSettingValueList
 from chirp.settings import RadioSettingValueString, RadioSettingValueInteger
-from chirp.settings import RadioSettings
+from chirp.settings import RadioSettings, RadioSettingSubGroup
 
 LOG = logging.getLogger(__name__)
-
-# Gross hack to handle missing future module on un-updatable
-# platforms like MacOS. Just avoid registering these radio
-# classes for now.
-try:
-    from builtins import bytes
-    has_future = True
-except ImportError:
-    has_future = False
-    LOG.debug('python-future package is not '
-              'available; %s requires it' % __name__)
-
 
 HEADER_FORMAT = """
 #seekto 0x0100;
@@ -244,8 +232,8 @@ def do_ident(radio):
         raise errors.RadioError('Radio refused program mode')
     if ident[:6] not in (radio._model,):
         model = ident[:5].decode()
-        variants = {b'\x06': 'K, K1, K3 (450-520MHz)',
-                    b'\x07': 'K2, K4 (400-470MHz)'}
+        variants = {b'\x06': 'K, K1, K3 (450-520 MHz)',
+                    b'\x07': 'K2, K4 (400-470 MHz)'}
         if model == 'P3180':
             model += ' ' + variants.get(ident[5], '(Unknown)')
         raise errors.RadioError('Unsupported radio model %s' % model)
@@ -396,7 +384,6 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
     VENDOR = 'Kenwood'
     MODEL = 'TK-x180'
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     FORMATS = [directory.register_format('Kenwood KPG-89D', '*.dat')]
 
     _system_start = 0x0B00
@@ -554,12 +541,12 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
 
                 # Copy the zone record from the source, but then update
                 # the count
-                dest_zoneinfo.set_raw(source_zoneinfo.get_raw())
+                dest_zoneinfo.set_raw(source_zoneinfo.get_raw(asbytes=False))
                 dest_zoneinfo.count = count
 
                 source_i = 0
                 for dest_i in range(0, min(count, old_count)):
-                    dest[dest_i].set_raw(source[dest_i].get_raw())
+                    dest[dest_i].set_raw(source[dest_i].get_raw(asbytes=False))
             else:
                 LOG.debug('New zone %i' % zone_number)
                 dest_zone.zoneinfo.number = zone_number + 1
@@ -586,7 +573,8 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         if current == memories:
             LOG.debug('Shuffle not required')
             return
-        raw_data = [raw_memories[i].get_raw() for i, n in memories]
+        raw_data = [raw_memories[i].get_raw(asbytes=False)
+                    for i, n in memories]
         for i, raw_mem in enumerate(raw_data):
             raw_memories[i].set_raw(raw_mem)
 
@@ -712,7 +700,7 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         mem.power = POWER_LEVELS[_mem.highpower]
 
         offset = (int(_mem.tx_freq) - int(_mem.rx_freq)) * 10
-        if _mem.tx_freq.get_raw(asbytes=True) == b'\xFF\xFF\xFF\xFF':
+        if _mem.tx_freq.get_raw() == b'\xFF\xFF\xFF\xFF':
             mem.offset = 0
             mem.duplex = 'off'
         elif offset == 0:
@@ -849,7 +837,7 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         clockfmt = RadioSetting(
             'clockfmt', 'Clock Format',
             RadioSettingValueList(CLOCKFMT,
-                                  CLOCKFMT[settings.clockfmt]))
+                                  current_index=settings.clockfmt))
         clockfmt.set_apply_callback(apply_clockfmt)
         common1.append(clockfmt)
 
@@ -859,7 +847,7 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         datefmt = RadioSetting(
             'datefmt', 'Date Format',
             RadioSettingValueList(DATEFMT,
-                                  DATEFMT[settings.datefmt]))
+                                  current_index=settings.datefmt))
         datefmt.set_apply_callback(apply_datefmt)
         common1.append(datefmt)
 
@@ -1040,7 +1028,7 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         zones.append(zone_count)
 
         for i in range(len(self._zones)):
-            zone = RadioSettingGroup('zone%i' % i, 'Zone %i' % (i + 1))
+            zone = RadioSettingSubGroup('zone%i' % i, 'Zone %i' % (i + 1))
 
             _zone = getattr(self._memobj, 'zone%i' % i).zoneinfo
             _name = str(_zone.name).rstrip('\x00')
@@ -1106,10 +1094,14 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         def _tones():
             return ['Off'] + [str(x) for x in tones]
 
+        ostgroup = RadioSettingGroup('ost', 'OST')
+        ostgroup.set_doc('Operator Selectable Tone')
+        parent.append(ostgroup)
+
         for i in range(0, 40):
             _ost = self._memobj.ost_tones[i]
-            ost = RadioSettingGroup('ost%i' % i,
-                                    'OST %i' % (i + 1))
+            ost = RadioSettingSubGroup('ost%i' % i,
+                                       'OST %i' % (i + 1))
 
             cur = str(_ost.name).rstrip('\x00')
             name = RadioSetting('name%i' % i, 'Name',
@@ -1144,7 +1136,7 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
             tx.set_apply_callback(apply_tone, i, 'tx')
             ost.append(tx)
 
-            parent.append(ost)
+            ostgroup.append(ost)
 
     def get_settings(self):
         settings = self._memobj.settings
@@ -1220,47 +1212,52 @@ class KenwoodTKx180RadioZone(KenwoodTKx180Radio):
         return []
 
 
-if has_future:
-    @directory.register
-    class KenwoodTK7180Radio(KenwoodTKx180Radio):
-        MODEL = 'TK-7180'
-        VALID_BANDS = [(136000000, 174000000)]
-        _model = b'M7180\x04'
+@directory.register
+class KenwoodTK7180Radio(KenwoodTKx180Radio):
+    MODEL = 'TK-7180'
+    VALID_BANDS = [(136000000, 174000000)]
+    _model = b'M7180\x04'
 
-    @directory.register
-    class KenwoodTK8180Radio(KenwoodTKx180Radio):
-        MODEL = 'TK-8180'
-        VALID_BANDS = [(400000000, 520000000)]
-        _model = b'M8180\x06'
 
-    @directory.register
-    class KenwoodTK2180Radio(KenwoodTKx180Radio):
-        MODEL = 'TK-2180'
-        VALID_BANDS = [(136000000, 174000000)]
-        _model = b'P2180\x04'
+@directory.register
+class KenwoodTK8180Radio(KenwoodTKx180Radio):
+    MODEL = 'TK-8180'
+    VALID_BANDS = [(400000000, 520000000)]
+    _model = b'M8180\x06'
 
-    # K1,K3 are technically 450-470 (K3 == keypad)
-    @directory.register
-    class KenwoodTK3180K1Radio(KenwoodTKx180Radio):
-        MODEL = 'TK-3180K'
-        VALID_BANDS = [(400000000, 520000000)]
-        _model = b'P3180\x06'
 
-    # K2,K4 are technically 400-470 (K4 == keypad)
-    @directory.register
-    class KenwoodTK3180K2Radio(KenwoodTKx180Radio):
-        MODEL = 'TK-3180K2'
-        VALID_BANDS = [(400000000, 520000000)]
-        _model = b'P3180\x07'
+@directory.register
+class KenwoodTK2180Radio(KenwoodTKx180Radio):
+    MODEL = 'TK-2180'
+    VALID_BANDS = [(136000000, 174000000)]
+    _model = b'P2180\x04'
 
-    @directory.register
-    class KenwoodTK8180E(KenwoodTKx180Radio):
-        MODEL = 'TK-8180E'
-        VALID_BANDS = [(400000000, 520000000)]
-        _model = b'M8189\''
 
-    @directory.register
-    class KenwoodTK7180ERadio(KenwoodTKx180Radio):
-        MODEL = 'TK-7180E'
-        VALID_BANDS = [(136000000, 174000000)]
-        _model = b'M7189$'
+# K1,K3 are technically 450-470 (K3 == keypad)
+@directory.register
+class KenwoodTK3180K1Radio(KenwoodTKx180Radio):
+    MODEL = 'TK-3180K'
+    VALID_BANDS = [(400000000, 520000000)]
+    _model = b'P3180\x06'
+
+
+# K2,K4 are technically 400-470 (K4 == keypad)
+@directory.register
+class KenwoodTK3180K2Radio(KenwoodTKx180Radio):
+    MODEL = 'TK-3180K2'
+    VALID_BANDS = [(400000000, 520000000)]
+    _model = b'P3180\x07'
+
+
+@directory.register
+class KenwoodTK8180E(KenwoodTKx180Radio):
+    MODEL = 'TK-8180E'
+    VALID_BANDS = [(400000000, 520000000)]
+    _model = b'M8189\''
+
+
+@directory.register
+class KenwoodTK7180ERadio(KenwoodTKx180Radio):
+    MODEL = 'TK-7180E'
+    VALID_BANDS = [(136000000, 174000000)]
+    _model = b'M7189$'

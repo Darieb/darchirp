@@ -23,8 +23,7 @@ from chirp import bitwise, errors, util
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
-    RadioSettingValueFloat, RadioSettings, \
-    InvalidValueError
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -428,6 +427,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
     """TDXone TD-Q8A Radio"""
     VENDOR = "TDXone"
     MODEL = "TD-Q8A"
+    NEEDS_COMPAT_SERIAL = True
 
     _model = b'TD-Q8A'
     _magic = [MSTRING_TDQ8A, MSTRING_TDQ8A, ]
@@ -532,7 +532,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
     def _is_txinh(self, _mem):
         raw_tx = ""
         for i in range(0, 4):
-            raw_tx += _mem.txfreq[i].get_raw()
+            raw_tx += _mem.txfreq[i].get_raw(asbytes=False)
         return raw_tx == "\xFF\xFF\xFF\xFF"
 
     def _get_mem(self, number):
@@ -548,7 +548,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
         mem = chirp_common.Memory()
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xff":
+        if _mem.get_raw(asbytes=False)[0] == "\xff":
             mem.empty = True
             return mem
 
@@ -618,7 +618,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
 
         rs = RadioSetting("dtmf", "DTMF",
                           RadioSettingValueList(LIST_DTMF,
-                                                LIST_DTMF[_mem.dtmf]))
+                                                current_index=_mem.dtmf))
         mem.extra.append(rs)
 
         rs = RadioSetting("bcl", "BCL",
@@ -731,7 +731,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.voice
         rs = RadioSetting("settings.voice", "Voice Prompt",
                           RadioSettingValueList(
-                              LIST_VOICE, LIST_VOICE[val]))
+                              LIST_VOICE, current_index=val))
         basic.append(rs)
 
         if _mem.settings.vox > 0x0A:
@@ -740,7 +740,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.vox
         rs = RadioSetting("settings.vox", "VOX",
                           RadioSettingValueList(
-                              LIST_OFF1TO10, LIST_OFF1TO10[val]))
+                              LIST_OFF1TO10, current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("settings.autolk", "Automatic Key Lock",
@@ -753,7 +753,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.screv
         rs = RadioSetting("settings.screv", "Scan Resume",
                           RadioSettingValueList(
-                              LIST_RESUME, LIST_RESUME[val]))
+                              LIST_RESUME, current_index=val))
         basic.append(rs)
 
         if _mem.settings.toa > 0x0A:
@@ -762,7 +762,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.toa
         rs = RadioSetting("settings.toa", "Time-out Pre-Alert",
                           RadioSettingValueList(
-                              LIST_OFF1TO10, LIST_OFF1TO10[val]))
+                              LIST_OFF1TO10, current_index=val))
         basic.append(rs)
 
         if _mem.settings.timeout > 0x28:
@@ -771,42 +771,46 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.timeout
         rs = RadioSetting("settings.timeout", "Timeout Timer",
                           RadioSettingValueList(
-                              LIST_TIMEOUT, LIST_TIMEOUT[val]))
+                              LIST_TIMEOUT, current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("settings.wtled", "Standby LED Color",
                           RadioSettingValueList(
-                              LIST_COLOR, LIST_COLOR[_mem.settings.wtled]))
+                              LIST_COLOR, current_index=_mem.settings.wtled))
         basic.append(rs)
 
         rs = RadioSetting("settings.rxled", "RX LED Color",
                           RadioSettingValueList(
-                              LIST_COLOR, LIST_COLOR[_mem.settings.rxled]))
+                              LIST_COLOR, current_index=_mem.settings.rxled))
         basic.append(rs)
 
         rs = RadioSetting("settings.txled", "TX LED Color",
                           RadioSettingValueList(
-                              LIST_COLOR, LIST_COLOR[_mem.settings.txled]))
+                              LIST_COLOR, current_index=_mem.settings.txled))
         basic.append(rs)
 
-        rs = RadioSetting("settings.roger", "Roger Beep",
-                          RadioSettingValueList(LIST_ROGER, LIST_ROGER[
-                              _mem.settings.roger]))
+        rs = RadioSetting(
+            "settings.roger", "Roger Beep",
+            RadioSettingValueList(
+                LIST_ROGER, current_index=_mem.settings.roger))
         basic.append(rs)
 
-        rs = RadioSetting("settings.mdfa", "Display Mode (A)",
-                          RadioSettingValueList(LIST_MODE, LIST_MODE[
-                              _mem.settings.mdfa]))
+        rs = RadioSetting(
+            "settings.mdfa", "Display Mode (A)",
+            RadioSettingValueList(
+                LIST_MODE, current_index=_mem.settings.mdfa))
         basic.append(rs)
 
-        rs = RadioSetting("settings.mdfb", "Display Mode (B)",
-                          RadioSettingValueList(LIST_MODE, LIST_MODE[
-                              _mem.settings.mdfb]))
+        rs = RadioSetting(
+            "settings.mdfb", "Display Mode (B)",
+            RadioSettingValueList(
+                LIST_MODE, current_index=_mem.settings.mdfb))
         basic.append(rs)
 
-        rs = RadioSetting("settings.pf1", "PF1 Key Assignment",
-                          RadioSettingValueList(LIST_PF1, LIST_PF1[
-                              _mem.settings.pf1]))
+        rs = RadioSetting(
+            "settings.pf1", "PF1 Key Assignment",
+            RadioSettingValueList(
+                LIST_PF1, current_index=_mem.settings.pf1))
         basic.append(rs)
 
         rs = RadioSetting("settings.tdr", "Dual Watch(TDR)",
@@ -823,23 +827,25 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.pttdly
         rs = RadioSetting("settings.pttdly", "PTT ID Delay",
                           RadioSettingValueList(
-                              LIST_OFF1TO30, LIST_OFF1TO30[val]))
+                              LIST_OFF1TO30, current_index=val))
         basic.append(rs)
 
-        rs = RadioSetting("settings.pttid", "When to send PTT ID",
-                          RadioSettingValueList(LIST_PTTID,
-                                                LIST_PTTID[
-                                                    _mem.settings.pttid]))
+        rs = RadioSetting(
+            "settings.pttid", "When to send PTT ID",
+            RadioSettingValueList(
+                LIST_PTTID, current_index=_mem.settings.pttid))
         basic.append(rs)
 
-        rs = RadioSetting("settings.dtmfst", "DTMF Sidetone",
-                          RadioSettingValueList(LIST_DTMFST, LIST_DTMFST[
-                              _mem.settings.dtmfst]))
+        rs = RadioSetting(
+            "settings.dtmfst", "DTMF Sidetone",
+            RadioSettingValueList(
+                LIST_DTMFST, current_index=_mem.settings.dtmfst))
         basic.append(rs)
 
-        rs = RadioSetting("settings.ponmsg", "Power-On Message",
-                          RadioSettingValueList(LIST_PONMSG, LIST_PONMSG[
-                              _mem.settings.ponmsg]))
+        rs = RadioSetting(
+            "settings.ponmsg", "Power-On Message",
+            RadioSettingValueList(
+                LIST_PONMSG, current_index=_mem.settings.ponmsg))
         basic.append(rs)
 
         rs = RadioSetting("settings.dw", "DW",
@@ -847,14 +853,16 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
         basic.append(rs)
 
         # Advanced settings
-        rs = RadioSetting("settings.prioritych", "Priority Channel",
-                          RadioSettingValueList(LIST_PRIORITY, LIST_PRIORITY[
-                              _mem.settings.prioritych]))
+        rs = RadioSetting(
+            "settings.prioritych", "Priority Channel",
+            RadioSettingValueList(
+                LIST_PRIORITY, current_index=_mem.settings.prioritych))
         advanced.append(rs)
 
-        rs = RadioSetting("settings.vfomr", "Work Mode",
-                          RadioSettingValueList(LIST_WORKMODE, LIST_WORKMODE[
-                              _mem.settings.vfomr]))
+        rs = RadioSetting(
+            "settings.vfomr", "Work Mode",
+            RadioSettingValueList(
+                LIST_WORKMODE, current_index=_mem.settings.vfomr))
         advanced.append(rs)
 
         dtmfchars = "0123456789"
@@ -898,7 +906,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
             val = _mem.settings.tdrab
         rs = RadioSetting("settings.tdrab", "Dual Watch TX Priority",
                           RadioSettingValueList(
-                              LIST_AB, LIST_AB[val]))
+                              LIST_AB, current_index=val))
         advanced.append(rs)
 
         rs = RadioSetting("settings.keylk", "Key Lock",
@@ -945,7 +953,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -959,7 +967,7 @@ class TDXoneTDQ8A(chirp_common.CloneModeRadio,
                     value = int(val.get_value() * 10)
                 LOG.debug("Setting fm_presets = %s" % (value))
                 self._memobj.fm_presets = value
-            except Exception as e:
+            except Exception:
                 LOG.debug(element.get_name())
                 raise
 

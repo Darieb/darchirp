@@ -29,7 +29,6 @@ from chirp.settings import (
     RadioSettingGroup,
     RadioSettings,
     RadioSettingValueBoolean,
-    RadioSettingValueFloat,
     RadioSettingValueInteger,
     RadioSettingValueList,
     RadioSettingValueString,
@@ -187,36 +186,12 @@ RPSTE_LIST = ["Off"] + ["%s" % x for x in range(100, 1100, 100)]
 SCMODE_LIST = ["Time (TO)", "Carrier (CO)", "Search (SE)"]
 TDRAB_LIST = ["Off", "A Band", "B Band"]
 TIMEOUTTIMER_LIST = ["%s seconds" % x for x in range(15, 615, 15)]
-TONE_LIST = ["1000Hz", "1450Hz", "1750Hz", "2100Hz"]
+TONE_LIST = ["1000 Hz", "1450 Hz", "1750 Hz", "2100 Hz"]
 VOICE_LIST = ["Off", "On"]
 WORKMODE_LIST = ["VFO Mode", "Channel Mode"]
 
 SKEY_CHOICES = ["FM", "Tx Power", "Moni", "Scan", "Offline", "Weather"]
 SKEY_VALUES = [0x07, 0x0A, 0x05, 0x1C, 0x0B, 0x0C]
-
-
-SETTING_LISTS = {
-    "abr": OFF1TO10_LIST,
-    "almod": ALMOD_LIST,
-    "dtmfspeed": DTMFSPEED_LIST,
-    "language": LANGUAGE_LIST,
-    "mdfa": MDF_LIST,
-    "mdfb": MDF_LIST,
-    "pttid": PTTID_LIST,
-    "rpste": RPSTE_LIST,
-    "rptrl": RPSTE_LIST,
-    "rxled": BACKLIGHT_LIST,
-    "scode": PTTIDCODE_LIST,
-    "scmode": SCMODE_LIST,
-    "tdrab": TDRAB_LIST,
-    "tot": TIMEOUTTIMER_LIST,
-    "tone": TONE_LIST,
-    "txled": BACKLIGHT_LIST,
-    "voice": VOICE_LIST,
-    "vox": OFF1TO10_LIST,
-    "workmode": WORKMODE_LIST,
-    "wtled": BACKLIGHT_LIST,
-    }
 
 GMRS_FREQS1 = [462562500, 462587500, 462612500, 462637500, 462662500,
                462687500, 462712500]
@@ -358,7 +333,6 @@ class RT76PRadio(chirp_common.CloneModeRadio):
     VENDOR = "Retevis"
     MODEL = "RT76P"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     BLOCK_SIZE = 0x40
     BLOCK_SIZE_UP = 0x20
 
@@ -395,7 +369,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = self.RT76P_POWER_LEVELS
         rf.valid_duplexes = ["", "-", "+", "split", "off"]
-        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 KHz.
+        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 kHz.
         rf.valid_dtcs_codes = RT76P_DTCS
         rf.memory_bounds = (1, 128)
         rf.valid_tuning_steps = [2.5, 5., 6.25, 10., 12.5, 20., 25., 50.]
@@ -436,7 +410,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
     def _is_txinh(self, _mem):
         raw_tx = ""
         for i in range(0, 4):
-            raw_tx += _mem.txfreq[i].get_raw()
+            raw_tx += _mem.txfreq[i].get_raw(asbytes=False)
         return raw_tx == "\xFF\xFF\xFF\xFF"
 
     def get_memory(self, number):
@@ -446,7 +420,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
         mem = chirp_common.Memory()
         mem.number = number
 
-        if _mem.get_raw()[0] == "\xff":
+        if _mem.get_raw(asbytes=False)[0] == "\xff":
             mem.empty = True
             return mem
 
@@ -534,12 +508,12 @@ class RT76PRadio(chirp_common.CloneModeRadio):
         mem.extra.append(rset)
 
         # PTT-ID
-        rs = RadioSettingValueList(PTTID_LIST, PTTID_LIST[_mem.pttid])
+        rs = RadioSettingValueList(PTTID_LIST, current_index=_mem.pttid)
         rset = RadioSetting("pttid", "PTT ID", rs)
         mem.extra.append(rset)
 
         # Signal (DTMF Encoder Group #)
-        rs = RadioSettingValueList(PTTIDCODE_LIST, PTTIDCODE_LIST[_mem.scode])
+        rs = RadioSettingValueList(PTTIDCODE_LIST, current_index=_mem.scode)
         rset = RadioSetting("scode", "PTT ID Code", rs)
         mem.extra.append(rset)
 
@@ -672,7 +646,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
         basic.append(rset)
 
         # Menu 04: Vox Level (VOX)
-        rs = RadioSettingValueList(OFF1TO10_LIST, OFF1TO10_LIST[_settings.vox])
+        rs = RadioSettingValueList(OFF1TO10_LIST, current_index=_settings.vox)
         rset = RadioSetting("vox", "VOX Level", rs)
         basic.append(rset)
 
@@ -680,7 +654,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
 
         # Menu 06: Backlight (Auto Backlight)
         rs = RadioSettingValueList(OFF1TO10_LIST,
-                                   OFF1TO10_LIST[_settings.abr])
+                                   current_index=_settings.abr)
         rset = RadioSetting("abr", "Backlight Time-out", rs)
         basic.append(rset)
 
@@ -701,7 +675,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
 
         # Menu 10: Tx over time (Time Out)
         rs = RadioSettingValueList(TIMEOUTTIMER_LIST,
-                                   TIMEOUTTIMER_LIST[_settings.tot - 1])
+                                   current_index=_settings.tot - 1)
         rset = RadioSetting("tot", "Time-out Timer", rs)
         basic.append(rset)
 
@@ -712,19 +686,19 @@ class RT76PRadio(chirp_common.CloneModeRadio):
         # Menu 15: Voice Compand
 
         # Menu 16: DTMFST (DTMF ST)
-        rs = RadioSettingValueList(DTMFST_LIST, DTMFST_LIST[_settings.dtmfst])
+        rs = RadioSettingValueList(DTMFST_LIST, current_index=_settings.dtmfst)
         rset = RadioSetting("dtmfst", "DTMF Side Tone", rs)
         basic.append(rset)
 
         # Mneu 17: R-TONE (Tone)
-        rs = RadioSettingValueList(TONE_LIST, TONE_LIST[_settings.tone])
+        rs = RadioSettingValueList(TONE_LIST, current_index=_settings.tone)
         rset = RadioSetting("tone", "Tone-burst Frequency", rs)
         basic.append(rset)
 
         # Menu 18: S-CODE
 
         # Menu 19: Scan Mode
-        rs = RadioSettingValueList(SCMODE_LIST, SCMODE_LIST[_settings.scmode])
+        rs = RadioSettingValueList(SCMODE_LIST, current_index=_settings.scmode)
         rset = RadioSetting("scmode", "Scan Resume Method", rs)
         basic.append(rset)
 
@@ -732,12 +706,12 @@ class RT76PRadio(chirp_common.CloneModeRadio):
         # Menu 21: PTT-ID
 
         # Menu 22: MDF-A (Channle_A Display)
-        rs = RadioSettingValueList(MDF_LIST, MDF_LIST[_settings.mdfa])
+        rs = RadioSettingValueList(MDF_LIST, current_index=_settings.mdfa)
         rset = RadioSetting("mdfa", "Memory Display Format A", rs)
         basic.append(rset)
 
         # Menu 23: MDF-B (Channle_B Display)
-        rs = RadioSettingValueList(MDF_LIST, MDF_LIST[_settings.mdfb])
+        rs = RadioSettingValueList(MDF_LIST, current_index=_settings.mdfb)
         rset = RadioSetting("mdfb", "Memory Display Format B", rs)
         basic.append(rset)
 
@@ -750,24 +724,24 @@ class RT76PRadio(chirp_common.CloneModeRadio):
 
         # Menu 26: WT-LED (Wait Backlight)
         rs = RadioSettingValueList(BACKLIGHT_LIST,
-                                   BACKLIGHT_LIST[_settings.wtled])
+                                   current_index=_settings.wtled)
         rset = RadioSetting("wtled", "Wait Backlight Color", rs)
         basic.append(rset)
 
         # Menu 27: RX-LED (Rx Backlight)
         rs = RadioSettingValueList(BACKLIGHT_LIST,
-                                   BACKLIGHT_LIST[_settings.rxled])
+                                   current_index=_settings.rxled)
         rset = RadioSetting("rxled", "RX Backlight Color", rs)
         basic.append(rset)
 
         # Menu 28: TX-LED (Tx Backlight)
         rs = RadioSettingValueList(BACKLIGHT_LIST,
-                                   BACKLIGHT_LIST[_settings.txled])
+                                   current_index=_settings.txled)
         rset = RadioSetting("txled", "TX Backlight Color", rs)
         basic.append(rset)
 
         # Menu 29: Alarm Mode
-        rs = RadioSettingValueList(ALMOD_LIST, ALMOD_LIST[_settings.almod])
+        rs = RadioSettingValueList(ALMOD_LIST, current_index=_settings.almod)
         rset = RadioSetting("almod", "Alarm Mode", rs)
         basic.append(rset)
 
@@ -783,13 +757,13 @@ class RT76PRadio(chirp_common.CloneModeRadio):
 
         # Menu 32: Language
         rs = RadioSettingValueList(LANGUAGE_LIST,
-                                   LANGUAGE_LIST[_settings.language])
+                                   current_index=_settings.language)
         rset = RadioSetting("language", "Language", rs)
         basic.append(rset)
 
         # Menu 33: OPENMGS (Pwr On Msg)
         rs = RadioSettingValueList(PWRONMSG_LIST,
-                                   PWRONMSG_LIST[_settings.pwronmsg])
+                                   current_index=_settings.pwronmsg)
         rset = RadioSetting("pwronmsg", "Power On Message", rs)
         basic.append(rset)
 
@@ -811,7 +785,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
 
         # Work Mode
         rs = RadioSettingValueList(WORKMODE_LIST,
-                                   WORKMODE_LIST[_settings.workmode])
+                                   current_index=_settings.workmode)
         rset = RadioSetting("workmode", "Work Mode", rs)
         advanced.append(rset)
 
@@ -832,7 +806,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
             idx = SKEY_VALUES.index(_skey.shortp)
         else:
             idx = SKEY_VALUES.index(0x0C)
-        rs = RadioSettingValueList(SKEY_CHOICES, SKEY_CHOICES[idx])
+        rs = RadioSettingValueList(SKEY_CHOICES, current_index=idx)
         rset = RadioSetting("skey.shortp", "Side Key (Short Press)", rs)
         rset.set_apply_callback(apply_skey_listvalue, _skey.shortp)
         advanced.append(rset)
@@ -842,18 +816,18 @@ class RT76PRadio(chirp_common.CloneModeRadio):
             idx = SKEY_VALUES.index(_skey.longp)
         else:
             idx = SKEY_VALUES.index(0x0C)
-        rs = RadioSettingValueList(SKEY_CHOICES, SKEY_CHOICES[idx])
+        rs = RadioSettingValueList(SKEY_CHOICES, current_index=idx)
         rset = RadioSetting("skey.longp", "Side Key (Long Press)", rs)
         rset.set_apply_callback(apply_skey_listvalue, _skey.longp)
         advanced.append(rset)
 
         # Pass Repeat Noise
-        rs = RadioSettingValueList(RPSTE_LIST, RPSTE_LIST[_settings.rpste])
+        rs = RadioSettingValueList(RPSTE_LIST, current_index=_settings.rpste)
         rset = RadioSetting("rpste", "Squelch Tail Eliminate (repeater)", rs)
         advanced.append(rset)
 
         # Pass Repeat Noise
-        rs = RadioSettingValueList(RPSTE_LIST, RPSTE_LIST[_settings.rptrl])
+        rs = RadioSettingValueList(RPSTE_LIST, current_index=_settings.rptrl)
         rset = RadioSetting("rptrl", "STE Repeater Delay", rs)
         advanced.append(rset)
 
@@ -873,7 +847,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
         advanced.append(rset)
 
         # Tx Under TDR Start
-        rs = RadioSettingValueList(TDRAB_LIST, TDRAB_LIST[_settings.tdrab])
+        rs = RadioSettingValueList(TDRAB_LIST, current_index=_settings.tdrab)
         rset = RadioSetting("tdrab", "Dual Standby TX Priority", rs)
         advanced.append(rset)
 
@@ -948,7 +922,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
             val = _dtmf.dtmfon
         rs = RadioSetting("dtmf.dtmfon", "DTMF Speed (on)",
                           RadioSettingValueList(DTMFSPEED_LIST,
-                                                DTMFSPEED_LIST[val]))
+                                                current_index=val))
         dtmf.append(rs)
 
         if _dtmf.dtmfoff > 0xC3:
@@ -957,7 +931,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
             val = _dtmf.dtmfoff
         rs = RadioSetting("dtmf.dtmfoff", "DTMF Speed (off)",
                           RadioSettingValueList(DTMFSPEED_LIST,
-                                                DTMFSPEED_LIST[val]))
+                                                current_index=val))
         dtmf.append(rs)
 
         return group
@@ -997,7 +971,7 @@ class RT76PRadio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

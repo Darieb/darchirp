@@ -18,11 +18,9 @@ import logging
 
 from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
-from chirp import bandplan_na
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettings
+    RadioSettingValueBoolean, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -38,12 +36,12 @@ struct memory {
      bcl:2,       // Busy Channel Lockout
      scan:1,      // Scan Add
      encode:1,    // Encode
-     unknown2:1;
+     isunused:1;  // Is Unused
   u8 unknown3[3];                            // 0d-0f
 };
 
 #seekto 0x0170;
-struct memory channels[22];
+struct memory channels[99];
 
 #seekto 0x0162;
 struct {
@@ -104,12 +102,6 @@ TOT_VALUES = [0x00, 0x0F, 0x1E, 0x2D, 0x3C, 0x4B, 0x5A, 0x69, 0x78,
               0x1EF, 0x1FE, 0x20D, 0x21C, 0x22B, 0x23A, 0x249, 0x258
               ]
 
-PMR_FREQS1 = [446006250, 446018750, 446031250, 446043750, 446056250,
-              446068750, 446081250, 446093750]
-PMR_FREQS2 = [446106250, 446118750, 446131250, 446143750, 446156250,
-              446168750, 446181250, 446193750]
-PMR_FREQS = PMR_FREQS1 + PMR_FREQS2
-
 
 def _checksum(data):
     cs = 0
@@ -138,7 +130,7 @@ def tone2short(t):
 def short2tone(tone):
     """ Map a binary CTCSS/DCS to a string name for the tone
     """
-    if tone == 0 or tone == 0xffff:
+    if tone == 0xC000 or tone == 0xffff:
         ret = "----"
     else:
         code = tone & 0x3fff
@@ -307,12 +299,11 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
     """RETEVIS RB15 BASE"""
     VENDOR = "Retevis"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     BLOCK_SIZE = 0x10
     magic = b"21" + b"\x05\x10" + b"x"
 
-    VALID_BANDS = [(400000000, 520000000)]
+    VALID_BANDS = [(400000000, 480000000)]
 
     _ranges = [
                (0x0150, 0x07A0),
@@ -337,7 +328,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = self.POWER_LEVELS
         rf.valid_duplexes = ["", "-", "+", "split", "off"]
-        rf.valid_modes = ["FM", "NFM"]  # 25 KHz, 12.5 KHz.
+        rf.valid_modes = ["FM", "NFM"]  # 25 kHz, 12.5 kHz.
         rf.valid_dtcs_codes = RB15_DTCS
         rf.memory_bounds = (1, self._upper)
         rf.valid_tuning_steps = _STEP_LIST
@@ -438,7 +429,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
             return val
 
         rx_mode = tx_mode = None
-        rxtone = txtone = 0x0000
+        rxtone = txtone = 0xC000
 
         if mem.tmode == "Tone":
             tx_mode = "Tone"
@@ -474,24 +465,24 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
 
         mem.freq = int(_mem.rxfreq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rxfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rxfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
 
-        if _mem.get_raw() == ("\xFF" * 16):
+        if _mem.get_raw() == (b"\xFF" * 16):
             LOG.debug("Initializing empty memory")
-            _mem.set_raw("\x00" * 16)
+            _mem.set_raw(b"\x00" * 16)
 
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        if _mem.get_raw()[4] == "\xFF":
+        if _mem.txfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             # TX freq not set
             mem.offset = 0
             mem.duplex = "off"
@@ -523,42 +514,18 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
 
         mem.extra = RadioSettingGroup("Extra", "extra")
 
+        if _mem.bcl > 0x02:
+            val = 0
+        else:
+            val = _mem.bcl
         rs = RadioSetting("bcl", "BCL",
                           RadioSettingValueList(
-                              LIST_BCL, LIST_BCL[_mem.bcl]))
+                              LIST_BCL, current_index=val))
         mem.extra.append(rs)
 
         rs = RadioSetting("encode", "Encode",
                           RadioSettingValueBoolean(_mem.encode))
         mem.extra.append(rs)
-
-        immutable = []
-
-        if self._frs:
-            if mem.number >= 1 and mem.number <= 22:
-                FRS_FREQ = bandplan_na.ALL_GMRS_FREQS[mem.number - 1]
-                mem.freq = FRS_FREQ
-                mem.duplex = ''
-                mem.offset = 0
-                mem.mode = "NFM"
-                if mem.number >= 8 and mem.number <= 14:
-                    mem.power = self.POWER_LEVELS[1]
-                    immutable = ["empty", "freq", "duplex", "offset", "mode",
-                                 "power"]
-                else:
-                    immutable = ["empty", "freq", "duplex", "offset", "mode"]
-        elif self._pmr:
-            if mem.number >= 1 and mem.number <= 16:
-                PMR_FREQ = PMR_FREQS[mem.number - 1]
-                mem.freq = PMR_FREQ
-                mem.duplex = ''
-                mem.offset = 0
-                mem.mode = "NFM"
-                mem.power = self.POWER_LEVELS[1]
-                immutable = ["empty", "freq", "duplex", "offset", "mode",
-                             "power"]
-
-        mem.immutable = immutable
 
         return mem
 
@@ -568,14 +535,16 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
 
         # if empty memory
         if mem.empty:
-            _mem.set_raw("\xFF" * 8 + "\x00" * 5 + "\xFF" * 3)
+            _mem.set_raw("\xFF" * 16)
             return
+
+        _mem.isunused = False
+        _mem.unknown1 = False
 
         _mem.rxfreq = mem.freq / 10
 
         if mem.duplex == "off":
-            for i in range(0, 4):
-                _mem.txfreq[i].set_raw("\xFF")
+            _mem.txfreq.fill_raw(b"\xFF")
         elif mem.duplex == "split":
             _mem.txfreq = mem.offset / 10
         elif mem.duplex == "+":
@@ -603,7 +572,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
         top = RadioSettings(basic, sidekey, voxset)
 
         voice = RadioSetting("voice", "Language", RadioSettingValueList(
-                             LIST_VOICE, LIST_VOICE[_settings.voice]))
+                             LIST_VOICE, current_index=_settings.voice))
         basic.append(voice)
 
         beep = RadioSetting("beep", "Key Beep",
@@ -617,13 +586,13 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
 
         save = RadioSetting("save", "Battery Save",
                             RadioSettingValueList(
-                                LIST_SAVE, LIST_SAVE[_settings.save]))
+                                LIST_SAVE, current_index=_settings.save))
         basic.append(save)
 
         backlight = RadioSetting("backlight", "Backlight",
                                  RadioSettingValueList(
                                      LIST_BACKLIGHT,
-                                     LIST_BACKLIGHT[_settings.backlight]))
+                                     current_index=_settings.backlight))
         basic.append(backlight)
 
         vibrate = RadioSetting("vibrate", "Vibrate",
@@ -641,7 +610,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
 
         roger = RadioSetting("roger", "Roger Tone",
                              RadioSettingValueList(
-                                 LIST_ROGER, LIST_ROGER[_settings.roger]))
+                                 LIST_ROGER, current_index=_settings.roger))
         basic.append(roger)
 
         squelch = RadioSetting("squelch", "Squelch Level",
@@ -661,7 +630,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
             idx = TOT_VALUES.index(_settings.tot)
         else:
             idx = TOT_VALUES.index(0x78)
-        rs = RadioSettingValueList(TOT_CHOICES, TOT_CHOICES[idx])
+        rs = RadioSettingValueList(TOT_CHOICES, current_index=idx)
         rset = RadioSetting("tot", "Time-out Timer", rs)
         rset.set_apply_callback(apply_tot_listvalue, _settings.tot)
         basic.append(rset)
@@ -680,7 +649,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
             idx = SKEY_VALUES.index(_settings.skeyus)
         else:
             idx = SKEY_VALUES.index(0x01)
-        rs = RadioSettingValueList(SKEY_CHOICES, SKEY_CHOICES[idx])
+        rs = RadioSettingValueList(SKEY_CHOICES, current_index=idx)
         rset = RadioSetting("skeyus", "Side Key(upper) - Short Press", rs)
         rset.set_apply_callback(apply_skey_listvalue, _settings.skeyus)
         sidekey.append(rset)
@@ -690,7 +659,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
             idx = SKEY_VALUES.index(_settings.skeyul)
         else:
             idx = SKEY_VALUES.index(0x04)
-        rs = RadioSettingValueList(SKEY_CHOICES, SKEY_CHOICES[idx])
+        rs = RadioSettingValueList(SKEY_CHOICES, current_index=idx)
         rset = RadioSetting("skeyul", "Side Key(upper) - Long Press", rs)
         rset.set_apply_callback(apply_skey_listvalue, _settings.skeyul)
         sidekey.append(rset)
@@ -700,7 +669,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
             idx = SKEY_VALUES.index(_settings.skeyds)
         else:
             idx = SKEY_VALUES.index(0x03)
-        rs = RadioSettingValueList(SKEY_CHOICES, SKEY_CHOICES[idx])
+        rs = RadioSettingValueList(SKEY_CHOICES, current_index=idx)
         rset = RadioSetting("skeyds", "Side Key(lower) - Short Press", rs)
         rset.set_apply_callback(apply_skey_listvalue, _settings.skeyds)
         sidekey.append(rset)
@@ -710,7 +679,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
             idx = SKEY_VALUES.index(_settings.skeydl)
         else:
             idx = SKEY_VALUES.index(0x14)
-        rs = RadioSettingValueList(SKEY_CHOICES, SKEY_CHOICES[idx])
+        rs = RadioSettingValueList(SKEY_CHOICES, current_index=idx)
         rset = RadioSetting("skeydl", "Side Key(lower) - Long Press", rs)
         rset.set_apply_callback(apply_skey_listvalue, _settings.skeydl)
         sidekey.append(rset)
@@ -727,7 +696,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
 
         voxd = RadioSetting("voxd", "VOX Delay (seconde)",
                             RadioSettingValueList(
-                                LIST_VOXD, LIST_VOXD[_settings.voxd]))
+                                LIST_VOXD, current_index=_settings.voxd))
         voxset.append(voxd)
 
         return top
@@ -755,7 +724,7 @@ class RB15RadioBase(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -780,8 +749,8 @@ class RB15Radio(RB15RadioBase):
               ]
     _memsize = 0x07A0
 
-    _upper = 22
-    _frs = True
+    _upper = 99
+    _frs = False  # sold as FRS radio but supports full band TX/RX
 
 
 @directory.register
@@ -790,13 +759,13 @@ class RB615RadioBase(RB15RadioBase):
     VENDOR = "Retevis"
     MODEL = "RB615"
 
-    POWER_LEVELS = [chirp_common.PowerLevel("High", watts=0.50),
-                    chirp_common.PowerLevel("Low", watts=0.49)]
+    POWER_LEVELS = [chirp_common.PowerLevel("High", watts=2.00),
+                    chirp_common.PowerLevel("Low", watts=0.50)]
 
     _ranges = [
                (0x0150, 0x07A0),
               ]
     _memsize = 0x07A0
 
-    _upper = 16
-    _pmr = True
+    _upper = 99
+    _pmr = False  # sold as PMR radio but supports full band TX/RX

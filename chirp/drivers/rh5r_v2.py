@@ -18,11 +18,7 @@
 import struct
 import logging
 
-from chirp import chirp_common, bitwise, errors, directory, memmap, util
-from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettingValueString, \
-    RadioSettings
+from chirp import chirp_common, bitwise, errors, directory, memmap
 
 
 LOG = logging.getLogger(__name__)
@@ -129,7 +125,8 @@ class TYTTHUVF8_V2(chirp_common.CloneModeRadio):
     VENDOR = "TYT"
     MODEL = "TH-UVF8F"
     BAUD_RATE = 9600
-    _FILEID = b'OEMOEM \XFF'
+    _FILEID = b'OEMOEM \\XFF'
+    NEEDS_COMPAT_SERIAL = True
 
     def get_features(self):
         rf = chirp_common.RadioFeatures()
@@ -224,7 +221,7 @@ class TYTTHUVF8_V2(chirp_common.CloneModeRadio):
         else:
             mem.number = number
 
-        if _mem.get_raw().startswith("\xFF\xFF\xFF\xFF"):
+        if _mem.get_raw(asbytes=False).startswith("\xFF\xFF\xFF\xFF"):
             mem.empty = True
             return mem
 

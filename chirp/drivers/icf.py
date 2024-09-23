@@ -13,8 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from builtins import bytes
-
 import binascii
 import hashlib
 import os
@@ -22,14 +20,11 @@ import struct
 import re
 import time
 import logging
-import struct
 
-from chirp import bitwise
 from chirp import chirp_common, errors, util, memmap
 from chirp import directory
 from chirp.settings import RadioSetting, RadioSettingGroup, \
-    RadioSettingValueBoolean, RadioSettingValueString, RadioSettings
-from chirp import util
+    RadioSettingValueString, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -338,7 +333,7 @@ def _clone_from_radio(radio):
 
     try:
         radio_rev = decode_model(md)
-    except Exception as e:
+    except Exception:
         LOG.error('Failed to decode model data')
         radio_rev = None
 
@@ -467,7 +462,7 @@ def _clone_to_radio(radio):
 
     try:
         radio_rev = decode_model(md)
-    except Exception as e:
+    except Exception:
         LOG.error('Failed to decode model data')
         radio_rev = None
 
@@ -808,7 +803,6 @@ class IcomCloneModeRadio(chirp_common.CloneModeRadio):
     """Base class for Icom clone-mode radios"""
     VENDOR = "Icom"
     BAUDRATE = 9600
-    NEEDS_COMPAT_SERIAL = False
     FORMATS = [directory.register_format('Icom ICF', '*.icf')]
 
     _model = "\x00\x00\x00\x00"  # 4-byte model string
@@ -1040,7 +1034,7 @@ class IcomLiveRadio(chirp_common.LiveRadio):
             return None
 
 
-def warp_byte_size(inbytes, obw=8, ibw=8):
+def warp_byte_size(inbytes, obw=8, ibw=8, iskip=0, opad=0):
     """Convert between "byte sizes".
 
     This will pack N-bit characters into a sequence of 8-bit bytes,
@@ -1048,17 +1042,23 @@ def warp_byte_size(inbytes, obw=8, ibw=8):
 
     ibw (input bit width) is the width of the storage
     obw (output bit width) is the width of the characters to extract
+    iskip is the number of input padding bits to skip
+    opad is the number of output zero padding bits to add
 
     ibw=8,obw=7 will pull seven-bit characters from a sequence of bytes
     ibw=7,obw=8 will pack seven-bit characters into a sequence of bytes
     """
     if isinstance(inbytes, str):
         inbytes = [ord(x) for x in inbytes]
-    outbit = 0
+    outbit = opad
     tmp = 0
     stripmask = 1 << (ibw - 1)
     for byte in inbytes:
         inbit = 0
+        while iskip:
+            byte = (byte << 1) & 0xFF
+            inbit += 1
+            iskip -= 1
         for i in range(0, max(obw, ibw - inbit)):
             if inbit == ibw:
                 # Move to next char

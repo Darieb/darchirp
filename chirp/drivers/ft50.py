@@ -388,38 +388,39 @@ class FT50Radio(yaesu_clone.YaesuCloneModeRadio):
         options = ["off", "30m", "1h", "3h", "5h", "8h"]
         rs = RadioSetting(
                 "apo", "APO time (hrs)",
-                RadioSettingValueList(options, options[_settings.apo]))
+                RadioSettingValueList(options, current_index=_settings.apo))
         basic.append(rs)
 
         options = ["off", "1m", "2.5m", "5m", "10m"]
         rs = RadioSetting(
-                "timeout", "Time Out Timer",
-                RadioSettingValueList(options, options[_settings.timeout]))
+            "timeout", "Time Out Timer",
+            RadioSettingValueList(
+                options, current_index=_settings.timeout))
         basic.append(rs)
 
         options = ["key", "dial", "key+dial", "ptt",
                    "key+ptt", "dial+ptt", "all"]
         rs = RadioSetting(
                 "lock", "Lock mode",
-                RadioSettingValueList(options, options[_settings.lock]))
+                RadioSettingValueList(options, current_index=_settings.lock))
         basic.append(rs)
 
         options = ["off", "0.2", "0.3", "0.5", "1.0", "2.0"]
         rs = RadioSetting(
                 "rxsave", "RX Save (sec)",
-                RadioSettingValueList(options, options[_settings.rxsave]))
+                RadioSettingValueList(options, current_index=_settings.rxsave))
         basic.append(rs)
 
         options = ["5sec", "key", "tgl"]
         rs = RadioSetting(
                 "lamp", "Lamp mode",
-                RadioSettingValueList(options, options[_settings.lamp]))
+                RadioSettingValueList(options, current_index=_settings.lamp))
         basic.append(rs)
 
         options = ["off", "1", "3", "5", "8", "rpt"]
         rs = RadioSetting(
                 "bell", "Bell Repetitions",
-                RadioSettingValueList(options, options[_settings.bell]))
+                RadioSettingValueList(options, current_index=_settings.bell))
         basic.append(rs)
 
         rs = RadioSetting(
@@ -437,13 +438,14 @@ class FT50Radio(yaesu_clone.YaesuCloneModeRadio):
         rs = RadioSetting(
                 "artsmode", "ARTS Mode",
                 RadioSettingValueList(
-                    options, options[_settings.artsmode]))
+                    options, current_index=_settings.artsmode))
         arts.append(rs)
 
         options = ["off", "in range", "always"]
         rs = RadioSetting(
-                "artsbeep", "ARTS Beep",
-                RadioSettingValueList(options, options[_settings.artsbeep]))
+            "artsbeep", "ARTS Beep",
+            RadioSettingValueList(
+                options, current_index=_settings.artsbeep))
         arts.append(rs)
 
         for i in range(0, 8):
@@ -469,27 +471,30 @@ class FT50Radio(yaesu_clone.YaesuCloneModeRadio):
 
         options = ["50ms", "100ms"]
         rs = RadioSetting(
-                "pagingspeed", "Paging Speed",
-                RadioSettingValueList(options, options[_settings.pagingspeed]))
+            "pagingspeed", "Paging Speed",
+            RadioSettingValueList(
+                options, current_index=_settings.pagingspeed))
         dtmf.append(rs)
 
         options = ["250ms", "450ms", "750ms", "1000ms"]
         rs = RadioSetting(
-                "pagingdelay", "Paging Delay",
-                RadioSettingValueList(options, options[_settings.pagingdelay]))
+            "pagingdelay", "Paging Delay",
+            RadioSettingValueList(
+                options, current_index=_settings.pagingdelay))
         dtmf.append(rs)
 
         options = ["off", "1", "3", "5", "8", "rpt"]
         rs = RadioSetting(
-                "pagingbell", "Paging Bell Repetitions",
-                RadioSettingValueList(options, options[_settings.pagingbell]))
+            "pagingbell", "Paging Bell Repetitions",
+            RadioSettingValueList(
+                options, current_index=_settings.pagingbell))
         dtmf.append(rs)
 
         options = ["off", "ans", "for"]
         rs = RadioSetting(
                 "paginganswer", "Paging Answerback",
                 RadioSettingValueList(options,
-                                      options[_settings.paginganswer]))
+                                      current_index=_settings.paginganswer))
         dtmf.append(rs)
 
         rs = RadioSetting(
@@ -592,6 +597,7 @@ def _clone_out(radio):
 
 def __clone_out(radio):
     pipe = radio.pipe
+    pipe.timeout = 1
     block_lengths = radio._block_lengths
     total_written = 0
 
@@ -609,27 +615,27 @@ def __clone_out(radio):
     for block in radio._block_lengths:
         blocks += 1
         data = radio.get_mmap()[pos:pos + block]
-        # LOG.debug(util.hexprint(data))
+        # LOG.debug("Sending block: %s" % util.hexprint(data))
 
-        recvd = ""
+        recvd = b""
         # Radio echos every block received
         for byte in data:
             time.sleep(0.01)
-            pipe.write(byte)
+            pipe.write(bytes([byte]))
             # flush & sleep so don't loose ack
             pipe.flush()
             time.sleep(0.015)
             recvd += pipe.read(1)  # chew the echo
-        # LOG.debug(util.hexprint(recvd))
+        # LOG.debug("Echo was %s" % util.hexprint(recvd))
         LOG.debug("Bytes sent: %i" % len(data))
 
         # Radio does not ack last block
         if (blocks < 8):
             buf = pipe.read(block)
             LOG.debug("ACK attempt: " + util.hexprint(buf))
-            if buf and buf[0] != chr(yaesu_clone.CMD_ACK):
+            if buf and buf[0] != yaesu_clone.CMD_ACK:
                 buf = pipe.read(block)
-            if not buf or buf[-1] != chr(yaesu_clone.CMD_ACK):
+            if not buf or buf[-1] != yaesu_clone.CMD_ACK:
                 raise errors.RadioError("Radio did not ack block %i" % blocks)
 
         total_written += len(data)

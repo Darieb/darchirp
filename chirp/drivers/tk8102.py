@@ -13,7 +13,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from builtins import bytes
 import logging
 import struct
 
@@ -39,7 +38,7 @@ struct {
      beatshift:1;
   u8 pttid:2,
      highpower:1,
-     scan:1
+     scan:1,
      unknown2:4;
   u8 unknown3[2];
 } memory[8];
@@ -199,7 +198,6 @@ class KenwoodTKx102Radio(chirp_common.CloneModeRadio):
     VENDOR = "Kenwood"
     MODEL = "TK-x102"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     _memsize = 0x410
 
@@ -297,7 +295,7 @@ class KenwoodTKx102Radio(chirp_common.CloneModeRadio):
         mem = chirp_common.Memory()
         mem.number = number
 
-        if _mem.get_raw()[:4] == "\xFF\xFF\xFF\xFF":
+        if _mem.get_raw(asbytes=False)[:4] == "\xFF\xFF\xFF\xFF":
             mem.empty = True
             return mem
 
@@ -329,13 +327,13 @@ class KenwoodTKx102Radio(chirp_common.CloneModeRadio):
 
         pttid = RadioSetting("pttid", "PTT ID",
                              RadioSettingValueList(PTTID,
-                                                   PTTID[_mem.pttid]))
+                                                   current_index=_mem.pttid))
         mem.extra.append(pttid)
 
-        signal = RadioSetting("signaling", "Signaling",
-                              RadioSettingValueList(SIGNAL,
-                                                    SIGNAL[
-                                                      _mem.signaling & 0x01]))
+        signal = RadioSetting(
+            "signaling", "Signaling",
+            RadioSettingValueList(
+                SIGNAL, current_index=_mem.signaling & 0x01))
         mem.extra.append(signal)
 
         return mem

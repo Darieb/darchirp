@@ -85,7 +85,7 @@ struct {
   u8 unknown20[4];          // x8c-x8f
   // --
   u8 unknown21[4];          // x90-x93
-  char poweronmesg[8];      // x94-x9b power on mesg 8 bytes, off is "\FF" * 8
+  char poweronmesg[8];      // x94-x9b power on mesg 8 bytes, off is "\xFF" * 8
   u8 unknown22[4];          // x9c-x9f
   // --
   u8 unknown23[7];          // xa0-xa6
@@ -216,7 +216,7 @@ struct {
   // --
   u8 ptt_id:2,       // ??? BOT = 0, EOT = 1, Both = 2, NONE = 3
      beat_shift:1,      // 1 = off
-     unknown26:2        // ???
+     unknown26:2,       // ???
      power:1,           // power: 0 low / 1 high
      compander:1,       // 1 = off
      wide:1;            // wide 1 / 0 narrow
@@ -273,8 +273,8 @@ ACK_CMD = b"\x06"
 POWER_LEVELS = [chirp_common.PowerLevel("Low", watts=1),
                 chirp_common.PowerLevel("High", watts=5)]
 
-MODES = ["NFM", "FM"]  # 12.5 / 25 Khz
-VALID_CHARS = chirp_common.CHARSET_UPPER_NUMERIC + "_-*()/\-+=)"
+MODES = ["NFM", "FM"]  # 12.5 / 25 kHz
+VALID_CHARS = chirp_common.CHARSET_UPPER_NUMERIC + r"_-*()/\-+=)"
 SKIP_VALUES = ["", "S"]
 
 TONES = chirp_common.TONES
@@ -462,7 +462,7 @@ def _open_radio(radio, status):
     ack = _raw_recv(radio, 1)
     if ack != ACK_CMD:
         _close_radio(radio)
-        LOG.debug("Radio did not accepted PROGRAM command")
+        LOG.debug("Radio did not accept PROGRAM command")
         raise errors.RadioError("The radio did not start program mode")
 
     # DEBUG
@@ -559,7 +559,7 @@ def do_upload(radio):
         data = radio.get_mmap()[raddr:raddr+BLOCK_SIZE]
 
         # The blocks from x59-x5F are NOT programmable
-        # The blocks from x11-x1F are writed only if not empty
+        # The blocks from x11-x1F are written only if not empty
         if addr in RO_BLOCKS:
             # checking if in the range of optional blocks
             if addr >= 0x10 and addr <= 0x1F:
@@ -611,7 +611,7 @@ def model_match(cls, data):
 
 
 class Kenwood60GBankModel(chirp_common.BankModel):
-    """Testing the bank model on kennwood"""
+    """Testing the bank model on Kenwood"""
     channelAlwaysHasBank = True
 
     def get_num_mappings(self):
@@ -635,7 +635,7 @@ class Kenwood60GBankModel(chirp_common.BankModel):
                             (memory.number, bank))
 
         # We can't "Remove" it for good
-        # the kenwood paradigm don't allow it
+        # the Kenwood paradigm doesn't allow it
         # instead we move it to bank 0
         self._radio._set_bank(memory.number, 0)
 
@@ -652,7 +652,7 @@ class Kenwood60GBankModel(chirp_common.BankModel):
 
 
 class memBank(chirp_common.Bank):
-    """A bank model for kenwood"""
+    """A bank model for Kenwood"""
     # Integral index of the bank (not to be confused with per-memory
     # bank indexes
     index = 0
@@ -673,7 +673,6 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
     _kind = ""
     VARIANT = ""
     MODEL = ""
-    NEEDS_COMPAT_SERIAL = False
 
     @classmethod
     def get_prompts(cls):
@@ -769,8 +768,8 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
             if k == 0:
                 k = 1
                 raise errors.InvalidValueError(
-                    "Invalid bank value '%k', bad data in the image? \
-                    Trying to fix this, review your bank data!" % k)
+                    "Invalid bank value '%s', bad data in the image? "
+                    "Trying to fix this, review your bank data!" % k)
             c = 1
             for i in v:
                 fdata += bytes([k, c, k - 1, i])
@@ -814,7 +813,7 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
         to the correct variant of the radio"""
         rid = self._mmap[0xA7:0xAE]
 
-        # identify the radio variant and set the environment to it's values
+        # identify the radio variant and set the environment to its values
         try:
             self._upper, low, high, self._kind = self.VARIANTS[rid]
 
@@ -825,7 +824,7 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
             self._range = [int(low * 1000000 * 0.96),
                            int(high * 1000000 * 1.04)]
 
-            # setting the bank data in the features, 8 & 16 CH dont have banks
+            # setting the bank data in the features, 8 & 16 CH don't have banks
             if self._upper < 32:
                 rf = chirp_common.RadioFeatures()
                 rf.has_bank = False
@@ -841,7 +840,6 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
             LOG.debug(util.hexprint(rid))
             raise errors.RadioError(
                 "Wrong Kenwood radio, ID or unknown variant, see LOG output.")
-            return False
 
     def sync_in(self):
         """Do a download of the radio eeprom"""
@@ -943,14 +941,14 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
         mem.number = number
 
         # A "blank" rxfreq is the indication of an empty memory
-        if _mem.rxfreq[0].get_raw() == '\xFF':
+        if _mem.rxfreq[0].get_raw(asbytes=False) == '\xFF':
             mem.empty = True
             return mem
 
         # Freq and offset
         mem.freq = int(_mem.rxfreq) * 10
         # tx freq can be blank
-        if _mem.get_raw()[16] == "\xFF":
+        if _mem.get_raw(asbytes=False)[16] == "\xFF":
             # TX freq not set
             mem.offset = 0
             mem.duplex = "off"
@@ -1165,7 +1163,7 @@ class Kenwood_Serie_60G(chirp_common.CloneModeRadio,
             if tv == 255:
                 tv = 32
             tvol = RadioSetting("settings.tone_vol", "Minimum tone volume",
-                                RadioSettingValueList(TVOL, TVOL[tv]))
+                                RadioSettingValueList(TVOL, current_index=tv))
             basic.append(tvol)
 
         sql = RadioSetting("settings.sql_level", "SQL Ref Level",

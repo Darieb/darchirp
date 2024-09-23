@@ -1,14 +1,11 @@
 import argparse
 import builtins
+from importlib import resources
 import logging
 import os
 import sys
 
-if sys.version_info < (3, 10):
-    import importlib_resources
-else:
-    import importlib.resources as importlib_resources
-
+from chirp import CHIRP_VERSION
 from chirp import directory
 from chirp import logger
 
@@ -16,26 +13,50 @@ LOG = logging.getLogger(__name__)
 CONF = None
 
 
-def maybe_install_desktop():
+def developer_mode(enabled=None):
+    if not CONF:
+        return False
+
+    if enabled is True:
+        CONF.set('developer_mode', CHIRP_VERSION, 'state')
+    elif enabled is False:
+        CONF.remove_option('developer_mode', 'state')
+
+    return CONF.get('developer_mode', 'state') == CHIRP_VERSION
+
+
+def maybe_install_desktop(args, parent):
     local = os.path.join(os.path.expanduser('~'), '.local')
     desktop_path = os.path.join(local, 'share',
                                 'applications', 'chirp.desktop')
-    with importlib_resources.as_file(
-            importlib_resources.files('chirp.share')
-            .joinpath('chirp.desktop')) as desktop_src:
+    with resources.as_file(
+            resources.files('chirp.share').joinpath('chirp.desktop')
+    ) as desktop_src:
         with open(desktop_src) as f:
             desktop_content = f.readlines()
-    with importlib_resources.as_file(
-            importlib_resources.files('chirp.share')
-            .joinpath('chirp.ico')) as p:
+    with resources.as_file(
+            resources.files('chirp.share').joinpath('chirp.ico')) as p:
         icon_path = str(p)
+
+    # If asked not to do this, always bail
+    if args.no_install_desktop_app:
+        return
+
+    # Already exists, don't prompt user
     if os.path.exists(desktop_path):
+        LOG.debug('Desktop file exists')
+        return
+
+    # If already asked and not explicitly opted-in, stop nagging
+    if (CONF.get_bool('offered_desktop', 'state') and not
+            args.install_desktop_app):
+        LOG.debug('Desktop file missing but user previously offered')
         return
 
     import wx
     r = wx.MessageBox(
         _('Would you like CHIRP to install a desktop icon for you?'),
-        _('Install desktop icon?'), style=wx.YES_NO)
+        _('Install desktop icon?'), parent=parent, style=wx.YES_NO)
     if r != wx.YES:
         CONF.set_bool('offered_desktop', True, 'state')
         return
@@ -67,9 +88,6 @@ def chirpmain():
     # about duplicate "Windows bitmap file" handlers
     import wx.richtext
 
-    from chirp.wxui import config
-    CONF = config.get()
-
     actions = ['upload', 'download', 'query_rr', 'query_mg',
                'query_rb', 'query_dm', 'new']
 
@@ -93,16 +111,34 @@ def chirpmain():
                         help="Restore previous tabs")
     parser.add_argument('--force-language', default=None,
                         help='Force locale to this ISO language code')
+    parser.add_argument('--config-dir',
+                        help=('Use this alternate directory for config and '
+                              'other profile data'))
     if sys.platform == 'linux':
+        desktop = parser.add_mutually_exclusive_group()
         parser.add_argument('--no-linux-gdk-backend', action='store_true',
                             help='Do not force GDK_BACKEND=x11')
-        parser.add_argument('--install-desktop-app', action='store_true',
-                            default=not CONF.get_bool('offered_desktop',
-                                                      'state'),
-                            help='Prompt to install a desktop icon')
+        desktop.add_argument('--install-desktop-app', action='store_true',
+                             default=False,
+                             help=('Install a desktop icon even if it was '
+                                   'previously refused'))
+        desktop.add_argument('--no-install-desktop-app', action='store_true',
+                             default=False,
+                             help='Do not prompt to install a desktop icon')
     logger.add_arguments(parser)
     args = parser.parse_args()
     logger.handle_options(args)
+    from chirp.wxui import config
+
+    if args.config_dir:
+        try:
+            os.mkdir(args.config_dir)
+        except Exception:
+            pass
+        assert os.path.isdir(args.config_dir), \
+            '--config must specify directory'
+        config._CONFIG = config.ChirpConfig(args.config_dir)
+    CONF = config.get()
 
     app = wx.App()
     if args.force_language:
@@ -127,8 +163,7 @@ def chirpmain():
     else:
         lang = wx.Locale.GetSystemLanguage()
 
-    localedir = str(os.path.join(importlib_resources.files('chirp'),
-                                 'locale'))
+    localedir = str(os.path.join(resources.files('chirp'), 'locale'))
     app._lc = wx.Locale()
     if localedir and os.path.isdir(localedir):
         wx.Locale.AddCatalogLookupPathPrefix(localedir)
@@ -142,6 +177,7 @@ def chirpmain():
         app._lc.Init()
     app._lc.AddCatalog('CHIRP')
     builtins._ = wx.GetTranslation
+    builtins.ngettext = wx.GetTranslation
     LOG.debug('Using locale: %s (%i)',
               app._lc.GetCanonicalName(),
               lang)
@@ -164,7 +200,8 @@ def chirpmain():
 
     directory.import_drivers(limit=args.onlydriver)
 
-    if CONF.get('developer', 'state'):
+    if developer_mode():
+        LOG.warning('Developer mode is enabled')
         from chirp.drivers import fake
         fake.register_fakes()
 
@@ -205,9 +242,9 @@ def chirpmain():
     report.check_for_updates(
         lambda ver: wx.CallAfter(main.display_update_notice, ver))
 
-    if sys.platform == 'linux' and args.install_desktop_app:
+    if sys.platform == 'linux':
         try:
-            maybe_install_desktop()
+            maybe_install_desktop(args, mainwindow)
         except Exception as e:
             LOG.exception('Failed to run linux desktop installer: %s', e)
 

@@ -215,6 +215,9 @@ class RepeaterBook(base.NetworkResultRadio):
         search_filter = params.pop('filter', '')
         bands = params.pop('bands', [])
         modes = params.pop('modes', [])
+        fmconv = params.pop('fmconv', False)
+        openonly = params.pop('openonly')
+
         data_file = self.get_data(status,
                                   params.get('country'),
                                   params.pop('state'),
@@ -228,6 +231,9 @@ class RepeaterBook(base.NetworkResultRadio):
             if lat == 0 and lon == 0:
                 # No sort if not provided
                 return 0
+            if not item.get('Lat') or not item.get('Long'):
+                # Invalid or missing coordinates
+                return 0
             return distance(lat, lon,
                             float(item.get('Lat', 0)),
                             float(item.get('Long', 0)))
@@ -239,6 +245,9 @@ class RepeaterBook(base.NetworkResultRadio):
                                if k in item)
             return (not search_filter or
                     search_filter.lower() in content.lower())
+
+        def open_repeater(item):
+            return item['Use'] == 'OPEN'
 
         def included_band(item):
             if not bands:
@@ -252,6 +261,8 @@ class RepeaterBook(base.NetworkResultRadio):
         for item in sorted(json.loads(open(data_file, 'rb').read())['results'],
                            key=sorter):
             if not item:
+                continue
+            if openonly and not open_repeater(item):
                 continue
             if item['Operational Status'] != 'On-air':
                 continue
@@ -273,6 +284,11 @@ class RepeaterBook(base.NetworkResultRadio):
                 continue
             if not m:
                 continue
+            # Convert any non-FM repeater to FM if user requested it
+            if m.mode != 'FM' and fmconv and item.get('FM Analog') == 'Yes':
+                LOG.debug('Converting repeater %r from %r to FM: %s',
+                          item['Rptr ID'], m.mode, m.comment)
+                m.mode = 'FM'
             if modes and m.mode not in modes:
                 continue
             self._memories.append(m)
@@ -387,7 +403,7 @@ ROW_COUNTRIES = [
     "United Arab Emirates",
     "United Kingdom",
     "Uruguay",
-    "Venezuala",
+    "Venezuela",
 ]
 
 COUNTRIES = list(sorted(NA_COUNTRIES + ROW_COUNTRIES))

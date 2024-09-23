@@ -75,7 +75,6 @@ class TemplateRadio(chirp_common.CloneModeRadio):
     BAUD_RATE = 9600    # Replace this with your baud rate
 
     # All new drivers should be "Byte Clean" so leave this in place.
-    NEEDS_COMPAT_SERIAL = False
 
     # Return information about this radio's features, including
     # how many memories it has, what bands it supports, etc
@@ -120,7 +119,7 @@ class TemplateRadio(chirp_common.CloneModeRadio):
         mem.freq = int(_mem.freq)
         mem.name = str(_mem.name).rstrip()  # Set the alpha tag
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
 

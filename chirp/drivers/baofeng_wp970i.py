@@ -16,10 +16,9 @@
 
 import logging
 
-from chirp.drivers import baofeng_common
-from chirp import chirp_common, directory, memmap
-from chirp import bitwise, errors, util
-from chirp import bandplan_na
+from chirp.drivers import baofeng_common as bfc
+from chirp import chirp_common, directory
+from chirp import bitwise
 from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
@@ -35,6 +34,9 @@ MSTRING_WP970I = b"\x50\xBB\xFF\x20\x14\x04\x13"
 
 # Baofeng UV-9G magic string
 MSTRING_UV9G = b"\x50\xBB\xFF\x20\x12\x05\x25"
+
+# Baofeng UV-S9X3 magic string
+MSTRING_UVS9X3 = b"\x50\xBB\xFF\x20\x12\x07\x25"
 
 
 DTMF_CHARS = "0123456789 *#ABCD"
@@ -81,11 +83,10 @@ def model_match(cls, data):
         return False
 
 
-class WP970I(baofeng_common.BaofengCommonHT):
+class WP970I(bfc.BaofengCommonHT):
     """Baofeng WP970I"""
     VENDOR = "Baofeng"
     MODEL = "WP970I"
-    NEEDS_COMPAT_SERIAL = False
 
     _tri_band = False
     _fileid = []
@@ -122,7 +123,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
     SCODE_LIST = LIST_SCODE
 
     MEM_FORMAT = """
-    #seekto 0x0000;
+    // #seekto 0x0000;
     struct {
       lbcd rxfreq[4];
       lbcd txfreq[4];
@@ -164,20 +165,20 @@ class WP970I(baofeng_common.BaofengCommonHT):
     struct {
       u8 squelch;
       u8 step;
-      u8 unknown1;
+      u8 unknown_e22;
       u8 save;
       u8 vox;
-      u8 unknown2;
+      u8 unknown_e25;
       u8 abr;
       u8 tdr;
       u8 beep;
       u8 timeout;
-      u8 unknown3[4];
+      u8 unknown_e2a[4];
       u8 voice;
-      u8 unknown4;
+      u8 unknown_e2f;
       u8 dtmfst;
-      u8 unknown5;
-      u8 unknown12:6,
+      u8 unknown_e31;
+      u8 unknown_e32:6,
          screv:2;
       u8 pttid;
       u8 pttlt;
@@ -186,7 +187,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
       u8 bcl;
       u8 autolk;
       u8 sftd;
-      u8 unknown6[3];
+      u8 unknown_e3a[3];
       u8 wtled;
       u8 rxled;
       u8 txled;
@@ -201,13 +202,13 @@ class WP970I(baofeng_common.BaofengCommonHT):
       u8 rogerrx;
       u8 tdrch;
       u8 displayab:1,
-         unknown1:2,
+         unknown_e4a1:2,
          fmradio:1,
          alarm:1,
-         unknown2:1,
+         unknown_e4a2:1,
          reset:1,
          menu:1;
-      u8 unknown1:6,
+      u8 unknown_e4b:6,
          singleptt:1,
          vfomrlock:1;
       u8 workmode;
@@ -235,7 +236,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
          sftd:2,
          scode:4;
       u8 unknown4;
-      u8 unused3:1
+      u8 unused3:1,
          step:3,
          unused4:4;
       u8 unused5:1,
@@ -337,7 +338,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
         return rp
 
     def get_features(self):
-        rf = baofeng_common.BaofengCommonHT.get_features(self)
+        rf = bfc.BaofengCommonHT.get_features(self)
         rf.valid_tuning_steps = STEPS
         return rf
 
@@ -365,7 +366,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.squelch
         rs = RadioSetting("settings.squelch", "Squelch",
                           RadioSettingValueList(
-                              LIST_OFF1TO9, LIST_OFF1TO9[val]))
+                              LIST_OFF1TO9, current_index=val))
         basic.append(rs)
 
         if _mem.settings.save > 0x04:
@@ -374,7 +375,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.save
         rs = RadioSetting("settings.save", "Battery Saver",
                           RadioSettingValueList(
-                              LIST_SAVE, LIST_SAVE[val]))
+                              LIST_SAVE, current_index=val))
         basic.append(rs)
 
         if _mem.settings.vox > 0x0A:
@@ -383,7 +384,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.vox
         rs = RadioSetting("settings.vox", "Vox",
                           RadioSettingValueList(
-                              LIST_OFF1TO10, LIST_OFF1TO10[val]))
+                              LIST_OFF1TO10, current_index=val))
         basic.append(rs)
 
         if _mem.settings.abr > 0x0A:
@@ -392,7 +393,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.abr
         rs = RadioSetting("settings.abr", "Backlight Timeout",
                           RadioSettingValueList(
-                              LIST_OFF1TO10, LIST_OFF1TO10[val]))
+                              LIST_OFF1TO10, current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("settings.tdr", "Dual Watch",
@@ -409,7 +410,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.timeout
         rs = RadioSetting("settings.timeout", "Timeout Timer",
                           RadioSettingValueList(
-                              LIST_TIMEOUT, LIST_TIMEOUT[val]))
+                              LIST_TIMEOUT, current_index=val))
         basic.append(rs)
 
         if _mem.settings.voice > 0x02:
@@ -418,12 +419,13 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.voice
         rs = RadioSetting("settings.voice", "Voice Prompt",
                           RadioSettingValueList(
-                              LIST_VOICE, LIST_VOICE[val]))
+                              LIST_VOICE, current_index=val))
         basic.append(rs)
 
-        rs = RadioSetting("settings.dtmfst", "DTMF Sidetone",
-                          RadioSettingValueList(LIST_DTMFST, LIST_DTMFST[
-                              _mem.settings.dtmfst]))
+        rs = RadioSetting(
+            "settings.dtmfst", "DTMF Sidetone",
+            RadioSettingValueList(
+                LIST_DTMFST, current_index=_mem.settings.dtmfst))
         basic.append(rs)
 
         if _mem.settings.screv > 0x02:
@@ -432,12 +434,13 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.screv
         rs = RadioSetting("settings.screv", "Scan Resume",
                           RadioSettingValueList(
-                              LIST_RESUME, LIST_RESUME[val]))
+                              LIST_RESUME, current_index=val))
         basic.append(rs)
 
-        rs = RadioSetting("settings.pttid", "When to send PTT ID",
-                          RadioSettingValueList(LIST_PTTID, LIST_PTTID[
-                              _mem.settings.pttid]))
+        rs = RadioSetting(
+            "settings.pttid", "When to send PTT ID",
+            RadioSettingValueList(
+                LIST_PTTID, current_index=_mem.settings.pttid))
         basic.append(rs)
 
         if _mem.settings.pttlt > 0x1E:
@@ -448,14 +451,16 @@ class WP970I(baofeng_common.BaofengCommonHT):
                           RadioSettingValueInteger(0, 50, val))
         basic.append(rs)
 
-        rs = RadioSetting("settings.mdfa", "Display Mode (A)",
-                          RadioSettingValueList(LIST_MODE, LIST_MODE[
-                              _mem.settings.mdfa]))
+        rs = RadioSetting(
+            "settings.mdfa", "Display Mode (A)",
+            RadioSettingValueList(
+                LIST_MODE, current_index=_mem.settings.mdfa))
         basic.append(rs)
 
-        rs = RadioSetting("settings.mdfb", "Display Mode (B)",
-                          RadioSettingValueList(LIST_MODE, LIST_MODE[
-                              _mem.settings.mdfb]))
+        rs = RadioSetting(
+            "settings.mdfb", "Display Mode (B)",
+            RadioSettingValueList(
+                LIST_MODE, current_index=_mem.settings.mdfb))
         basic.append(rs)
 
         rs = RadioSetting("settings.autolk", "Automatic Key Lock",
@@ -464,23 +469,23 @@ class WP970I(baofeng_common.BaofengCommonHT):
 
         rs = RadioSetting("settings.wtled", "Standby LED Color",
                           RadioSettingValueList(
-                              LIST_COLOR, LIST_COLOR[_mem.settings.wtled]))
+                              LIST_COLOR, current_index=_mem.settings.wtled))
         basic.append(rs)
 
         rs = RadioSetting("settings.rxled", "RX LED Color",
                           RadioSettingValueList(
-                              LIST_COLOR, LIST_COLOR[_mem.settings.rxled]))
+                              LIST_COLOR, current_index=_mem.settings.rxled))
         basic.append(rs)
 
         rs = RadioSetting("settings.txled", "TX LED Color",
                           RadioSettingValueList(
-                              LIST_COLOR, LIST_COLOR[_mem.settings.txled]))
+                              LIST_COLOR, current_index=_mem.settings.txled))
         basic.append(rs)
 
         val = _mem.settings.almod
         rs = RadioSetting("settings.almod", "Alarm Mode",
                           RadioSettingValueList(
-                              LIST_ALMOD, LIST_ALMOD[val]))
+                              LIST_ALMOD, current_index=val))
         basic.append(rs)
 
         if _mem.settings.tdrab > 0x02:
@@ -489,7 +494,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.tdrab
         rs = RadioSetting("settings.tdrab", "Dual Watch TX Priority",
                           RadioSettingValueList(
-                              LIST_OFFAB, LIST_OFFAB[val]))
+                              LIST_OFFAB, current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("settings.ste", "Squelch Tail Eliminate (HT to HT)",
@@ -503,7 +508,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
         rs = RadioSetting("settings.rpste",
                           "Squelch Tail Eliminate (repeater)",
                           RadioSettingValueList(
-                              LIST_RPSTE, LIST_RPSTE[val]))
+                              LIST_RPSTE, current_index=val))
         basic.append(rs)
 
         if _mem.settings.rptrl > 0x0A:
@@ -512,12 +517,13 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.settings.rptrl
         rs = RadioSetting("settings.rptrl", "STE Repeater Delay",
                           RadioSettingValueList(
-                              LIST_STEDELAY, LIST_STEDELAY[val]))
+                              LIST_STEDELAY, current_index=val))
         basic.append(rs)
 
-        rs = RadioSetting("settings.ponmsg", "Power-On Message",
-                          RadioSettingValueList(LIST_PONMSG, LIST_PONMSG[
-                              _mem.settings.ponmsg]))
+        rs = RadioSetting(
+            "settings.ponmsg", "Power-On Message",
+            RadioSettingValueList(
+                LIST_PONMSG, current_index=_mem.settings.ponmsg))
         basic.append(rs)
 
         rs = RadioSetting("settings.roger", "Roger Beep",
@@ -622,13 +628,13 @@ class WP970I(baofeng_common.BaofengCommonHT):
         # Work mode settings
         rs = RadioSetting("settings.displayab", "Display",
                           RadioSettingValueList(
-                              LIST_AB, LIST_AB[_mem.settings.displayab]))
+                              LIST_AB, current_index=_mem.settings.displayab))
         work.append(rs)
 
         rs = RadioSetting("settings.workmode", "VFO/MR Mode",
                           RadioSettingValueList(
                               LIST_WORKMODE,
-                              LIST_WORKMODE[_mem.settings.workmode]))
+                              current_index=_mem.settings.workmode))
         work.append(rs)
 
         rs = RadioSetting("settings.keylock", "Keypad Lock",
@@ -644,12 +650,6 @@ class WP970I(baofeng_common.BaofengCommonHT):
                           RadioSettingValueInteger(0, 127,
                                                    _mem.wmchannel.mrchb))
         work.append(rs)
-
-        def convert_bytes_to_freq(bytes):
-            real_freq = 0
-            for byte in bytes:
-                real_freq = (real_freq * 10) + byte
-            return chirp_common.format_freq(real_freq * 10)
 
         def my_validate(value):
             value = chirp_common.parse_freq(value)
@@ -671,14 +671,14 @@ class WP970I(baofeng_common.BaofengCommonHT):
                 value /= 10
 
         val1a = RadioSettingValueString(0, 10,
-                                        convert_bytes_to_freq(_mem.vfo.a.freq))
+                                        bfc.bcd_decode_freq(_mem.vfo.a.freq))
         val1a.set_validate_callback(my_validate)
         rs = RadioSetting("vfo.a.freq", "VFO A Frequency", val1a)
         rs.set_apply_callback(apply_freq, _mem.vfo.a)
         work.append(rs)
 
         val1b = RadioSettingValueString(0, 10,
-                                        convert_bytes_to_freq(_mem.vfo.b.freq))
+                                        bfc.bcd_decode_freq(_mem.vfo.b.freq))
         val1b.set_validate_callback(my_validate)
         rs = RadioSetting("vfo.b.freq", "VFO B Frequency", val1b)
         rs.set_apply_callback(apply_freq, _mem.vfo.b)
@@ -686,12 +686,12 @@ class WP970I(baofeng_common.BaofengCommonHT):
 
         rs = RadioSetting("vfo.a.sftd", "VFO A Shift",
                           RadioSettingValueList(
-                              LIST_SHIFTD, LIST_SHIFTD[_mem.vfo.a.sftd]))
+                              LIST_SHIFTD, current_index=_mem.vfo.a.sftd))
         work.append(rs)
 
         rs = RadioSetting("vfo.b.sftd", "VFO B Shift",
                           RadioSettingValueList(
-                              LIST_SHIFTD, LIST_SHIFTD[_mem.vfo.b.sftd]))
+                              LIST_SHIFTD, current_index=_mem.vfo.b.sftd))
         work.append(rs)
 
         def convert_bytes_to_offset(bytes):
@@ -733,7 +733,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
                 idx = TXP_VALUES.index(_mem.vfo.a.txpower3)
             else:
                 idx = TXP_VALUES.index(0x00)
-            rs = RadioSettingValueList(TXP_CHOICES, TXP_CHOICES[idx])
+            rs = RadioSettingValueList(TXP_CHOICES, current_index=idx)
             rset = RadioSetting("vfo.a.txpower3", "VFO A Power", rs)
             rset.set_apply_callback(apply_txpower_listvalue,
                                     _mem.vfo.a.txpower3)
@@ -743,57 +743,57 @@ class WP970I(baofeng_common.BaofengCommonHT):
                 idx = TXP_VALUES.index(_mem.vfo.b.txpower3)
             else:
                 idx = TXP_VALUES.index(0x00)
-            rs = RadioSettingValueList(TXP_CHOICES, TXP_CHOICES[idx])
+            rs = RadioSettingValueList(TXP_CHOICES, current_index=idx)
             rset = RadioSetting("vfo.b.txpower3", "VFO B Power", rs)
             rset.set_apply_callback(apply_txpower_listvalue,
                                     _mem.vfo.b.txpower3)
             work.append(rset)
         else:
-            rs = RadioSetting("vfo.a.txpower3", "VFO A Power",
-                              RadioSettingValueList(
-                                  LIST_TXPOWER,
-                                  LIST_TXPOWER[min(_mem.vfo.a.txpower3, 0x02)]
-                                               ))
+            rs = RadioSetting(
+                "vfo.a.txpower3", "VFO A Power",
+                RadioSettingValueList(
+                    LIST_TXPOWER, current_index=min(
+                        _mem.vfo.a.txpower3, 0x02)))
             work.append(rs)
 
-            rs = RadioSetting("vfo.b.txpower3", "VFO B Power",
-                              RadioSettingValueList(
-                                  LIST_TXPOWER,
-                                  LIST_TXPOWER[min(_mem.vfo.b.txpower3, 0x02)]
-                                               ))
+            rs = RadioSetting(
+                "vfo.b.txpower3", "VFO B Power",
+                RadioSettingValueList(
+                    LIST_TXPOWER, current_index=min(
+                        _mem.vfo.b.txpower3, 0x02)))
             work.append(rs)
 
         rs = RadioSetting("vfo.a.widenarr", "VFO A Bandwidth",
                           RadioSettingValueList(
                               LIST_BANDWIDTH,
-                              LIST_BANDWIDTH[_mem.vfo.a.widenarr]))
+                              current_index=_mem.vfo.a.widenarr))
         work.append(rs)
 
         rs = RadioSetting("vfo.b.widenarr", "VFO B Bandwidth",
                           RadioSettingValueList(
                               LIST_BANDWIDTH,
-                              LIST_BANDWIDTH[_mem.vfo.b.widenarr]))
+                              current_index=_mem.vfo.b.widenarr))
         work.append(rs)
 
         rs = RadioSetting("vfo.a.scode", "VFO A S-CODE",
                           RadioSettingValueList(
                               LIST_SCODE,
-                              LIST_SCODE[_mem.vfo.a.scode]))
+                              current_index=_mem.vfo.a.scode))
         work.append(rs)
 
         rs = RadioSetting("vfo.b.scode", "VFO B S-CODE",
                           RadioSettingValueList(
                               LIST_SCODE,
-                              LIST_SCODE[_mem.vfo.b.scode]))
+                              current_index=_mem.vfo.b.scode))
         work.append(rs)
 
         rs = RadioSetting("vfo.a.step", "VFO A Tuning Step",
                           RadioSettingValueList(
-                              LIST_STEP, LIST_STEP[_mem.vfo.a.step]))
+                              LIST_STEP, current_index=_mem.vfo.a.step))
         work.append(rs)
         rs = RadioSetting("vfo.b.step", "VFO B Tuning Step",
                           RadioSettingValueList(
-                              LIST_STEP, LIST_STEP[_mem.vfo.b.step]))
+                              LIST_STEP, current_index=_mem.vfo.b.step))
         work.append(rs)
 
         # broadcast FM settings
@@ -843,7 +843,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.ani.dtmfon
         rs = RadioSetting("ani.dtmfon", "DTMF Speed (on)",
                           RadioSettingValueList(LIST_DTMFSPEED,
-                                                LIST_DTMFSPEED[val]))
+                                                current_index=val))
         dtmfe.append(rs)
 
         if _mem.ani.dtmfoff > 0xC3:
@@ -852,7 +852,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
             val = _mem.ani.dtmfoff
         rs = RadioSetting("ani.dtmfoff", "DTMF Speed (off)",
                           RadioSettingValueList(LIST_DTMFSPEED,
-                                                LIST_DTMFSPEED[val]))
+                                                current_index=val))
         dtmfe.append(rs)
 
         _codeobj = self._memobj.ani.code
@@ -865,7 +865,7 @@ class WP970I(baofeng_common.BaofengCommonHT):
 
         rs = RadioSetting("ani.aniid", "When to send ANI ID",
                           RadioSettingValueList(LIST_PTTID,
-                                                LIST_PTTID[_mem.ani.aniid]))
+                                                current_index=_mem.ani.aniid))
         dtmfe.append(rs)
 
         # Service settings
@@ -972,6 +972,37 @@ class BFA58S(WP970I):
 
 
 @directory.register
+class UVS9X3(BFA58S):
+    VENDOR = "Baofeng"
+    MODEL = "UV-S9X3"
+    ALIASES = []
+    _magic = [MSTRING_UVS9X3, ]
+
+
+@directory.register
+class BF5RXRadio(BFA58S):
+    VENDOR = "Baofeng"
+    MODEL = "5RX"
+    ALIASES = []
+    _magic = [MSTRING_UVS9X3, ]
+
+    _air_range = (108000000, 136000000)
+    _vhf_range = (136000000, 174000000)
+    _vhf2_range = (200000000, 260000000)
+    _uhf2_range = (350000000, 390000000)
+    _uhf_range = (400000000, 520000000)
+
+    def get_features(self):
+        rf = WP970I.get_features(self)
+        rf.valid_bands = [self._air_range,
+                          self._vhf_range,
+                          self._vhf2_range,
+                          self._uhf2_range,
+                          self._uhf_range]
+        return rf
+
+
+@directory.register
 class UV9R(WP970I):
     """Baofeng UV-9R"""
     VENDOR = "Baofeng"
@@ -987,29 +1018,10 @@ class UV9G(WP970I):
     LENGTH_NAME = 7
 
     POWER_LEVELS = [chirp_common.PowerLevel("High", watts=5.00),
-                    chirp_common.PowerLevel("Med",  watts=0.50),
+                    chirp_common.PowerLevel("Med",  watts=1.00),
                     chirp_common.PowerLevel("Low",  watts=0.50)]
     _magic = [MSTRING_UV9G, ]
-    _gmrs = True
-
-    def validate_memory(self, mem):
-        msgs = super().validate_memory(mem)
-
-        _msg_duplex = 'Duplex must be "off" for this frequency'
-        _msg_offset = 'Only simplex or +5MHz offset allowed on GMRS'
-
-        if mem.freq not in bandplan_na.ALL_GMRS_FREQS:
-            if mem.duplex != "off":
-                msgs.append(chirp_common.ValidationWarning(_msg_duplex))
-        if mem.freq in bandplan_na.GMRS_HIRPT:
-            if mem.duplex and mem.offset != 5000000:
-                msgs.append(chirp_common.ValidationWarning(_msg_offset))
-
-        return msgs
-
-    def check_set_memory_immutable_policy(self, existing, new):
-        existing.immutable = []
-        super().check_set_memory_immutable_policy(existing, new)
+    _gmrs = False  # sold as GMRS radio but supports full band TX/RX
 
     @classmethod
     def match_model(cls, filedata, filename):

@@ -21,8 +21,7 @@ from chirp import chirp_common, directory, memmap
 from chirp import bitwise, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
-    RadioSettingValueBoolean, RadioSettings, \
-    RadioSettingValueString
+    RadioSettingValueBoolean, RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -66,7 +65,7 @@ struct {
     unknown2:1,
     bclo:1;
   u8 reserved[3];
-} memory[16];
+} memory[%(memnum)i];
 
 #seekto 0x03C0;
 struct {
@@ -104,15 +103,6 @@ MODE_LIST = ["FM", "NFM"]
 
 TONES = chirp_common.TONES
 DTCS_CODES = chirp_common.DTCS_CODES
-
-SETTING_LISTS = {
-    "tot": TIMEOUT_LIST,
-    "scanmode": SCANMODE_LIST,
-    "voice": VOICE_LIST,
-    "vox": VOX_LIST,
-    "voxdelay": VOXDELAY_LIST,
-    "mode": MODE_LIST,
-    }
 
 FRS16_FREQS = [462562500, 462587500, 462612500, 462637500,
                462662500, 462625000, 462725000, 462687500,
@@ -190,13 +180,19 @@ def _r2_enter_programming_mode(radio):
         raise errors.RadioError("Radio is password protected")
     try:
         serial.write(CMD_ACK)
-        ack = serial.read(6)
+        ack = serial.read(1)
 
     except:
         _r2_exit_programming_mode(radio)
         raise errors.RadioError("Error communicating with radio 2")
 
-    if ack != CMD_ACK:
+    # The latest Retevis RT24 (and likely the RT24V and H777S) models no
+    # longer acknowledge the CMD_ACK above so the 'ack' will be empty and
+    # fail the check causing cloning to fail.
+    #
+    # The factory CPS continues with or without an ack so CHIRP will
+    # behave the same way.
+    if ack and ack != CMD_ACK:
         _r2_exit_programming_mode(radio)
         raise errors.RadioError("Radio refused to enter programming mode 2")
 
@@ -315,7 +311,6 @@ class RadioddityR2(chirp_common.CloneModeRadio):
     VENDOR = "Radioddity"
     MODEL = "R2"
     BAUD_RATE = 9600
-    NEEDS_COMPAT_SERIAL = False
 
     # definitions on how to read StartAddr EndAddr BlockZize
     _ranges = [
@@ -325,10 +320,13 @@ class RadioddityR2(chirp_common.CloneModeRadio):
     _memsize = 0x03F0
     # never read more than 8 bytes at once
     _block_size = 0x08
-    # frequency range is 400-470MHz
+    # frequency range is 400-470 MHz
     _range = [400000000, 470000000]
     # maximum 16 channels
     _upper = 16
+    _mem_params = {
+        'memnum': _upper,  # number of channels
+    }
 
     _frs16 = _pmr = False
 
@@ -370,7 +368,7 @@ class RadioddityR2(chirp_common.CloneModeRadio):
 
     def process_mmap(self):
         """Process the mem map into the mem object"""
-        self._memobj = bitwise.parse(MEM_FORMAT, self._mmap)
+        self._memobj = bitwise.parse(MEM_FORMAT % self._mem_params, self._mmap)
         # to set the vars on the class to the correct ones
 
     def sync_in(self):
@@ -406,7 +404,7 @@ class RadioddityR2(chirp_common.CloneModeRadio):
     def decode_tone(self, val):
         """Parse the tone data to decode from mem, it returns:
         Mode (''|DTCS|Tone), Value (None|###), Polarity (None,N,R)"""
-        if val.get_raw() == "\xFF\xFF":
+        if val.get_raw(asbytes=False) == "\xFF\xFF":
             return '', None, None
 
         val = int(val)
@@ -451,12 +449,12 @@ class RadioddityR2(chirp_common.CloneModeRadio):
 
         mem.freq = int(_mem.rx_freq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rx_freq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rx_freq.get_raw(asbytes=False) == "\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
@@ -548,7 +546,7 @@ class RadioddityR2(chirp_common.CloneModeRadio):
         # Get a low-level memory object mapped to the image
         _mem = self._memobj.memory[mem.number - 1]
 
-        _rsvd = _mem.reserved.get_raw()
+        _rsvd = _mem.reserved.get_raw(asbytes=False)
 
         if mem.empty:
             _mem.set_raw("\xFF" * 13 + _rsvd)
@@ -583,7 +581,7 @@ class RadioddityR2(chirp_common.CloneModeRadio):
 
         # extra settings are unfortunately inverted
         for setting in mem.extra:
-            LOG.debug("@set_mem:", setting.get_name(), setting.value)
+            LOG.debug("@set_mem: %s %s", setting.get_name(), setting.value)
             setattr(_mem, setting.get_name(), not setting.value)
 
     def get_settings(self):
@@ -597,30 +595,30 @@ class RadioddityR2(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("settings.timeout", "Timeout Timer",
                           RadioSettingValueList(
-                              TIMEOUT_LIST, TIMEOUT_LIST[_settings.timeout]))
+                              TIMEOUT_LIST, current_index=_settings.timeout))
 
         basic.append(rs)
 
         rs = RadioSetting("settings.scanmode", "Scan Mode",
                           RadioSettingValueList(
                               SCANMODE_LIST,
-                              SCANMODE_LIST[_settings.scanmode]))
+                              current_index=_settings.scanmode))
         basic.append(rs)
 
         rs = RadioSetting("settings.voice", "Voice Prompts",
                           RadioSettingValueList(
-                              VOICE_LIST, VOICE_LIST[_settings.voice]))
+                              VOICE_LIST, current_index=_settings.voice))
         basic.append(rs)
 
         rs = RadioSetting("settings.voxgain", "VOX Level",
                           RadioSettingValueList(
-                              VOX_LIST, VOX_LIST[_settings.voxgain]))
+                              VOX_LIST, current_index=_settings.voxgain))
         basic.append(rs)
 
         rs = RadioSetting("settings.voxdelay", "VOX Delay Time",
                           RadioSettingValueList(
                               VOXDELAY_LIST,
-                              VOXDELAY_LIST[_settings.voxdelay]))
+                              current_index=_settings.voxdelay))
         basic.append(rs)
 
         rs = RadioSetting("settings.save", "Battery Save",
@@ -661,7 +659,7 @@ class RadioddityR2(chirp_common.CloneModeRadio):
 
                     LOG.debug("Setting %s = %s" % (setting, element.value))
                     setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
@@ -678,7 +676,24 @@ class RetevisRT24(RadioddityR2):
     VENDOR = "Retevis"
     MODEL = "RT24"
 
-    _pmr = True
+    _pmr = False  # sold as PMR radio but supports full band TX/RX
+
+
+@directory.register
+class RetevisRT24V(RadioddityR2):
+    """Retevis RT24V"""
+    VENDOR = "Retevis"
+    MODEL = "RT24V"
+
+    # sold as FreeNet radio but supports full band TX/RX
+
+    # frequency range is 136-174 MHz
+    _range = [136000000, 174000000]
+    # maximum 6 channels
+    _upper = 6
+    _mem_params = {
+        'memnum': _upper,  # number of channels
+    }
 
 
 @directory.register
@@ -687,4 +702,4 @@ class RetevisH777S(RadioddityR2):
     VENDOR = "Retevis"
     MODEL = "H777S"
 
-    _frs16 = True
+    _frs16 = False  # sold as FRS radio but supports full band TX/RX

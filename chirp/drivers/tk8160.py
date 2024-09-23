@@ -272,7 +272,6 @@ def do_upload(radio):
 class TKx160Radio(chirp_common.CloneModeRadio):
     VENDOR = 'Kenwood'
     FORMATS = [directory.register_format('Kenwood KPG-99D', '*.dat')]
-    NEEDS_COMPAT_SERIAL = False
     _memsize = 0x4000
 
     def sync_in(self):
@@ -492,7 +491,7 @@ class TKx160Radio(chirp_common.CloneModeRadio):
 
         m.freq = int(_mem.rx_freq) * 10
         offset = int(_mem.tx_freq) * 10 - m.freq
-        if _mem.tx_freq.get_raw(asbytes=True) == b'\xFF\xFF\xFF\xFF':
+        if _mem.tx_freq.get_raw() == b'\xFF\xFF\xFF\xFF':
             m.offset = 0
             m.duplex = 'off'
         elif offset < 0:

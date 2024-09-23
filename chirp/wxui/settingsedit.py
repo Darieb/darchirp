@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import copy
 import logging
 
 import wx
@@ -30,6 +31,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
 
         self._radio = radio
         self._settings = None
+        self._propgrid = None
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
@@ -39,6 +41,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
         sizer.Add(self._group_control, 1, wx.EXPAND)
 
         self._initialized = False
+        self._restore_selection = None
 
     def _initialize(self, job):
         self.stop_wait_dialog()
@@ -47,6 +50,9 @@ class ChirpSettingsEdit(common.ChirpEditor):
                 raise job.result
             self._settings = job.result
             self._load_settings()
+            if self._restore_selection is not None:
+                self._group_control.SetSelection(self._restore_selection)
+                self._restore_selection = None
 
     def selected(self):
         if not self._initialized:
@@ -55,7 +61,19 @@ class ChirpSettingsEdit(common.ChirpEditor):
             self.do_radio(lambda job: wx.CallAfter(self._initialize, job),
                           'get_settings')
 
+    def get_scroll_pos(self):
+        return self._group_control.GetSelection()
+
+    def set_scroll_pos(self, pos):
+        try:
+            self._group_control.SetSelection(pos)
+        except AssertionError:
+            # If we're in the middle of a load, stash the position so we will
+            # restore it once we have everything.
+            self._restore_selection = pos
+
     def refresh(self):
+        self._restore_selection = self._group_control.GetSelection()
         self._group_control.DeleteAllPages()
         # Next select will re-load everything
         self._initialized = False
@@ -67,6 +85,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
 
     def _add_group(self, group, parent=None):
         propgrid = common.ChirpSettingGrid(group, self._group_control)
+        self._propgrid = propgrid
         self.Bind(common.EVT_EDITOR_CHANGED, self._changed, propgrid)
         LOG.debug('Adding page for %s (parent=%s)' % (group.get_shortname(),
                                                       parent))
@@ -77,7 +96,8 @@ class ChirpSettingsEdit(common.ChirpEditor):
             self._group_control.AddPage(propgrid, group.get_shortname())
 
         for element in group.values():
-            if not isinstance(element, settings.RadioSetting):
+            if not isinstance(element, (settings.RadioSetting,
+                                        settings.RadioSettingSubGroup)):
                 self._add_group(element,
                                 parent=self._group_control.FindPage(propgrid))
 
@@ -98,16 +118,22 @@ class ChirpSettingsEdit(common.ChirpEditor):
                         values = [setting.value]
                     for j, value in enumerate(values):
                         if not value.get_mutable():
-                            LOG.debug('Skipping immutable setting %r' % (
-                                setting.get_name()))
+                            # Do not update immutable settings
                             continue
-                        LOG.debug('Setting %s:%s[%i]=%r' % (page.name,
-                                                            setting.get_name(),
-                                                            j,
-                                                            val))
                         realname, index = name.split(common.INDEX_CHAR)
+                        prop = page.propgrid.GetProperty(name)
+                        if not prop:
+                            LOG.warning('Unable to find property %s in page',
+                                        name)
+                            continue
                         if int(index) == j:
-                            setting[j] = val
+                            try:
+                                setting[j] = val
+                            finally:
+                                if setting[j].get_value() != val:
+                                    # setting value modified or not accepted in
+                                    # validate callback, propagate back to GUI
+                                    prop.SetValue(setting[j].get_value())
             return True
         except Exception as e:
             LOG.exception('Failed to apply settings')
@@ -128,11 +154,37 @@ class ChirpSettingsEdit(common.ChirpEditor):
         if isinstance(job.result, Exception):
             common.error_proof.show_error(str(job.result))
 
+    def _reload(self):
+        self.refresh()
+        self.selected()
+
+    def _remove_dead_settings(self, root):
+        """Remove any settings that are immutable or uninitialized"""
+        for e in root.values():
+            if isinstance(e, settings.RadioSetting):
+                # Immutable and uninitialized settings don't get sent to the
+                # radio
+                for value in e:
+                    if not value.get_mutable():
+                        LOG.debug('Skipping immutable %s', e.get_name())
+                        del root[e]
+                    elif not value.initialized:
+                        LOG.debug('Skipping uninitialized %s', e.get_name())
+                        del root[e]
+            elif isinstance(e, settings.RadioSettingGroup):
+                self._remove_dead_settings(e)
+
     def _changed(self, event):
         if not self._apply_settings():
             return
-        self.do_radio(self._set_settings_cb, 'set_settings', self._settings)
+        settings = copy.deepcopy(self._settings)
+        for g in settings:
+            self._remove_dead_settings(g)
+        self.do_radio(self._set_settings_cb, 'set_settings', settings)
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
+        if self._propgrid.needs_reload:
+            LOG.warning('Settings grid needs a reload')
+            wx.CallAfter(self._reload)
 
     def saved(self):
         for i in range(self._group_control.GetPageCount()):

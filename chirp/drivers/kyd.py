@@ -74,15 +74,6 @@ VOICE_LIST = ["Off", "Chinese", "English"]
 VOX_LIST = ["OFF"] + ["%s" % x for x in range(1, 17)]
 VOXDELAY_LIST = ["0.3", "0.5", "1.0", "1.5", "2.0", "3.0"]
 
-SETTING_LISTS = {
-    "bcl": BCL_LIST,
-    "tot": TIMEOUTTIMER_LIST,
-    "totalert": TOTALERT_LIST,
-    "voice": VOICE_LIST,
-    "vox": VOX_LIST,
-    "voxdelay": VOXDELAY_LIST,
-    }
-
 
 def _nc630a_enter_programming_mode(radio):
     serial = radio.pipe
@@ -215,6 +206,7 @@ class NC630aRadio(chirp_common.CloneModeRadio):
     MODEL = "NC-630A"
     ALIASES = [MT700Alias]
     BAUD_RATE = 9600
+    NEEDS_COMPAT_SERIAL = True
 
     _ranges = [
                (0x0000, 0x0330),
@@ -239,7 +231,7 @@ class NC630aRadio(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = NC630A_POWER_LEVELS
         rf.valid_duplexes = ["", "-", "+", "split", "off"]
-        rf.valid_modes = ["NFM", "FM"]  # 12.5 KHz, 25 kHz.
+        rf.valid_modes = ["NFM", "FM"]  # 12.5 kHz, 25 kHz.
         rf.memory_bounds = (1, 16)
         rf.valid_tuning_steps = [2.5, 5., 6.25, 10., 12.5, 25.]
         rf.valid_bands = [(400000000, 520000000)]
@@ -316,12 +308,12 @@ class NC630aRadio(chirp_common.CloneModeRadio):
         mem.number = number
         mem.freq = int(_mem.rxfreq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rxfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rxfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
@@ -329,6 +321,8 @@ class NC630aRadio(chirp_common.CloneModeRadio):
         if int(_mem.rxfreq) == int(_mem.txfreq):
             mem.duplex = ""
             mem.offset = 0
+        elif _mem.txfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
+            mem.duplex = "off"
         else:
             mem.duplex = int(_mem.rxfreq) > int(_mem.txfreq) and "-" or "+"
             mem.offset = abs(int(_mem.rxfreq) - int(_mem.txfreq)) * 10
@@ -346,7 +340,7 @@ class NC630aRadio(chirp_common.CloneModeRadio):
 
         rs = RadioSetting("bcl", "Busy Channel Lockout",
                           RadioSettingValueList(
-                              BCL_LIST, BCL_LIST[_mem.bcl]))
+                              BCL_LIST, current_index=_mem.bcl))
         mem.extra.append(rs)
 
         return mem
@@ -399,16 +393,15 @@ class NC630aRadio(chirp_common.CloneModeRadio):
         _skp = self._memobj.skipflags[bytepos]
 
         if mem.empty:
-            _mem.set_raw("\xFF" * 16)
+            _mem.fill_raw(b"\xFF")
             return
 
-        _mem.set_raw("\x00" * 14 + "\xFF" * 2)
+        _mem.set_raw(b"\x00" * 14 + b"\xFF" * 2)
 
         _mem.rxfreq = mem.freq / 10
 
         if mem.duplex == "off":
-            for i in range(0, 4):
-                _mem.txfreq[i].set_raw("\xFF")
+            _mem.txfreq.fill_raw(b"\xFF")
         elif mem.duplex == "split":
             _mem.txfreq = mem.offset / 10
         elif mem.duplex == "+":
@@ -441,23 +434,23 @@ class NC630aRadio(chirp_common.CloneModeRadio):
         rs = RadioSetting("tot", "Time-out timer",
                           RadioSettingValueList(
                               TIMEOUTTIMER_LIST,
-                              TIMEOUTTIMER_LIST[_settings.tot]))
+                              current_index=_settings.tot))
         basic.append(rs)
 
         rs = RadioSetting("totalert", "TOT Pre-alert",
                           RadioSettingValueList(
                               TOTALERT_LIST,
-                              TOTALERT_LIST[_settings.totalert]))
+                              current_index=_settings.totalert))
         basic.append(rs)
 
         rs = RadioSetting("vox", "VOX Gain",
                           RadioSettingValueList(
-                              VOX_LIST, VOX_LIST[_settings.vox]))
+                              VOX_LIST, current_index=_settings.vox))
         basic.append(rs)
 
         rs = RadioSetting("voice", "Voice Annumciation",
                           RadioSettingValueList(
-                              VOICE_LIST, VOICE_LIST[_settings.voice]))
+                              VOICE_LIST, current_index=_settings.voice))
         basic.append(rs)
 
         rs = RadioSetting("squelch", "Squelch Level",
@@ -467,7 +460,7 @@ class NC630aRadio(chirp_common.CloneModeRadio):
         rs = RadioSetting("voxdelay", "VOX Delay",
                           RadioSettingValueList(
                               VOXDELAY_LIST,
-                              VOXDELAY_LIST[_settings.voxdelay]))
+                              current_index=_settings.voxdelay))
         basic.append(rs)
 
         rs = RadioSetting("beep", "Beep",
@@ -499,7 +492,7 @@ class NC630aRadio(chirp_common.CloneModeRadio):
 
                     LOG.debug("Setting %s = %s" % (setting, element.value))
                     setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 

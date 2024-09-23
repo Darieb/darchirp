@@ -22,7 +22,7 @@ from chirp import bitwise, errors, util
 from chirp.settings import RadioSetting, RadioSettingGroup, \
     RadioSettingValueInteger, RadioSettingValueList, \
     RadioSettingValueBoolean, RadioSettingValueString, \
-    InvalidValueError, RadioSettings
+    RadioSettings
 
 LOG = logging.getLogger(__name__)
 
@@ -143,28 +143,6 @@ LIST_RESETTIME = ["Off"] + ["%s" % x for x in range(1, 61)]
 LIST_DECODETO = ["%s" % x for x in range(500, 1000, 50)] + \
                 ["%s" % x for x in range(1000, 1600, 100)]
 LIST_STUNTYPE = ["TX/RX Inhibit", "TX Inhibit"]
-
-SETTING_LISTS = {
-    "k1shortp": LIST_SHORT_PRESS,
-    "k1longp": LIST_LONG_PRESS,
-    "k2shortp": LIST_SHORT_PRESS,
-    "k2longp": LIST_LONG_PRESS,
-    "voxd": LIST_VOXDELAY,
-    "voice": LIST_VOICE,
-    "tot": LIST_TIMEOUTTIMER,
-    "save": LIST_SAVE,
-    "ssave": LIST_SSAVE,
-    "scanspeed": LIST_SCANSPEED,
-    "scandelay": LIST_SCANDELAY,
-    "digtime": LIST_DIGTIME,
-    "digdelay": LIST_DIGDELAY,
-    "starhash": LIST_STARHASH,
-    "codespace": LIST_CODESPACE,
-    "groupcode": LIST_GROUPCODE,
-    "resettime": LIST_RESETTIME,
-    "decodeto": LIST_DECODETO,
-    "stuntype": LIST_STUNTYPE,
-    }
 
 # Retevis RT26 fingerprints
 RT26_UHF_fp = b"PDK80" + b"\xF3\x00\x00"   # RT26 UHF model
@@ -367,7 +345,6 @@ class RT26Radio(chirp_common.CloneModeRadio):
     VENDOR = "Retevis"
     MODEL = "RT26"
     BAUD_RATE = 4800
-    NEEDS_COMPAT_SERIAL = False
 
     _ranges = [
                (0x0000, 0x0190, 0x10),
@@ -391,7 +368,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
                                 "->Tone", "->DTCS", "DTCS->", "DTCS->DTCS"]
         rf.valid_power_levels = RT26_POWER_LEVELS
         rf.valid_duplexes = ["", "-", "+", "split", "off"]
-        rf.valid_modes = ["NFM", "FM"]  # 12.5 KHz, 25 kHz.
+        rf.valid_modes = ["NFM", "FM"]  # 12.5 kHz, 25 kHz.
         rf.valid_dtcs_codes = RT26_DTCS
         rf.memory_bounds = (1, 16)
         rf.valid_tuning_steps = [2.5, 5., 6.25, 10., 12.5, 25.]
@@ -415,7 +392,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
     def decode_tone(self, val):
         """Parse the tone data to decode from mem, it returns:
         Mode (''|DTCS|Tone), Value (None|###), Polarity (None,N,R)"""
-        if val.get_raw() == "\xFF\xFF":
+        if val.get_raw(asbytes=False) == "\xFF\xFF":
             return '', None, None
 
         val = int(val)
@@ -455,12 +432,12 @@ class RT26Radio(chirp_common.CloneModeRadio):
         mem.number = number
         mem.freq = int(_mem.rxfreq) * 10
 
-        # We'll consider any blank (i.e. 0MHz frequency) to be empty
+        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
         if mem.freq == 0:
             mem.empty = True
             return mem
 
-        if _mem.rxfreq.get_raw() == "\xFF\xFF\xFF\xFF":
+        if _mem.rxfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
             mem.freq = 0
             mem.empty = True
             return mem
@@ -468,6 +445,8 @@ class RT26Radio(chirp_common.CloneModeRadio):
         if int(_mem.rxfreq) == int(_mem.txfreq):
             mem.duplex = ""
             mem.offset = 0
+        elif _mem.txfreq.get_raw() == b"\xFF\xFF\xFF\xFF":
+            mem.duplex = "off"
         else:
             mem.duplex = int(_mem.rxfreq) > int(_mem.txfreq) and "-" or "+"
             mem.offset = abs(int(_mem.rxfreq) - int(_mem.txfreq)) * 10
@@ -497,7 +476,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         val = 3 - _mem.pttid
         rs = RadioSetting("pttid", "PTT ID",
                           RadioSettingValueList(
-                              LIST_PTTID, LIST_PTTID[val]))
+                              LIST_PTTID, current_index=val))
         mem.extra.append(rs)
 
         return mem
@@ -512,8 +491,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         _mem.rxfreq = mem.freq / 10
 
         if mem.duplex == "off":
-            for i in range(0, 4):
-                _mem.txfreq[i].set_raw("\xFF")
+            _mem.txfreq.fill_raw(b"\xFF")
         elif mem.duplex == "split":
             _mem.txfreq = mem.offset / 10
         elif mem.duplex == "+":
@@ -590,7 +568,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("k1shortp", "Key 1 Short Press",
                           RadioSettingValueList(
                               LIST_SHORT_PRESS,
-                              LIST_SHORT_PRESS[val]))
+                              current_index=val))
         basic.append(rs)
 
         if _settings.k1longp > 5:
@@ -600,7 +578,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("k1longp", "Key 1 Long Press",
                           RadioSettingValueList(
                               LIST_LONG_PRESS,
-                              LIST_LONG_PRESS[val]))
+                              current_index=val))
         basic.append(rs)
 
         if _settings.k2shortp > 5:
@@ -610,7 +588,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("k2shortp", "Key 2 Short Press",
                           RadioSettingValueList(
                               LIST_SHORT_PRESS,
-                              LIST_SHORT_PRESS[val]))
+                              current_index=val))
         basic.append(rs)
 
         if _settings.k2longp > 5:
@@ -620,7 +598,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("k2longp", "Key 2 Long Press",
                           RadioSettingValueList(
                               LIST_LONG_PRESS,
-                              LIST_LONG_PRESS[val]))
+                              current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("vox", "VOX",
@@ -638,7 +616,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("voxd", "VOX Delay Time",
                           RadioSettingValueList(
                               LIST_VOXDELAY,
-                              LIST_VOXDELAY[_settings.voxd]))
+                              current_index=_settings.voxd))
         basic.append(rs)
 
         rs = RadioSetting("voxi", "VOX Inhibit on Receive",
@@ -660,7 +638,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("voice", "Voice Prompts",
                           RadioSettingValueList(
                               LIST_VOICE,
-                              LIST_VOICE[val]))
+                              current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("tone", "Tone",
@@ -682,7 +660,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("tot", "Time-out Timer[s]",
                           RadioSettingValueList(
                               LIST_TIMEOUTTIMER,
-                              LIST_TIMEOUTTIMER[val]))
+                              current_index=val))
         basic.append(rs)
 
         if _settings.save < 3:
@@ -692,13 +670,13 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("save", "Battery Saver",
                           RadioSettingValueList(
                               LIST_SAVE,
-                              LIST_SAVE[val]))
+                              current_index=val))
         basic.append(rs)
 
         rs = RadioSetting("ssave", "Super Battery Saver[s]",
                           RadioSettingValueList(
                               LIST_SSAVE,
-                              LIST_SSAVE[_settings.ssave]))
+                              current_index=_settings.ssave))
         basic.append(rs)
 
         rs = RadioSetting("fmradio", "Broadcast FM",
@@ -712,7 +690,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("scanspeed", "Scan Speed[ms]",
                           RadioSettingValueList(
                               LIST_SCANSPEED,
-                              LIST_SCANSPEED[val]))
+                              current_index=val))
         basic.append(rs)
 
         if _settings.scandelay > 27:
@@ -722,7 +700,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("scandelay", "Scan Droupout Delay Time[s]",
                           RadioSettingValueList(
                               LIST_SCANDELAY,
-                              LIST_SCANDELAY[val]))
+                              current_index=val))
         basic.append(rs)
 
         if _mem.dtmf.dtmfspd > 11:
@@ -740,7 +718,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("dtmf.digtime", "1st Digit Time[ms]",
                           RadioSettingValueList(
                               LIST_DIGTIME,
-                              LIST_DIGTIME[val]))
+                              current_index=val))
         dtmf.append(rs)
 
         if _mem.dtmf.digdelay > 9:
@@ -750,19 +728,19 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("dtmf.digdelay", "1st Digit Delay[ms]",
                           RadioSettingValueList(
                               LIST_DIGDELAY,
-                              LIST_DIGDELAY[val]))
+                              current_index=val))
         dtmf.append(rs)
 
         rs = RadioSetting("dtmf.starhash", "* and # Time[ms]",
                           RadioSettingValueList(
                               LIST_STARHASH,
-                              LIST_STARHASH[_mem.dtmf.starhash]))
+                              current_index=_mem.dtmf.starhash))
         dtmf.append(rs)
 
         rs = RadioSetting("dtmf.codespace", "Code Space Time[ms]",
                           RadioSettingValueList(
                               LIST_CODESPACE,
-                              LIST_CODESPACE[_mem.dtmf.codespace]))
+                              current_index=_mem.dtmf.codespace))
         dtmf.append(rs)
 
         rs = RadioSetting("dtmf.sidetone", "DTMF Sidetone",
@@ -806,7 +784,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("dtmf.groupcode", "Group Code",
                           RadioSettingValueList(
                               LIST_GROUPCODE,
-                              LIST_GROUPCODE[val]))
+                              current_index=val))
         dtmf.append(rs)
 
         if _mem.dtmf.resettime > 60:
@@ -816,7 +794,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("dtmf.resettime", "Auto Reset Time[s]",
                           RadioSettingValueList(
                               LIST_RESETTIME,
-                              LIST_RESETTIME[_mem.dtmf.resettime]))
+                              current_index=_mem.dtmf.resettime))
         dtmf.append(rs)
 
         rs = RadioSetting("dtmf.txdecode", "TX Decode",
@@ -826,7 +804,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("dtmf.decodeto", "Decode Time Out[ms]",
                           RadioSettingValueList(
                               LIST_DECODETO,
-                              LIST_DECODETO[_mem.dtmf.decodeto]))
+                              current_index=_mem.dtmf.decodeto))
         dtmf.append(rs)
 
         rs = RadioSetting("dtmf.decodetone", "Decode Tone",
@@ -840,7 +818,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
         rs = RadioSetting("dtmf.stuntype", "Stun Type",
                           RadioSettingValueList(
                               LIST_STUNTYPE,
-                              LIST_STUNTYPE[_mem.dtmf.stuntype]))
+                              current_index=_mem.dtmf.stuntype))
         dtmf.append(rs)
 
         # setup stun entry
@@ -882,7 +860,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
                         setattr(obj, setting, int(element.value) + 3)
                     elif setting == "dtmfspd":
                         setattr(obj, setting, int(element.value) - 4)
-                    elif re.match('code\d', setting):
+                    elif re.match(r'code\d', setting):
                         # set dtmf length field and then get bcd dtmf
                         if setting == "code3":
                             strlen = 10
@@ -898,7 +876,7 @@ class RT26Radio(chirp_common.CloneModeRadio):
                     elif element.value.get_mutable():
                         LOG.debug("Setting %s = %s" % (setting, element.value))
                         setattr(obj, setting, element.value)
-                except Exception as e:
+                except Exception:
                     LOG.debug(element.get_name())
                     raise
 
