@@ -155,10 +155,13 @@ class FT3D(FT2D):
     VARIANT = "R"
 
     _model = b"AH72M"
-    FORMATS = [directory.register_format('FT3D ADMS-11', '*.ft3d')]
+    _adms_ext = '.ft3d'
+    _sdc_ext = '.dat'
+    FORMATS = [directory.register_format('FT3D ADMS-11', '*' + _adms_ext),
+               directory.register_format('SD-Card Experimental', '*' + _sdc_ext)]
 
     def load_mmap(self, filename):
-        if filename.lower().endswith('.ft3d'):
+        if filename.lower().endswith(_adms_ext):
             with open(filename, 'rb') as f:
                 self._adms_header = f.read(0x18C)
                 if b'ADMS11, Version=1.0.0.0' not in self._adms_header:
@@ -169,17 +172,26 @@ class FT3D(FT2D):
                 self._mmap = memmap.MemoryMapBytes(f.read())
                 LOG.info('Loaded ADMS-11 file at offset 0x18C')
             self.process_mmap()
+        elif filename.lower().endswith(_sdc_ext):
+            with open(filename, 'rb') as f:
+                self._adms_header = f.read(0x18C)
+                self._mmap = memmap.MemoryMapBytes(f.read())
+                LOG.info('Loaded SD-card')
+            self.process_mmap()
         else:
             chirp_common.CloneModeRadio.load_mmap(self, filename)
 
     def save_mmap(self, filename):
-        if filename.lower().endswith('.ft3d'):
+        if filename.lower().endswith(_adms_ext):
             if not hasattr(self, '_adms_header'):
                 raise Exception('Unable to save .img to .ft3d')
             with open(filename, 'wb') as f:
                 f.write(self._adms_header)
                 f.write(self._mmap.get_packed())
-                LOG.info('Wrote ADMS-11 file')
+                LOG.info('Wrote ADMS-11 file %s', filename)
+        elif filename.lower().endswith(_sdc_ext):
+                f.write(self._mmap.get_packed())
+                LOG.info('Wrote SD-card to %s', filename)
         else:
             chirp_common.CloneModeRadio.save_mmap(self, filename)
 

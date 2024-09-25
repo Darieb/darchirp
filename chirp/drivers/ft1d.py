@@ -33,6 +33,12 @@ from chirp import util
 LOG = logging.getLogger(__name__)
 
 MEM_SETTINGS_FORMAT = """
+#seekto 0x0;
+struct {
+  u32 lo_memory;
+  u32 hi_memory;
+} _low_memory[16];
+
 #seekto 0x047e;
 struct {
   u8 unknown1;
@@ -710,7 +716,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     MODEL = "FT-1D"
     VARIANT = "R"
     FORMATS = [directory.register_format('FT1D ADMS-6', '*.ft1d'),
-               directory.register_format('Yaesu SDcard', '*.dat')]
+               directory.register_format('Yaesu SDcard: experimental', '*.dat')]
     class_specials = SPECIALS
     _model = b"AH44M"
     _memsize = 130507
@@ -725,6 +731,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _has_vibrate = False
     _has_af_dual = True
     _adms_ext = '.ft1d'
+    _sdc_ext = '.dat'
 
     _SG_RE = re.compile(r"(?P<sign>[-+NESW]?)(?P<d>[\d]+)[\s\.,]*"
                         r"(?P<m>[\d]*)[\s\']*(?P<s>[\d]*)")
@@ -2556,22 +2563,32 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     def load_mmap(self, filename):
         if filename.lower().endswith(self._adms_ext):
             with open(filename, 'rb') as f:
-                self._adms_header = f.read(0x16)
+                self._header = f.read(0x16)
                 LOG.debug('ADMS Header:\n%s',
-                          util.hexprint(self._adms_header))
+                          util.hexprint(self._header))
                 self._mmap = memmap.MemoryMapBytes(self._model + f.read())
                 LOG.info('Loaded ADMS file')
+            self.process_mmap()
+        elif filename.lower().endswith(self._sdc_ext):
+            with open(filename, 'rb') as f:
+#                self._header = f.read(0x16)
+#                LOG.debug('SD-card Header:\n%s',
+#                          util.hexprint(self._header))
+                self._mmap = memmap.MemoryMapBytes(self._model + f.read())
             self.process_mmap()
         else:
             chirp_common.CloneModeRadio.load_mmap(self, filename)
 
     def save_mmap(self, filename):
         if filename.lower().endswith(self._adms_ext):
-            if not hasattr(self, '_adms_header'):
-                raise Exception('Unable to save .img to %s' % self._adms_ext)
+            if not hasattr(self, '_header'):
+                raise Exception('Cannot reproduce ADMS header for %s' % filename)
             with open(filename, 'wb') as f:
-                f.write(self._adms_header)
+                f.write(self._header)
                 f.write(self._mmap.get_packed()[5:])
                 LOG.info('Wrote file')
+        elif filename.lower().endswith(self._sdc_ext):
+            with open(filename, 'wb') as f:
+                f.write(self._mmap.get_packed()[5:])
         else:
             chirp_common.CloneModeRadio.save_mmap(self, filename)
