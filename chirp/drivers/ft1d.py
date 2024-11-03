@@ -177,7 +177,7 @@ struct {
 } bank_members[24];
 """
 
-MEM_FORMAT = """
+MEM_SLOT = """
 struct memslot {
   u8 unknown0:2,
      mode_alt:1,  // mode for FTM-3200D
@@ -204,12 +204,6 @@ struct memslot {
      automode:1,
      unknown9:3;
 };
-#seekto 0x2D4A;
-struct memslot memory[%(memnum)d];
-struct memslot Skip[99];
-struct memslot PMS[100];
-#seekto 0x10ca;
-struct memslot Home[11];
 
 struct flagslot {
   u8 nosubvfo:1,
@@ -219,10 +213,25 @@ struct flagslot {
      used:1,
      valid:1;
 };
+"""
+
+MEM_FORMAT = """
+#seekto 0x2D4A;
+struct memslot memory[%(memnum)d];
+struct memslot Skip[99];
+struct memslot PMS[100];
+#seekto 0x10ca;
+struct memslot Home[11];
 #seekto 0x280A;
 struct flagslot flag[%(memnum)d];
 struct flagslot flagskp[99];
 struct flagslot flagPMS[100];
+"""
+
+YAESU_PRESET_MEMORIES = """
+struct memslot  wx_chan[10];
+struct memslot  intvhf[57];
+struct memslot  sw_chan[89];
 """
 
 MEM_APRS_FORMAT = """
@@ -530,14 +539,22 @@ POWER_LEVELS = [chirp_common.PowerLevel("Hi", watts=5.00),
                 chirp_common.PowerLevel("L1", watts=0.05)]
 SKIPNAMES = ["Skip%i" % i for i in range(901, 1000)]
 PMSNAMES = ["%s%i" % (c, i) for i in range(1, 51) for c in ['L', 'U']]
-HOMENAMES = ["Home%i" % i for i in range(1, 12)]
-ALLNAMES = SKIPNAMES + PMSNAMES + HOMENAMES
+HOMENAMES = ["AM", "FM", "SW", "50MHz", "Air", "144MHz", "174MHz",
+             "Info1", "430MHz", "470MHz", "Info2"] 
+WXNAMES  = ["WX%2d" % i for i in range(1, 10)]
+VHFNAMES = ["IntVHF%2d" % i for i in range(1, 57)]
+SWNAMES  = ["SW%2d" % i for i in range(1, 89)]
+
+ALLNAMES = SKIPNAMES + PMSNAMES + HOMENAMES + WXNAMES + VHFNAMES + SWNAMES
 # list of (array name, (list of memories in that array))
 # array names must match names of memories defined for radio
 SPECIALS = [
     ("Skip", SKIPNAMES),
     ("PMS", PMSNAMES),
-    ("Home", HOMENAMES)
+    ("Home", HOMENAMES),
+    ("wx_chan", WXNAMES),
+    ("intvhf", VHFNAMES),
+    ("sw_chan", SWNAMES),
 ]
 # Band edges are integer Hz.
 VALID_BANDS = [
@@ -903,9 +920,14 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return rp
 
     def process_mmap(self):
-        mem_format = MEM_SETTINGS_FORMAT + MEM_FORMAT + MEM_APRS_FORMAT + \
-                MEM_GM_FORMAT + MEM_BACKTRACK_FORMAT + MEM_CHECKSUM_FORMAT
+        mem_format = MEM_SETTINGS_FORMAT + \
+                    MEM_SLOT + MEM_FORMAT + \
+                    MEM_APRS_FORMAT + \
+                    MEM_GM_FORMAT + MEM_BACKTRACK_FORMAT + \
+                    MEM_CHECKSUM_FORMAT
         self._memobj = bitwise.parse(mem_format % self._mem_params, self._mmap)
+        mem_format = MEM_SLOT + YAESU_PRESET_MEMORIES
+        self._presets = bitwise.parse(mem_format, b'\x00' * 4992)
 
     def get_features(self):
         rf = chirp_common.RadioFeatures()
@@ -1001,13 +1023,25 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             array = "memory"
             ndx = memref - 1
             _flag = self._memobj.flag[ndx]
-        if array == "Skip":
+            _mem = getattr(self._memobj, array)[ndx]
+        if array == SPECIALS[0][0]:         # 'Skip'
             _flag = self._memobj.flagskp[ndx]
-        elif array == "PMS":
+            _mem = getattr(self._memobj, array)[ndx]
+        elif array == SPECIALS[1][0]:       # 'PMS'
             _flag = self._memobj.flagPMS[ndx]
-        elif array == "Home":
+            _mem = getattr(self._memobj, array)[ndx]
+        elif array == SPECIALS[2][0]:       # "Home":
             _flag = None
-        _mem = getattr(self._memobj, array)[ndx]
+            _mem = getattr(self._memobj, array)[ndx]
+        elif array == SPECIALS[3][0]:       # "wx_chan":
+            _flag = None
+            _mem = getattr(self._presets, array)[ndx] # Yaesu presets in _preset
+        elif array == SPECIALS[4][0]:       # "intvhf":
+            _flag = None
+            _mem = getattr(self._presets, array)[ndx]
+        elif array == SPECIALS[5][0]:       # "sw_chan":
+            _flag = None
+            _mem = getattr(self._presets, array)[ndx]
         return (_mem, _flag,  ndx, num, array, ename)
 
     # Build CHIRP version (mem) of radio's memory (_mem)
@@ -1168,6 +1202,12 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     def set_memory(self, mem):
         _mem, flag, ndx, num, regtype, ename = self.slotloc(mem.number,
                                                             mem.extd_number)
+        # Ignore all attempts to change presets
+        if regtype == SPECIALS[3][0] | \
+            regtype == SPECIALS[4][0] | \
+            regtype == SPECIALS[5][0]:
+            return
+
         if mem.empty:
             self._wipe_memory(_mem)
             if flag is not None:
