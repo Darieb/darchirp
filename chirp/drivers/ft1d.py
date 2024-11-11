@@ -230,7 +230,7 @@ struct flagslot flagPMS[100];
 
 YAESU_PRESET_MEMORIES = """
 struct memslot  sw_chan[100];    // only 88 defined
-struct memslot  intvhf[100];     // 89; 57 non-empty, but a gap in indices
+struct memslot  marine[100];     // 89; 57 non-empty, but a gap in indices
 struct memslot  wx_chan[10];
 """
 
@@ -540,10 +540,10 @@ POWER_LEVELS = [chirp_common.PowerLevel("Hi", watts=5.00),
 MEM_ATTRS = [i for i in dir(chirp_common.Memory) if not i.startswith('__')] 
 SKIPNAMES = ["Skip%i" % i for i in range(901, 1000)]
 PMSNAMES = ["%s%i" % (c, i) for i in range(1, 51) for c in ['L', 'U']]
-HOMENAMES = ["AM", "FM", "SW", "50MHz", "Air", "144MHz", "174MHz",
+HOMENAMES = ["AM", "SW", "50MHz", "FM", "Air", "144MHz", "174MHz",
              "Info1", "430MHz", "470MHz", "Info2"] 
 WXNAMES  = ["WX%2d" % (i + 1) for i in range(0, 10)]
-VHFNAMES = ["IntVHF%2d" % (i + 1) for i in range(0, 88)]
+VHFNAMES = ["Marine%2d" % (i + 1) for i in range(0, 88)]
 SWNAMES  = ["SW%2d" % (i + 1) for i in range(0, 89)]
 YAESUNAMES = WXNAMES + VHFNAMES + SWNAMES
 
@@ -552,7 +552,7 @@ ALLNAMES = SKIPNAMES + PMSNAMES + HOMENAMES + YAESUNAMES
 # array names must match names of memories defined for radio
 YAESUSPECIALS = [
     ("wx_chan", WXNAMES),
-    ("intvhf", VHFNAMES),
+    ("marine", VHFNAMES),
     ("sw_chan", SWNAMES),
     ]
 SPECIALS = [
@@ -565,9 +565,9 @@ SPECIALS = [
 # VFO B skips first 4 and last band.
 VALID_BANDS = [
     (510000, 1790000),
-    (76000000, 107990000),
     (1800000, 30990000),
     (30000000, 75990000),
+    (76000000, 107990000),
     (108000000, 136990000),
     (137000000, 173990000),
     (174000000, 221950000),
@@ -615,7 +615,9 @@ class FT1BankModel(chirp_common.BankModel,
         """ Returns list of SPECIALS to be displayed in Banks 
             Choose the final three SPECIALS for FTx radios
         """
-        return self._radio.get_features().valid_special_chans[-3:]
+        _ = self._radio.get_features().valid_special_chans[-3:]
+        print("Get_bankable_specials:",_)
+        return _
 
     def get_num_mappings(self):
         return len(self._bank_mappings)
@@ -917,7 +919,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             return super().match_model(filedata, filename)
 
     @classmethod
-    def get_prompts(cls):
+    def get_prompts(cls) -> chirp_common.RadioPrompts:
         rp = chirp_common.RadioPrompts()
         rp.pre_download = _(
             "1. Turn radio off.\n"
@@ -940,7 +942,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             The bitmap is in self._mmap
             The structures are left in self._memobj
 
-            Do the same for the Yaesu presets, except into self._presets.
+            Do the same for the Yaesu presets, except bitmap=self._presets.
          """
         mem_format = MEM_SETTINGS_FORMAT + \
                     MEM_SLOT + MEM_FORMAT + \
@@ -1004,7 +1006,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 #   Find and return the corresponding memobj
 #   Returns:
 #       Corresponding radio- or Yaesu preset-memory object
-#       Corresponding radio alag structure (if any)
+#       Corresponding radio flag structure (if any)
 #       index into the specific memory object structure (int) ndx
 #       overall index into memory & specials (int) num
 #       an indicator of the specific radio object structure (str)
@@ -1064,7 +1066,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         elif array == SPECIALS[3][0]:       # "wx_chan":
             _flag = None
             _mem = getattr(self._presets, array)[ndx] # Yaesu presets in _preset
-        elif array == SPECIALS[4][0]:       # "intvhf":
+        elif array == SPECIALS[4][0]:       # "marine":
             _flag = None
             _mem = getattr(self._presets, array)[ndx]
         elif array == SPECIALS[5][0]:       # "sw_chan":
@@ -1077,6 +1079,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         _mem, _flag, ndx, num, array, ename = self.slotloc(number)
         mem = chirp_common.Memory()
         mem.number = num
+        # First play with name/extd_number silliness and some mutability
         if array == "Home":
             mem.empty = False
             mem.extd_number = ename
@@ -1095,6 +1098,11 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                 mem.empty = True
             if not _flag.valid:
                 mem.empty = True
+        else:
+            # some radios return 0xff's instead of zeroes
+            if _mem.charsetbits == 0xffff and _mem.dcs == 0x7f:
+                mem.empty = True
+
         if mem.empty:
             mem.freq = 0
             mem.offset = 0
@@ -1105,7 +1113,8 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         else:
             mem.freq = chirp_common.fix_rounded_step(int(_mem.freq) * 1000)
             mem.offset = int(_mem.offset) * 1000
-            mem.rtone = mem.ctone = chirp_common.TONES[_mem.tone]
+            mem.rtone = mem.ctone = chirp_common.TONES[min(_mem.tone, \
+                                    len(chirp_common.TONES))]
             self._get_tmode(mem, _mem)
             if mem.duplex is None:
                 mem.duplex = DUPLEX[""]
@@ -1118,9 +1127,13 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             mem.tuning_step = STEPS[_mem.tune_step]
             mem.power = self._decode_power_level(_mem)
             self._get_mem_extra(mem, _mem)
-        # CHIRP copy of Yaesu presets are not empty and totally immutable
+ 
+        # Presets are all immutable and defined ones are never empty
         if array in [YAESUSPECIALS[_i][0] for _i in range(0,3)]:
-            mem.empty = False
+            if mem.freq != 0 and _mem.freq != 1666665:
+                mem.empty = False
+            else:
+                mem.empty = True
             mem.immutable = MEM_ATTRS
         return mem
 
@@ -1165,7 +1178,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             return 3 - POWER_LEVELS.index(mem.power)
 
     def _decode_mode(self, mem):
-        mode = MODES[mem.mode]
+        mode = MODES[min(mem.mode, len(MODES))]
         if mode == 'FM' and int(mem.digmode):
             # DN mode is FM with a digital flag. Since digmode can be AMS or
             # DN, either will be called 'DN' in chirp
@@ -1186,7 +1199,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return MODES.index(mode)
 
     def _get_tmode(self, mem, _mem):
-        mem.tmode = TMODES[_mem.tone_mode]
+        mem.tmode = TMODES[min(_mem.tone_mode, len(TMODES))]
 
     def _set_tmode(self, _mem, mem):
         _mem.tone_mode = TMODES.index(mem.tmode)
@@ -1231,7 +1244,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return msgs
 
     # Modify radio's memory (_mem) corresponding to CHIRP version at 'mem'
-    def set_memory(self, mem):
+    def set_memory(self, mem : int|str) -> None:
         _mem, flag, ndx, num, regtype, ename = self.slotloc(mem.number,
                                                             mem.extd_number)
         # Ignore all attempts to change presets
@@ -1362,7 +1375,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return cls._latlong_sanity(sign, result[0], result[1], result[2],
                                    is_lat)
 
-    def _get_aprs_settings(self):
+    def _get_aprs_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_top", "APRS")
         menu.append(self._get_aprs_general_settings())
         menu.append(self._get_aprs_rx_settings())
@@ -1372,7 +1385,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         menu.append(self._get_aprs_beacons())
         return menu
 
-    def _get_aprs_general_settings(self):
+    def _get_aprs_general_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_general", "APRS General")
         aprs = self._memobj.aprs
 
@@ -1511,7 +1524,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_msgs(self):
+    def _get_aprs_msgs(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_msg", "APRS Messages")
         aprs_msg = self._memobj.aprs_message_pkt
 
@@ -1540,7 +1553,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_beacons(self):
+    def _get_aprs_beacons(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_beacons", "APRS Beacons")
         aprs_beacon = self._memobj.aprs_beacon_pkt
         aprs_meta = self._memobj.aprs_beacon_meta
@@ -1612,7 +1625,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_rx_settings(self):
+    def _get_aprs_rx_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_rx", "APRS Receive")
         aprs = self._memobj.aprs
 
@@ -1722,7 +1735,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_tx_settings(self):
+    def _get_aprs_tx_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_tx", "APRS Transmit")
         aprs = self._memobj.aprs
 
@@ -1820,7 +1833,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_smartbeacon(self):
+    def _get_aprs_smartbeacon(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_smartbeacon", "APRS SmartBeacon")
         aprs = self._memobj.aprs
 
@@ -1876,7 +1889,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_digital_settings(self):
+    def _get_digital_settings(self) -> RadioSettingGroup:
         topmenu = RadioSettingGroup("digital_settings", "Digital")
         menu = RadioSettingGroup("settings", "Digital Modes")
         topmenu.append(menu)
@@ -2080,7 +2093,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_misc_settings(self):
+    def _get_misc_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("misc_settings", "Misc")
         scan_settings = self._memobj.scan_settings
 
@@ -2126,7 +2139,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _decode_opening_message(self, opening_message):
+    def _decode_opening_message(self, opening_message) -> RadioSetting:
         msg = ""
         for i in opening_message.message.padded_yaesu:
             if i == 0xFF:
@@ -2154,10 +2167,9 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         """
         return str(number).rjust(length, "0")
 
-    def _get_backtrack_settings(self):
+    def _get_backtrack_settings(self) -> RadioSettingGroup:
 
         menu = RadioSettingGroup("backtrack", "Backtrack")
-
         for i in range(3):
             prefix = ''
             if i == 0:
@@ -2316,7 +2328,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_scan_settings(self):
+    def _get_scan_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("scan_settings", "Scan")
         scan_settings = self._memobj.scan_settings
 
@@ -2387,7 +2399,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_settings(self):
+    def _get_settings(self) -> RadioSettings:
         top = RadioSettings(self._get_aprs_settings(),
                             self._get_digital_settings(),
                             self._get_dtmf_settings(),
@@ -2396,7 +2408,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                             self._get_backtrack_settings())
         return top
 
-    def get_settings(self):
+    def get_settings(self) -> RadioSettings:
         try:
             return self._get_settings()
         except:
