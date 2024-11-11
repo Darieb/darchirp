@@ -21,6 +21,7 @@
 
 import logging
 import os
+import serial
 import string
 import threading
 import time
@@ -174,7 +175,7 @@ LAST_DELIMITER = (";", "")
 # The Elecraft radios use ";"
 # as a CAT command message delimiter, and all others use "\n".
 
-def _command(port, cmd: str, *args) -> str:
+def _command(port: serial.serialposix.Serial, cmd: str, *args) -> str:
     """ _command sends the "cmd" with "args" over serial port "ser"
         AND THEN reads and returns the response from same port. """
     # Send @cmd to radio via @ser
@@ -206,12 +207,12 @@ def _command(port, cmd: str, *args) -> str:
 
     return result.strip()
 
-def command(port, cmd: str, *args) -> str:
+def command(port: serial.serialposix.Serial, cmd: str, *args) -> str:
     """ send serial command inside a LOCK-protected spot """
     with LOCK:
         return _command(port, cmd, *args)
 
-def get_id(port) -> str:
+def get_id(port: serial.serialposix.Serial) -> str:
     """ Get the ID and type of the radio attached to @ser
         port    is the serial port to use
         returns the model string of the radio
@@ -272,7 +273,7 @@ def get_id(port) -> str:
 
     raise errors.RadioError("No response from radio")
 
-def do_download(port) -> (list, list):
+def do_download(port : serial.serialposix.Serial) -> (list, list, list):
     """ This queries radio port for all regular and special memories
         then converts ASCII to Elecraft internal format
         textmap is the ascii return from commanded reads
@@ -291,41 +292,14 @@ def do_download(port) -> (list, list):
     pmap = list()
     # For each regular memory, read radio and convert to memory image
     for _i in range(0, 100):
-        if _i < 2:
-            _t = command(port, _cmd_get_memory(_i))
-            # textmap.append(_t)
-            _b = bytearray.fromhex(_t[8:])
-            bmap += _b
-            _c = ElecraftMem(*unpack(FMT, bytearray.fromhex(_t[2:])))
+        _t = command(port, _cmd_get_memory(_i))
+        # textmap.append(_t)
+        _b = bytearray.fromhex(_t[8:])
+        bmap += _b
+        _c = ElecraftMem(*unpack(FMT, bytearray.fromhex(_t[2:])))
         pmap.append(_c)
         Changed.append(False)
     return bmap, pmap, Changed
-
-# Return information about this radio's features, including
-# how many memories it has, what bands it supports, etc
-def get_features():
-    rf = chirp_common.RadioFeatures()
-    rf.has_bank = False
-    rf.has_bank_index = False
-    rf.has_bank_names = False
-    rf.has_comment = True
-    rf.has_ctone = False
-    rf.has_dtcs = False
-    rf.has_dtcs_polarity = False
-    rf.has_mode = True
-    rf.has_name = True
-    rf.has_nostep_tuning = True
-    rf.has_offset = True
-    rf.has_settings = False
-    rf.has_tuning_step = False
-    rf.memory_bounds = (0, 99)  # This radio supports memories 0-99
-    rf.valid_bands = [(310000, 32000000),   # Valid for KX3 w/o xvrtr
-                      (44000000, 54000000),
-                      ]
-    rf.valid_modes = ["AM", "USB", "LSB", "CW", "FM", "FSK", "RTTY",
-                   "RTTYR", "FSKR"]
-    rf.valid_name_length = 5
-    return rf
 
 def _cmd_get_memory(number: int|str) -> str:
     """ returns a string with radio command to read a memory from radio.
@@ -384,6 +358,32 @@ class ElecraftRadio(chirp_common.CloneModeRadio):
         self.get_features()
         print("__init__", repr(self))
 
+    # Return information about this radio's features, including
+    # how many memories it has, what bands it supports, etc
+    def get_features(self, _d = None) -> chirp_common.RadioFeatures:
+        rf = chirp_common.RadioFeatures()
+        rf.has_bank = False
+        rf.has_bank_index = False
+        rf.has_bank_names = False
+        rf.has_comment = True
+        rf.has_ctone = False
+        rf.has_dtcs = False
+        rf.has_dtcs_polarity = False
+        rf.has_mode = True
+        rf.has_name = True
+        rf.has_nostep_tuning = True
+        rf.has_offset = True
+        rf.has_settings = False
+        rf.has_tuning_step = False
+        rf.memory_bounds = (0, 99)  # This radio supports memories 0-99
+        rf.valid_bands = [(310000, 32000000),   # Valid for KX3 w/o xvrtr
+                      (44000000, 54000000),
+                      ]
+        rf.valid_modes = ["AM", "USB", "LSB", "CW", "FM", "FSK", "RTTY",
+                   "RTTYR", "FSKR"]
+        rf.valid_name_length = 5
+        return rf
+
     def do_upload(self) -> None:
         """This is your upload function"""
         port = self.pipe
@@ -397,9 +397,9 @@ class ElecraftRadio(chirp_common.CloneModeRadio):
 
     # Do a download of the radio from the serial port
     def sync_in(self):
-        print("Sync_in _mmap. This will be slow!")
+        # DAR print("Sync_in _mmap. This will be slow!", type(self.pipe))
         (self._mmap, self._pmap, self.Changed) = do_download(self.pipe)
-        print("sync_in:", repr(self._mmap))
+        # DAR print("sync_in:", repr(self._mmap))
         self._memobj = bitwise.parse(MEM_FORMAT, self._mmap)
 
     # Do an upload of the radio to the serial port
@@ -417,24 +417,31 @@ class ElecraftRadio(chirp_common.CloneModeRadio):
         # Get a radio's memory object mapped to the image.
         # This is a NamedTuple
         _mem = self._pmap[number]
-        print("\nget_memory: ", number, _mem)
-        print("\rvfoa:", _mem.rvfoa)
+        # DAR print("\nget_memory: ", number, _mem)
+        # DAR print("\rvfoa:", _mem.rvfoa)
         _rvfoa = _mem.rvfoa
         # Create a CHIRP-level memory object to return to the UI
         mem = chirp_common.Memory()
 
         mem.number = number                 # Set the CHIRP memory number
+        if (_mem.rvfoa == b'\xff\xff\xff\xff\xff' and
+             _mem.rvfoa == b'\xff\xff\xff\xff\xff') or \
+           ( _mem.rvfoa == b'\xff\xff\xff\xff\xff' and
+             _mem.rvfoa == b'\xff\xff\xff\xff\xff'):
+            mem.empty = True
+            mem.freq = 0
+            mem.offset = 0
+            mem.mode = MODES[0]
+            return mem
         # Convert your low-level frequency to Hertz
         mem.freq = radio_to_freq(_mem.rvfoa)
         mem.offset = radio_to_freq(_mem.rvfob)
-        mem.mode = MODES[bytes(_mem.modes)[0] & b'\x0f'[0]]
-        print(_mem.modes, bytes(_mem.modes), bytes(_mem.modes)[0])
+        # for VFOA
+        mem.mode = MODES[_mem.modes & 0x0f]
+        # DAR print(_mem.modes, bytes(_mem.modes))
         mem.name = _mem.rlabel.decode('cp1252').translate(XTABLE)
         mem.rtone = chirp_common.TONES[_mem.subtone]
-        # We'll consider any blank (i.e. 0 MHz frequency) to be empty
-        #if mem.freq == 0:
-        #    mem.empty = True
-        print(number, repr(mem))
+        # DAR print(number, repr(mem))
         return mem
 
     # Store details about a CHIRP-level memory to the radio's map
@@ -447,6 +454,7 @@ class ElecraftRadio(chirp_common.CloneModeRadio):
         _mem.rvfoa = freq_to_radio(mem.freq)
         _mem.rvfob = freq_to_radio(mem.offset)
         _mem.rlabel = mem.name.translate(REVTABLE)
+        _mem.modes = index(mem.mode, MODES)
         _mem.subtone = mem.tone
         self.Changed[mem.number] = True
 
