@@ -1,6 +1,9 @@
+""" Driver for Yaesu FT-1D
+    Basis for Yaesu FT2DR and FT-3DR
+"""
 # Copyright 2010 Dan Smith <dsmith@danplanet.com>
 # Copyright 2014 Angus Ainslie <angus@akkea.ca>
-# Copyright 2023 Declan Rieb <WD5EQY@arrl.net>
+# Copyright 2023, 2024 Declan Rieb <WD5EQY@arrl.net>
 # Sections of digital settings applied from ft70.py, thus
 # Copyright 2017 Nicolas Pike <nick@zbm2.com>
 #
@@ -177,7 +180,7 @@ struct {
 } bank_members[24];
 """
 
-MEM_FORMAT = """
+MEM_SLOT = """
 struct memslot {
   u8 unknown0:2,
      mode_alt:1,  // mode for FTM-3200D
@@ -204,12 +207,6 @@ struct memslot {
      automode:1,
      unknown9:3;
 };
-#seekto 0x2D4A;
-struct memslot memory[%(memnum)d];
-struct memslot Skip[99];
-struct memslot PMS[100];
-#seekto 0x10ca;
-struct memslot Home[11];
 
 struct flagslot {
   u8 nosubvfo:1,
@@ -219,10 +216,25 @@ struct flagslot {
      used:1,
      valid:1;
 };
+"""
+
+MEM_FORMAT = """
+#seekto 0x2D4A;
+struct memslot memory[%(memnum)d];
+struct memslot Skip[99];
+struct memslot PMS[100];
+#seekto 0x10ca;
+struct memslot Home[11];
 #seekto 0x280A;
 struct flagslot flag[%(memnum)d];
 struct flagslot flagskp[99];
 struct flagslot flagPMS[100];
+"""
+
+YAESU_PRESET_MEMORIES = """
+struct memslot  sw_chan[100];    // only 88 defined
+struct memslot  marine[100];     // 89; 57 non-empty, but a gap in indices
+struct memslot  wx_chan[10];
 """
 
 MEM_APRS_FORMAT = """
@@ -528,31 +540,208 @@ POWER_LEVELS = [chirp_common.PowerLevel("Hi", watts=5.00),
                 chirp_common.PowerLevel("L3", watts=2.50),
                 chirp_common.PowerLevel("L2", watts=1.00),
                 chirp_common.PowerLevel("L1", watts=0.05)]
+# All the Memory attributes that are fit to make immutable
+MEM_ATTRS = [i for i in dir(chirp_common.Memory) \
+                if not i.startswith('__')].remove('immutable')
 SKIPNAMES = ["Skip%i" % i for i in range(901, 1000)]
 PMSNAMES = ["%s%i" % (c, i) for i in range(1, 51) for c in ['L', 'U']]
-HOMENAMES = ["Home%i" % i for i in range(1, 12)]
-ALLNAMES = SKIPNAMES + PMSNAMES + HOMENAMES
+HOMENAMES = ["AM", "SW", "50MHz", "FM", "Air", "144MHz", "174MHz",
+             "Info1", "430MHz", "470MHz", "Info2"] 
+WXNAMES  = ["WX%d" % (i + 1) for i in range(0, 10)]
+VHFNAMES = ["Marine%d" % (i + 1) for i in range(0, 88)]
+SWNAMES  = ["SWL%d" % (i + 1) for i in range(0, 89)]
+YAESUNAMES = WXNAMES + VHFNAMES + SWNAMES
+
+ALLNAMES = SKIPNAMES + PMSNAMES + HOMENAMES + YAESUNAMES
 # list of (array name, (list of memories in that array))
 # array names must match names of memories defined for radio
+YAESUSPECIALS = [
+    ("wx_chan", WXNAMES),
+    ("marine", VHFNAMES),
+    ("sw_chan", SWNAMES),
+    ]
 SPECIALS = [
     ("Skip", SKIPNAMES),
     ("PMS", PMSNAMES),
-    ("Home", HOMENAMES)
-]
+    ("Home", HOMENAMES),
+    ] + YAESUSPECIALS
 # Band edges are integer Hz.
+# From FT2DR manual, p36, for VFO A
+# VFO B skips first 4 and last band.
 VALID_BANDS = [
     (510000, 1790000),
-    (1800000, 50490000),
-    (50500000, 75990000),
+    (1800000, 30990000),
+    (30000000, 75990000),
     (76000000, 107990000),
     (108000000, 136990000),
-    (145000000, 169920000),
+    (137000000, 173990000),
     (174000000, 221950000),
     (222000000, 419990000),
-    (420000000, 469990000),
+    (420000000, 774990000),
     (470000000, 773990000),
     (810010000, 999000000)
 ]
+
+YAESU_PRESETS = {
+     # index: ('Name', Frequency, 'Mode', 'Duplex', Offset, 'Comment'),
+     'SWL1': ('VOA', 6030000, 'AM', '', 0, 'USA'),
+     'SWL2': ('VOA', 6160000, 'AM', '', 0, 'USA'),
+     'SWL3': ('VOA', 9760000, 'AM', '', 0, 'USA'),
+     'SWL4': ('VOA', 11965000, 'AM', '', 0, 'USA'),
+     'SWL5': ('Canada', 9555000, 'AM', '', 0, ''),
+     'SWL6': ('Canada', 9660000, 'AM', '', 0, ''),
+     'SWL7': ('Canada', 11715000, 'AM', '', 0, ''),
+     'SWL8': ('Canada', 11955000, 'AM', '', 0, ''),
+     'SWL9': ('BBC', 6195000, 'AM', '', 0, 'UK'),
+     'SWL10': ('BBC', 9410000, 'AM', '', 0, 'UK'),
+     'SWL11': ('BBC', 12095000, 'AM', '', 0, 'UK'),
+     'SWL12': ('BBC', 15310000, 'AM', '', 0, 'UK'),
+     'SWL13': ('France', 6090000, 'AM', '', 0, ''),
+     'SWL14': ('France', 9790000, 'AM', '', 0, ''),
+     'SWL15': ('France', 11670000, 'AM', '', 0, ''),
+     'SWL16': ('France', 15195000, 'AM', '', 0, ''),
+     'SWL17': ('DW', 6000000, 'AM', '', 0, 'Germany'),
+     'SWL18': ('DW', 6075000, 'AM', '', 0, 'Germany'),
+     'SWL19': ('DW', 9650000, 'AM', '', 0, 'Germany'),
+     'SWL20': ('DW', 9735000, 'AM', '', 0, 'Germany'),
+     'SWL21': ('Italy', 5990000, 'AM', '', 0, ''),
+     'SWL22': ('Italy', 9575000, 'AM', '', 0, ''),
+     'SWL23': ('Italy', 9675000, 'AM', '', 0, ''),
+     'SWL24': ('Italy', 17780000, 'AM', '', 0, ''),
+     'SWL25': ('Turkey', 7170000, 'AM', '', 0, ''),
+     'SWL26': ('Turkey', 7270000, 'AM', '', 0, ''),
+     'SWL27': ('Turkey', 9560000, 'AM', '', 0, ''),
+     'SWL28': ('Turkey', 11690000, 'AM', '', 0, ''),
+     'SWL29': ('Vatican', 9660000, 'AM', '', 0, ''),
+     'SWL30': ('Vatican', 11625000, 'AM', '', 0, ''),
+     'SWL31': ('Vatican', 11830000, 'AM', '', 0, ''),
+     'SWL32': ('Vatican', 15235000, 'AM', '', 0, ''),
+     'SWL33': ('Nederland', 5955000, 'AM', '', 0, ''),
+     'SWL34': ('Nederland', 6020000, 'AM', '', 0, ''),
+     'SWL35': ('Nederland', 9895000, 'AM', '', 0, ''),
+     'SWL36': ('Nederland', 11655000, 'AM', '', 0, ''),
+     'SWL37': ('Czech', 5985000, 'AM', '', 0, ''),
+     'SWL38': ('Czech', 6105000, 'AM', '', 0, ''),
+     'SWL39': ('Czech', 9455000, 'AM', '', 0, ''),
+     'SWL40': ('Czech', 11860000, 'AM', '', 0, ''),
+     'SWL41': ('Portugal', 9780000, 'AM', '', 0, ''),
+     'SWL42': ('Portugal', 11630000, 'AM', '', 0, ''),
+     'SWL43': ('Portugal', 15550000, 'AM', '', 0, ''),
+     'SWL44': ('Portugal', 21655000, 'AM', '', 0, ''),
+     'SWL45': ('Spain', 9650000, 'AM', '', 0, ''),
+     'SWL46': ('Spain', 11880000, 'AM', '', 0, ''),
+     'SWL47': ('Spain', 11910000, 'AM', '', 0, ''),
+     'SWL48': ('Spain', 15290000, 'AM', '', 0, ''),
+     'SWL49': ('NIKKEI', 6055000, 'AM', '', 0, 'Japan'),
+     'SWL50': ('Norway', 7315000, 'AM', '', 0, ''),
+     'SWL51': ('Norway', 9590000, 'AM', '', 0, ''),
+     'SWL52': ('Norway', 9925000, 'AM', '', 0, ''),
+     'SWL53': ('Norway', 9985000, 'AM', '', 0, ''),
+     'SWL54': ('Sweden', 6065000, 'AM', '', 0, ''),
+     'SWL55': ('Sweden', 9490000, 'AM', '', 0, ''),
+     'SWL56': ('Sweden', 15240000, 'AM', '', 0, ''),
+     'SWL57': ('Sweden', 17505000, 'AM', '', 0, ''),
+     'SWL58': ('Finland', 6120000, 'AM', '', 0, ''),
+     'SWL59': ('Finland', 9560000, 'AM', '', 0, ''),
+     'SWL60': ('Finland', 11755000, 'AM', '', 0, ''),
+     'SWL61': ('Finland', 15400000, 'AM', '', 0, ''),
+     'SWL62': ('Russia', 5920000, 'AM', '', 0, ''),
+     'SWL63': ('Russia', 5940000, 'AM', '', 0, ''),
+     'SWL64': ('Russia', 7200000, 'AM', '', 0, ''),
+     'SWL65': ('Russia', 12030000, 'AM', '', 0, ''),
+     'SWL66': ('Israel', 7465000, 'AM', '', 0, ''),
+     'SWL67': ('Israel', 11585000, 'AM', '', 0, ''),
+     'SWL68': ('Israel', 15615000, 'AM', '', 0, ''),
+     'SWL69': ('Israel', 17535000, 'AM', '', 0, ''),
+     'SWL70': ('India', 6045000, 'AM', '', 0, ''),
+     'SWL71': ('India', 9595000, 'AM', '', 0, ''),
+     'SWL72': ('India', 1162000, 'AM', '', 0, ''),
+     'SWL73': ('India', 15020000, 'AM', '', 0, ''),
+     'SWL74': ('China', 7190000, 'AM', '', 0, ''),
+     'SWL75': ('China', 7405000, 'AM', '', 0, ''),
+     'SWL76': ('China', 9785000, 'AM', '', 0, ''),
+     'SWL77': ('China', 11685000, 'AM', '', 0, ''),
+     'SWL78': ('Korea', 6135000, 'AM', '', 0, ''),
+     'SWL79': ('Korea', 7275000, 'AM', '', 0, ''),
+     'SWL80': ('Korea', 9570000, 'AM', '', 0, ''),
+     'SWL81': ('Korea', 13670000, 'AM', '', 0, ''),
+     'SWL82': ('Japan', 6165000, 'AM', '', 0, ''),
+     'SWL83': ('Japan', 7200000, 'AM', '', 0, ''),
+     'SWL84': ('Japan', 9750000, 'AM', '', 0, ''),
+     'SWL85': ('Japan', 11860000, 'AM', '', 0, ''),
+     'SWL86': ('Australia', 5995000, 'AM', '', 0, ''),
+     'SWL87': ('Australia', 9580000, 'AM', '', 0, ''),
+     'SWL88': ('Australia', 9660000, 'AM', '', 0, ''),
+     'SWL89': ('Australia', 12080000, 'AM', '', 0, ''),
+     'Marine1': ('SEA 01', 156050000, 'FM', '-', 4600000, 'Port Operations and Comm'),
+     'Marine2': ('VHF 2', 156100000, 'FM', '-', 4600000, ''),
+     'Marine3': ('VHF 3', 156150000, 'FM', '-', 4600000, ''),
+     'Marine4': ('VHF 4', 156200000, 'FM', '-', 4600000, ''),
+     'Marine5': ('SEA 05', 156250000, 'FM', '-', 4600000, 'Port Operations.  VTS in'),
+     'Marine6': ('SEA 06', 156300000, 'FM', '', 0, 'Intership Safety'),
+     'Marine7': ('SEA 07', 156350000, 'FM', '-', 4600000, 'Commercial'),
+     'Marine8': ('SEA 08', 156400000, 'FM', '', 0, 'Commercial (Intership on'),
+     'Marine9': ('SEA 09', 156450000, 'FM', '', 0, 'Boater Calling.  Commerc'),
+     'Marine10': ('SEA 10', 156500000, 'FM', '', 0, 'Commercial'),
+     'Marine11': ('SEA 11', 156550000, 'FM', '', 0, 'Commercial.  VTS in sele'),
+     'Marine12': ('SEA 12', 156600000, 'FM', '', 0, 'Port Operations.  VTS in'),
+     'Marine13': ('SEA 13 Guard', 156650000, 'FM', '', 0, 'Intership Navigation Saf'),
+     'Marine14': ('SEA 14', 156700000, 'FM', '', 0, 'Port Operations.  VTS in'),
+     'Marine15': ('SEA 15', 156750000, 'FM', '', 0, 'Environmental (Receive o'),
+     'Marine16': ('SEA 16 Distress', 156800000, 'FM', '', 0, 'International Distress, '),
+     'Marine17': ('SEA 17', 156850000, 'FM', '', 0, 'State Control'),
+     'Marine18': ('SEA 18', 156900000, 'FM', '-', 0, 'Commercial'),
+     'Marine19': ('SEA 19', 156950000, 'FM', '-', 0, 'Commercial'),
+     'Marine20': ('SEA 20', 157000000, 'FM', '-', 0, 'Port Operations (duplex)'),
+     'Marine21': ('SEA 21', 157050000, 'FM', '-', 0, 'Port Operations'),
+     'Marine22': ('SEA 22', 157100000, 'FM', '-', 0, 'Coast Guard Liaison and '),
+     'Marine23': ('SEA 23', 157150000, 'FM', '-', 0, 'U.S. Government only'),
+     'Marine24': ('SEA 24', 157200000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine25': ('SEA 25', 157250000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine26': ('SEA 26', 157300000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine27': ('SEA 27', 157350000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine28': ('SEA 28', 157400000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine60': ('VHF 60', 156025000, 'FM', '-', 4600000, ''),
+     'Marine61': ('VHF 61', 156075000, 'FM', '-', 4600000, ''),
+     'Marine62': ('VHF 62', 156125000, 'FM', '-', 4600000, ''),
+     'Marine63': ('VHF 63', 156175000, 'FM', '-', 4600000, ''),
+     'Marine64': ('VHF 64', 156225000, 'FM', '-', 4600000, ''),
+     'Marine65': ('SEA 65', 156275000, 'FM', '-', 0, 'Port Operations'),
+     'Marine66': ('SEA 66', 156325000, 'FM', '-', 0, 'Port Operations'),
+     'Marine67': ('SEA 67', 156375000, 'FM', '', 0, 'Commercial.  Used for Br'),
+     'Marine68': ('SEA 68', 156425000, 'FM', '', 0, 'Non-Commercial-Working C'),
+     'Marine69': ('SEA 69', 156475000, 'FM', '', 0, 'Non-Commercial'),
+     'Marine70': ('DSC 70', 156525000, 'FM', '', 0, 'Digital Selective Callin'),
+     'Marine71': ('SEA 71', 156575000, 'FM', '', 0, 'Non-Commercial'),
+     'Marine72': ('SEA 72', 156625000, 'FM', '', 0, 'Non-Commercial (Intershi'),
+     'Marine73': ('SEA 73', 156675000, 'FM', '', 0, 'Port Operations'),
+     'Marine74': ('SEA 74', 156725000, 'FM', '', 0, 'Port Operations'),
+     'Marine75': ('VHF 75', 156775000, 'FM', '', 0, ''),
+     'Marine76': ('VHF 76', 156825000, 'FM', '', 0, ''),
+     'Marine77': ('SEA 77', 156875000, 'FM', '', 0, 'Port Operations'),
+     'Marine78': ('SEA 78', 156925000, 'FM', '-', 0, 'Non-Commercial'),
+     'Marine79': ('SEA 79', 156975000, 'FM', '-', 0, 'Commercial'),
+     'Marine80': ('SEA 80', 157025000, 'FM', '-', 0, 'Commercial'),
+     'Marine81': ('SEA 81', 157075000, 'FM', '-', 0, 'U.S. Government only - E'),
+     'Marine82': ('SEA 82', 157125000, 'FM', '-', 0, 'U.S. Government only'),
+     'Marine83': ('SEA 83', 157175000, 'FM', '-', 0, 'U.S. Government only'),
+     'Marine84': ('SEA 84', 157225000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine85': ('SEA 85', 157275000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine86': ('SEA 86', 157325000, 'FM', '-', 4600000, 'Public Correspondence (M'),
+     'Marine87': ('SEA 87', 157375000, 'FM', '-', 0, 'Public Correspondence (M'),
+     'Marine88': ('SEA 88', 157425000, 'FM', '-', 0, 'Public Correspondence in'),
+     'WX1': ('WX1PA7', 162550000, 'FM', '', 0, ''),
+     'WX2': ('WX2PA1', 162400000, 'FM', '', 0, ''),
+     'WX3': ('WX3PA4', 162475000, 'FM', '', 0, ''),
+     'WX4': ('WX4PA2', 162425000, 'FM', '', 0, ''),
+     'WX5': ('WX5PA3', 162450000, 'FM', '', 0, ''),
+     'WX6': ('WX6PA5', 162500000, 'FM', '', 0, ''),
+     'WX7': ('WX7PA6', 162525000, 'FM', '', 0, ''),
+     'WX8': ('WX8', 161650000, 'FM', '', 0, ''),
+     'WX9': ('WX9', 161775000, 'FM', '', 0, ''),
+     'WX10': ('WX10', 163275000, 'FM', '', 0, ''),
+    }
+
 
 
 class FT1Bank(chirp_common.NamedBank):
@@ -573,8 +762,11 @@ class FT1Bank(chirp_common.NamedBank):
         _bank.name = [CHARSET.index(x) for x in name.ljust(16)[:16]]
 
 
-class FT1BankModel(chirp_common.BankModel):
-    """A FT1D bank model"""
+class FT1BankModel(chirp_common.BankModel,
+                   chirp_common.SpecialBankModelInterface):
+    """A FT1D bank model
+        Now also inheriting ability to display specials in banks
+    """
     def __init__(self, radio, name='Banks'):
         super(FT1BankModel, self).__init__(radio, name)
 
@@ -585,13 +777,19 @@ class FT1BankModel(chirp_common.BankModel):
             bank.index = index
             self._bank_mappings.append(bank)
 
-    def get_num_mappings(self):
+    def get_bankable_specials(self) -> chirp_common.RadioFeatures:
+        """ Returns list of SPECIALS to be displayed in Banks 
+        """
+        _ = [name for s in YAESUSPECIALS for name in s[1]]
+        return _
+
+    def get_num_mappings(self) -> int:
         return len(self._bank_mappings)
 
     def get_mappings(self):
         return self._bank_mappings
 
-    def _channel_numbers_in_bank(self, bank):
+    def _channel_numbers_in_bank(self, bank) -> set:
         _bank_used = self._radio._memobj.bank_used[bank.index]
         if _bank_used.in_use == 0xFFFF:
             return set()
@@ -599,7 +797,7 @@ class FT1BankModel(chirp_common.BankModel):
         _members = self._radio._memobj.bank_members[bank.index]
         return set([int(ch) + 1 for ch in _members.channel if ch != 0xFFFF])
 
-    def update_vfo(self):
+    def update_vfo(self) -> None:
         chosen_bank = [None, None]
         chosen_mr = [None, None]
 
@@ -645,6 +843,7 @@ class FT1BankModel(chirp_common.BankModel):
                 vfo_bak.bank_enable = vfo.bank_enable
 
     def _update_bank_with_channel_numbers(self, bank, channels_in_bank):
+        """ Side-effects in bank_members array """
         _members = self._radio._memobj.bank_members[bank.index]
         if len(channels_in_bank) > len(_members.channel):
             raise Exception("Too many entries in bank %d" % bank.index)
@@ -660,7 +859,9 @@ class FT1BankModel(chirp_common.BankModel):
         for index in range(empty, len(_members.channel)):
             _members.channel[index] = 0xFFFF
 
-    def add_memory_to_mapping(self, memory, bank):
+    def add_memory_to_mapping(self, memory, bank) -> None:
+        """ Side-effects stored in _bank_used """
+        print("\nadd_memory_to_mapping: ", repr(memory), repr(bank))
         channels_in_bank = self._channel_numbers_in_bank(bank)
         channels_in_bank.add(memory.number)
         self._update_bank_with_channel_numbers(bank, channels_in_bank)
@@ -668,10 +869,13 @@ class FT1BankModel(chirp_common.BankModel):
         _bank_used = self._radio._memobj.bank_used[bank.index]
         _bank_used.in_use = 0x06
 
-        self.update_vfo()
+        # TODO do we need VFO updates here? 
+        #self.update_vfo()
 
-    def remove_memory_from_mapping(self, memory, bank):
+    def remove_memory_from_mapping(self, memory, bank) -> None:
+        """ Side-effects stored in bank_members and bank_used arrays """
         channels_in_bank = self._channel_numbers_in_bank(bank)
+        print("\nremove_memory_from_mapping: ", memory, memory.number, channels_in_bank)
         try:
             channels_in_bank.remove(memory.number)
         except KeyError:
@@ -683,16 +887,17 @@ class FT1BankModel(chirp_common.BankModel):
             _bank_used = self._radio._memobj.bank_used[bank.index]
             _bank_used.in_use = 0xFFFF
 
-        self.update_vfo()
+        # TODO do we need VFO updates here? 
+        #self.update_vfo()
 
-    def get_mapping_memories(self, bank):
+    def get_mapping_memories(self, bank) -> list:
         memories = []
         for channel in self._channel_numbers_in_bank(bank):
             memories.append(self._radio.get_memory(channel))
 
         return memories
 
-    def get_memory_mappings(self, memory):
+    def get_memory_mappings(self, memory: int|str) -> list:
         banks = []
         for bank in self.get_mappings():
             if memory.number in self._channel_numbers_in_bank(bank):
@@ -877,6 +1082,8 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _MYCALL_CHR_SET = list(string.ascii_uppercase) + \
         list(string.digits) + ['-', '/']
 
+
+
     @classmethod
     def match_model(cls, filedata, filename):
         if filename.endswith(cls._adms_ext):
@@ -885,7 +1092,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             return super().match_model(filedata, filename)
 
     @classmethod
-    def get_prompts(cls):
+    def get_prompts(cls) -> chirp_common.RadioPrompts:
         rp = chirp_common.RadioPrompts()
         rp.pre_download = _(
             "1. Turn radio off.\n"
@@ -902,12 +1109,24 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             "4. Press the [Dx] key (\"-WAIT-\" will appear on the LCD).\n")
         return rp
 
-    def process_mmap(self):
-        mem_format = MEM_SETTINGS_FORMAT + MEM_FORMAT + MEM_APRS_FORMAT + \
-                MEM_GM_FORMAT + MEM_BACKTRACK_FORMAT + MEM_CHECKSUM_FORMAT
-        self._memobj = bitwise.parse(mem_format % self._mem_params, self._mmap)
+    def process_mmap(self) -> None:
+        """ Populate the radio's memory structures from the raw memory image.
+            The structures are defined in the x_FORMAT text
+            The bitmap is in self._mmap
+            The structures are left in self._memobj
 
-    def get_features(self):
+            Do the same for the Yaesu presets, except bitmap=self._presets.
+         """
+        mem_format = MEM_SETTINGS_FORMAT + \
+                    MEM_SLOT + MEM_FORMAT + \
+                    MEM_APRS_FORMAT + \
+                    MEM_GM_FORMAT + MEM_BACKTRACK_FORMAT + \
+                    MEM_CHECKSUM_FORMAT
+        self._memobj = bitwise.parse(mem_format % self._mem_params, self._mmap)
+        mem_format = MEM_SLOT + YAESU_PRESET_MEMORIES
+        self._presets = bitwise.parse(mem_format, b'\x00' * 32 * 210)
+
+    def get_features(self) -> chirp_common.RadioFeatures:
         rf = chirp_common.RadioFeatures()
         rf.has_dtcs_polarity = False
         rf.valid_modes = list(MODES) + ['NFM', 'DN']
@@ -953,12 +1172,12 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 #   and optionally with a "extref" extended name.
 #   Find and return the corresponding memobj
 #   Returns:
-#       Corresponding radio memory object
-#       Corresponding radio alag structure (if any)
+#       Corresponding radio- or Yaesu preset-memory object
+#       Corresponding radio flag structure (if any)
 #       index into the specific memory object structure (int) ndx
 #       overall index into memory & specials (int) num
 #       an indicator of the specific radio object structure (str)
-    def slotloc(self, memref, extref=None):
+    def slotloc(self, memref: int|str, extref: str = None):
         array = None
         num = memref
         ename = ""
@@ -1001,20 +1220,33 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             array = "memory"
             ndx = memref - 1
             _flag = self._memobj.flag[ndx]
-        if array == "Skip":
+            _mem = getattr(self._memobj, array)[ndx]
+        if array == SPECIALS[0][0]:         # 'Skip'
             _flag = self._memobj.flagskp[ndx]
-        elif array == "PMS":
+            _mem = getattr(self._memobj, array)[ndx]
+        elif array == SPECIALS[1][0]:       # 'PMS'
             _flag = self._memobj.flagPMS[ndx]
-        elif array == "Home":
+            _mem = getattr(self._memobj, array)[ndx]
+        elif array == SPECIALS[2][0]:       # "Home":
             _flag = None
-        _mem = getattr(self._memobj, array)[ndx]
+            _mem = getattr(self._memobj, array)[ndx]
+        elif array == SPECIALS[3][0]:       # "wx_chan":
+            _flag = None
+            _mem = getattr(self._presets, array)[ndx] # Yaesu presets in _preset
+        elif array == SPECIALS[4][0]:       # "marine":
+            _flag = None
+            _mem = getattr(self._presets, array)[ndx]
+        elif array == SPECIALS[5][0]:       # "sw_chan":
+            _flag = None
+            _mem = getattr(self._presets, array)[ndx]
         return (_mem, _flag,  ndx, num, array, ename)
 
     # Build CHIRP version (mem) of radio's memory (_mem)
-    def get_memory(self, number):
+    def get_memory(self, number: int|str) -> chirp_common.Memory:
         _mem, _flag, ndx, num, array, ename = self.slotloc(number)
         mem = chirp_common.Memory()
         mem.number = num
+        # First play with name/extd_number silliness and some mutability
         if array == "Home":
             mem.empty = False
             mem.extd_number = ename
@@ -1022,7 +1254,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             mem.immutable += ["empty", "number", "extd_number", "skip"]
         elif array != "memory":
             mem.extd_number = ename
-            mem.immutable += ["name", "extd_number"]
+            mem.immutable += ["extd_number"]
         else:
             mem.name = self._decode_label(_mem)
 
@@ -1033,6 +1265,11 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                 mem.empty = True
             if not _flag.valid:
                 mem.empty = True
+        else:
+            # some radios return 0xff's instead of zeroes
+            if _mem.charsetbits == 0xffff and _mem.dcs == 0x7f:
+                mem.empty = True
+
         if mem.empty:
             mem.freq = 0
             mem.offset = 0
@@ -1043,7 +1280,8 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         else:
             mem.freq = chirp_common.fix_rounded_step(int(_mem.freq) * 1000)
             mem.offset = int(_mem.offset) * 1000
-            mem.rtone = mem.ctone = chirp_common.TONES[_mem.tone]
+            mem.rtone = mem.ctone = chirp_common.TONES[min(_mem.tone, \
+                                    len(chirp_common.TONES))]
             self._get_tmode(mem, _mem)
             if mem.duplex is None:
                 mem.duplex = DUPLEX[""]
@@ -1056,6 +1294,17 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             mem.tuning_step = STEPS[_mem.tune_step]
             mem.power = self._decode_power_level(_mem)
             self._get_mem_extra(mem, _mem)
+ 
+        # Presets are all immutable and defined ones are never empty
+        if array in [YAESUSPECIALS[_i][0] for _i in range(0,3)]:
+            try:
+                mem.name, mem.freq, mem.mode, mem.duplex, \
+                mem.offset, mem.comment = YAESU_PRESETS[number]
+                mem.empty = False
+            except KeyError:
+                mem.empty = True
+            mem.immutable += ['name', 'freq', 'mode', 'duplex', 'offset', \
+                              'comment', 'empty']
         return mem
 
     def _get_mem_extra(self, mem, _mem):
@@ -1099,7 +1348,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
             return 3 - POWER_LEVELS.index(mem.power)
 
     def _decode_mode(self, mem):
-        mode = MODES[mem.mode]
+        mode = MODES[min(mem.mode, len(MODES))]
         if mode == 'FM' and int(mem.digmode):
             # DN mode is FM with a digital flag. Since digmode can be AMS or
             # DN, either will be called 'DN' in chirp
@@ -1120,7 +1369,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return MODES.index(mode)
 
     def _get_tmode(self, mem, _mem):
-        mem.tmode = TMODES[_mem.tone_mode]
+        mem.tmode = TMODES[min(_mem.tone_mode, len(TMODES))]
 
     def _set_tmode(self, _mem, mem):
         _mem.tone_mode = TMODES.index(mem.tmode)
@@ -1155,7 +1404,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     def validate_memory(self, mem):
         # Only check the home registers for appropriate bands
         msgs = super().validate_memory(mem)
-        ndx = mem.number - ALLNAMES.index("Home1") - self.MAX_MEM_SLOT - 1
+        ndx = mem.number - ALLNAMES.index("AM") - self.MAX_MEM_SLOT - 1
         if 10 >= ndx >= 0:
             f = VALID_BANDS[ndx]
             if not(f[0] < mem.freq < f[1]):
@@ -1165,9 +1414,15 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return msgs
 
     # Modify radio's memory (_mem) corresponding to CHIRP version at 'mem'
-    def set_memory(self, mem):
+    def set_memory(self, mem : int|str) -> None:
         _mem, flag, ndx, num, regtype, ename = self.slotloc(mem.number,
                                                             mem.extd_number)
+        # Ignore all attempts to change presets
+        if regtype == SPECIALS[3][0] or \
+            regtype == SPECIALS[4][0] or \
+            regtype == SPECIALS[5][0]:
+            return
+
         if mem.empty:
             self._wipe_memory(_mem)
             if flag is not None:
@@ -1290,7 +1545,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         return cls._latlong_sanity(sign, result[0], result[1], result[2],
                                    is_lat)
 
-    def _get_aprs_settings(self):
+    def _get_aprs_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_top", "APRS")
         menu.append(self._get_aprs_general_settings())
         menu.append(self._get_aprs_rx_settings())
@@ -1300,7 +1555,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         menu.append(self._get_aprs_beacons())
         return menu
 
-    def _get_aprs_general_settings(self):
+    def _get_aprs_general_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_general", "APRS General")
         aprs = self._memobj.aprs
 
@@ -1439,7 +1694,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_msgs(self):
+    def _get_aprs_msgs(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_msg", "APRS Messages")
         aprs_msg = self._memobj.aprs_message_pkt
 
@@ -1468,7 +1723,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_beacons(self):
+    def _get_aprs_beacons(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_beacons", "APRS Beacons")
         aprs_beacon = self._memobj.aprs_beacon_pkt
         aprs_meta = self._memobj.aprs_beacon_meta
@@ -1540,7 +1795,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_rx_settings(self):
+    def _get_aprs_rx_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_rx", "APRS Receive")
         aprs = self._memobj.aprs
 
@@ -1650,7 +1905,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_tx_settings(self):
+    def _get_aprs_tx_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_tx", "APRS Transmit")
         aprs = self._memobj.aprs
 
@@ -1748,7 +2003,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_aprs_smartbeacon(self):
+    def _get_aprs_smartbeacon(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("aprs_smartbeacon", "APRS SmartBeacon")
         aprs = self._memobj.aprs
 
@@ -1804,7 +2059,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_digital_settings(self):
+    def _get_digital_settings(self) -> RadioSettingGroup:
         topmenu = RadioSettingGroup("digital_settings", "Digital")
         menu = RadioSettingGroup("settings", "Digital Modes")
         topmenu.append(menu)
@@ -2008,7 +2263,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_misc_settings(self):
+    def _get_misc_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("misc_settings", "Misc")
         scan_settings = self._memobj.scan_settings
 
@@ -2054,7 +2309,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _decode_opening_message(self, opening_message):
+    def _decode_opening_message(self, opening_message) -> RadioSetting:
         msg = ""
         for i in opening_message.message.padded_yaesu:
             if i == 0xFF:
@@ -2082,10 +2337,9 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         """
         return str(number).rjust(length, "0")
 
-    def _get_backtrack_settings(self):
+    def _get_backtrack_settings(self) -> RadioSettingGroup:
 
         menu = RadioSettingGroup("backtrack", "Backtrack")
-
         for i in range(3):
             prefix = ''
             if i == 0:
@@ -2244,7 +2498,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_scan_settings(self):
+    def _get_scan_settings(self) -> RadioSettingGroup:
         menu = RadioSettingGroup("scan_settings", "Scan")
         scan_settings = self._memobj.scan_settings
 
@@ -2315,7 +2569,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
 
         return menu
 
-    def _get_settings(self):
+    def _get_settings(self) -> RadioSettings:
         top = RadioSettings(self._get_aprs_settings(),
                             self._get_digital_settings(),
                             self._get_dtmf_settings(),
@@ -2324,7 +2578,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                             self._get_backtrack_settings())
         return top
 
-    def get_settings(self):
+    def get_settings(self) -> RadioSettings:
         try:
             return self._get_settings()
         except:
