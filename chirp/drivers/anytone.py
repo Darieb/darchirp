@@ -234,6 +234,11 @@ valid_model = [b'QX588UV', b'HR-2040', b'DB-50M\x00', b'DB-750X']
 
 
 def _ident(radio):
+    # Chew garbage
+    try:
+        radio.pipe.read(32)
+    except Exception:
+        raise errors.RadioError("Unable to flush serial connection")
     radio.pipe.timeout = 1
     _echo_write(radio, b"PROGRAM")
     response = radio.pipe.read(3)
@@ -406,6 +411,7 @@ class AnyTone5888UVRadio(chirp_common.CloneModeRadio,
         rf.valid_modes = ["FM", "NFM", "AM"]
         rf.valid_tmodes = ['', 'Tone', 'TSQL', 'DTCS', 'Cross']
         rf.valid_cross_modes = ['Tone->DTCS', 'DTCS->Tone',
+                                'DTCS->DTCS',
                                 '->Tone', '->DTCS', 'Tone->Tone']
         rf.valid_tones = TONES
         rf.valid_dtcs_codes = chirp_common.ALL_DTCS_CODES

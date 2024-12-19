@@ -26,6 +26,7 @@ from chirp.settings import RadioSettingGroup, RadioSetting, \
     RadioSettingValueBoolean, RadioSettingValueList, \
     RadioSettingValueString, RadioSettingValueInteger, \
     RadioSettingValueFloat, RadioSettings, InvalidValueError
+from chirp import settings
 
 LOG = logging.getLogger(__name__)
 
@@ -234,6 +235,7 @@ KT8900_fp4 = b"M2G304"
 KT8900_fp5 = b"M2G314"
 KT8900_fp6 = b"M2G424"
 KT8900_fp7 = b"M27184"
+KT8900_fp8 = b"M2C194"
 
 # KT8900R
 KT8900R_fp = b"M3G1F4"
@@ -259,6 +261,7 @@ KT7900D_fp6 = b"VC5264"
 KT7900D_fp7 = b"VC9204"
 KT7900D_fp8 = b"VC9214"
 KT7900D_fp9 = b"VC5302"
+KT7900D_fp10 = b"VC5254"
 
 # QB25 (quad band) - a clone of KT7900D
 QB25_fp = b"QB-25"
@@ -269,6 +272,7 @@ KT8900D_fp1 = b"VC8632"
 KT8900D_fp2 = b"VC3402"
 KT8900D_fp3 = b"VC7062"
 KT8900D_fp4 = b"VC3062"
+KT8900D_fp5 = b"VC8192"
 
 # LUITON LT-588UV
 LT588UV_fp = b"V2G1F4"
@@ -2275,9 +2279,12 @@ class BTechMobileCommon(chirp_common.CloneModeRadio,
                 line.set_apply_callback(apply_fm_preset_name,
                                         preset.broadcast_station_name)
 
-                val = RadioSettingValueFloat(0, 108,
-                                             bfc.bcd_decode_freq(
-                                                preset.freq))
+                try:
+                    presetval = bfc.bcd_decode_freq(preset.freq)
+                except settings.InternalError:
+                    presetval = ''
+
+                val = RadioSettingValueFloat(0, 108, presetval)
                 fmfreq = RadioSetting("fm_presets_" + str(i) + "_freq",
                                       "Frequency " + str(i), val)
                 val.set_validate_callback(fm_validate)
@@ -3580,7 +3587,8 @@ class KT9800(BTech):
                KT8900_fp4,
                KT8900_fp5,
                KT8900_fp6,
-               KT8900_fp7]
+               KT8900_fp7,
+               KT8900_fp8]
     # Clones
     ALIASES = [JT6188Mini, SSGT890, ZastoneMP300]
 
@@ -4068,7 +4076,7 @@ class KT7900D(BTechColor):
     _magic = MSTRING_KT8900D
     _fileid = [KT7900D_fp, KT7900D_fp1, KT7900D_fp2, KT7900D_fp3, KT7900D_fp4,
                KT7900D_fp5, KT7900D_fp6, KT7900D_fp7, KT7900D_fp8, KT7900D_fp9,
-               QB25_fp]
+               QB25_fp, KT7900D_fp10]
     # Clones
     ALIASES = [SKT8900D, QB25]
 
@@ -4083,7 +4091,8 @@ class KT8900D(BTechColor):
     _vhf_range = (136000000, 175000000)
     _uhf_range = (400000000, 481000000)
     _magic = MSTRING_KT8900D
-    _fileid = [KT8900D_fp4, KT8900D_fp3, KT8900D_fp2, KT8900D_fp1, KT8900D_fp]
+    _fileid = [KT8900D_fp5, KT8900D_fp4, KT8900D_fp3, KT8900D_fp2, KT8900D_fp1,
+               KT8900D_fp]
 
     # Clones
     ALIASES = [OTGRadioV1]

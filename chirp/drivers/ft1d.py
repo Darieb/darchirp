@@ -1123,6 +1123,8 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     _MYCALL_CHR_SET = list(string.ascii_uppercase) + \
         list(string.digits) + ['-', '/']
 
+
+
     @classmethod
     def match_model(self, filedata, filename):
         if filename.endswith(self._adms_ext):
