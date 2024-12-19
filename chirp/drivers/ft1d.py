@@ -547,9 +547,8 @@ POWER_LEVELS = [chirp_common.PowerLevel("Hi", watts=5.00),
                 chirp_common.PowerLevel("L1", watts=0.05)]
 # All the Memory attributes that are fit to make immutable
 MEM_ATTRS = [i for i in dir(chirp_common.Memory)
-             if not i.startswith('__')].remove('immutable')
-MEM_ATTRS.remove('number')
-MEM_ATTRS.remove('empty')
+             if not i.startswith('__') and
+             i not in ['immutable', 'number', 'empty']]
 SKIPNAMES = [f"Skip{i}" for i in range(901, 1000)]
 PMSNAMES = [f"{c}{i}" for i in range(1, 51) for c in ['L', 'U']]
 HOMENAMES = ["AM", "SW", "50MHz", "FM", "Air", "144MHz", "174MHz",
@@ -900,7 +899,7 @@ class FT1BankModel(chirp_common.BankModel,
 
     def add_memory_to_mapping(self, memory, bank) -> None:
         """ Side-effects stored in _bank_used """
-        print("\nadd_memory_to_mapping: ", repr(memory), repr(bank))
+        # DAR print("\nadd_memory_to_mapping: ", repr(memory), repr(bank))
         channels_in_bank = self._channel_numbers_in_bank(bank)
         channels_in_bank.add(memory.number)
         self._update_bank_with_channel_numbers(bank, channels_in_bank)
