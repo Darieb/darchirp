@@ -795,7 +795,8 @@ class FT1Bank(chirp_common.NamedBank):
 
 
 class FT1BankModel(chirp_common.BankModel,
-                   chirp_common.SpecialBankModelInterface):
+                   chirp_common.SpecialBankModelInterface 
+                   if SPECIALS_IN_BANKS else ''):
     """A FT1D bank model
         Now also inheriting ability to display specials in banks
     """
@@ -803,7 +804,7 @@ class FT1BankModel(chirp_common.BankModel,
         super().__init__(radio, name)
 
         _banks = self._radio._memobj.bank_info
-        self._bank_mappings = []
+        self.and bank_members _bank_mappings = []
         for index, _bank in enumerate(_banks):
             bank = FT1Bank(self, f"{index}", f"BANK-{index}")
             bank.index = index
@@ -811,6 +812,7 @@ class FT1BankModel(chirp_common.BankModel,
 
     def get_bankable_specials(self) -> list:
         """ Returns list of SPECIALS to be displayed in Banks
+            Should never be called if SPECIALS_IN_BANKS==False
         """
         _ = [name for s in YAESUSPECIALS for name in s[1]]
         # DAR print(f"Get_bankable_specials: {_}")
@@ -822,61 +824,60 @@ class FT1BankModel(chirp_common.BankModel,
     def get_mappings(self):
         return self._bank_mappings
 
-    def _channel_numbers_in_bank(self, bank) -> set:
+    def _channel_numbers_in_bank(self, bank) -> list:
         _bank_used = self._radio._memobj.bank_used[bank.index]
         if _bank_used.in_use == 0xFFFF:
-            return set()
+            return []
 
         _members = self._radio._memobj.bank_members[bank.index]
-        return \
-            set([int(ch) + 1 for ch in _members.channel if ch != 0xFFFF])
+        return [int(ch) + 1 for ch in _members.channel if ch != 0xFFFF]
 
-    def update_vfo(self) -> None:
-        """ Uses banks to set the VFO A and B """
-        chosen_bank = [None, None]
-        chosen_mr = [None, None]
+    # DAR def update_vfo(self) -> None:
+    # DAR     """ Uses banks to set the VFO A and B """
+    # DAR     chosen_bank = [None, None]
+    # DAR     chosen_mr = [None, None]
 
-        flags = self._radio._memobj.flag
+    # DAR     flags = self._radio._memobj.flag
 
-        # Find a suitable bank and MR for VFO A and B.
-        for bank in self.get_mappings():
-            for channel in self._channel_numbers_in_bank(bank):
-                chosen_bank[0] = bank.index
-                chosen_mr[0] = channel
-                if channel & 0x7000 != 0:
-                    # Ignore preset channels without comment DAR
-                    break
-                if not flags[channel].nosubvfo:
-                    chosen_bank[1] = bank.index
-                    chosen_mr[1] = channel
-                    break
-            if chosen_bank[1]:
-                break
+    # DAR     # Find a suitable bank and MR for VFO A and B.
+    # DAR     for bank in self.get_mappings():
+    # DAR         for channel in self._channel_numbers_in_bank(bank):
+    # DAR             chosen_bank[0] = bank.index
+    # DAR             chosen_mr[0] = channel
+    # DAR             if channel & 0x7000 != 0:
+    # DAR                 # Ignore preset channels without comment DAR
+    # DAR                 break
+    # DAR             if not flags[channel].nosubvfo:
+    # DAR                 chosen_bank[1] = bank.index
+    # DAR                 chosen_mr[1] = channel
+    # DAR                 break
+    # DAR         if chosen_bank[1]:
+    # DAR             break
 
-        for vfo_index in (0, 1):
-            # 3 VFO info structs are stored as 3 pairs of (master, backup)
-            _i = vfo_index * 2
-            vfo = self._radio._memobj.vfo_info[_i]
-            vfo_bak = self._radio._memobj.vfo_info[_i + 1]
+    # DAR     for vfo_index in (0, 1):
+    # DAR         # 3 VFO info structs are stored as 3 pairs of (master, backup)
+    # DAR         _i = vfo_index * 2
+    # DAR         vfo = self._radio._memobj.vfo_info[_i]
+    # DAR         vfo_bak = self._radio._memobj.vfo_info[_i + 1]
 
-            if vfo.checksum != vfo_bak.checksum:
-                LOG.warning("VFO settings are inconsistent with backup")
-            else:
-                if ((chosen_bank[vfo_index] is None) and \
-                        (vfo.bank_index != 0xFFFF)):
-                    LOG.info(f"Disabling banks for VFO {vfo_index}")
-                    vfo.bank_index = 0xFFFF
-                    vfo.mr_index = 0xFFFF
-                    vfo.bank_enable = 0xFFFF
-                elif ((chosen_bank[vfo_index] is not None) and
-                      (vfo.bank_index == 0xFFFF)):
-                    LOG.info(f"Enabling banks for VFO {vfo_index}")
-                    vfo.bank_index = chosen_bank[vfo_index]
-                    vfo.mr_index = chosen_mr[vfo_index]
-                    vfo.bank_enable = 0x0000
-                vfo_bak.bank_index = vfo.bank_index
-                vfo_bak.mr_index = vfo.mr_index
-                vfo_bak.bank_enable = vfo.bank_enable
+    # DAR         if vfo.checksum != vfo_bak.checksum:
+    # DAR             LOG.warning("VFO settings are inconsistent with backup")
+    # DAR         else:
+    # DAR             if ((chosen_bank[vfo_index] is None) and \
+    # DAR                     (vfo.bank_index != 0xFFFF)):
+    # DAR                 LOG.info(f"Disabling banks for VFO {vfo_index}")
+    # DAR                 vfo.bank_index = 0xFFFF
+    # DAR                 vfo.mr_index = 0xFFFF
+    # DAR                 vfo.bank_enable = 0xFFFF
+    # DAR             elif ((chosen_bank[vfo_index] is not None) and
+    # DAR                   (vfo.bank_index == 0xFFFF)):
+    # DAR                 LOG.info(f"Enabling banks for VFO {vfo_index}")
+    # DAR                 vfo.bank_index = chosen_bank[vfo_index]
+    # DAR                 vfo.mr_index = chosen_mr[vfo_index]
+    # DAR                 vfo.bank_enable = 0x0000
+    # DAR             vfo_bak.bank_index = vfo.bank_index
+    # DAR             vfo_bak.mr_index = vfo.mr_index
+    # DAR             vfo_bak.bank_enable = vfo.bank_enable
 
     def _update_bank_with_channel_numbers(self, bank, channels_in_bank):
         """ Side-effects in bank_members array """
@@ -886,7 +887,7 @@ class FT1BankModel(chirp_common.BankModel,
                 f"Too many entries in bank {bank.index}")
 
         empty = 0
-        for index, channel_number in enumerate(sorted(channels_in_bank)):
+        for index, channel_number in enumerate(channels_in_bank):
             _members.channel[index] = channel_number - 1
             if channel_number & 0x7000 != 0:
                 LOG.warning(
@@ -898,7 +899,7 @@ class FT1BankModel(chirp_common.BankModel,
             _members.channel[index] = 0xFFFF
 
     def add_memory_to_mapping(self, memory, bank) -> None:
-        """ Side-effects stored in _bank_used """
+        """ Side-effects stored in _bank_used and bank_members """
         # DAR print("\nadd_memory_to_mapping: ", repr(memory), repr(bank))
         channels_in_bank = self._channel_numbers_in_bank(bank)
         channels_in_bank.add(memory.number)
@@ -907,7 +908,7 @@ class FT1BankModel(chirp_common.BankModel,
         _bank_used = self._radio._memobj.bank_used[bank.index]
         _bank_used.in_use = 0x06
 
-        # TODO do we need VFO updates here?
+        # DAR  do we need VFO updates here?
         # self.update_vfo()
 
     def remove_memory_from_mapping(self, memory, bank) -> None:
@@ -927,15 +928,15 @@ class FT1BankModel(chirp_common.BankModel,
             _bank_used = self._radio._memobj.bank_used[bank.index]
             _bank_used.in_use = 0xFFFF
 
-        # TODO do we need VFO updates here?
+        # DAR do we need VFO updates here?
         # self.update_vfo()
 
-    def get_mapping_memories(self, bank) -> list:
-        memories = []
-        for channel in self._channel_numbers_in_bank(bank):
-            memories.append(self._radio.get_memory(channel))
-
-        return memories
+    # DAR def get_mapping_memories(self, bank) -> list:
+    # DAR    memories = []
+    # DAR    for channel in self._channel_numbers_in_bank(bank):
+    # DAR        memories.append(self._radio.get_memory(channel))
+    # DAR
+    # DAR    return memories
 
     def get_memory_mappings(self, memory: int | str) -> list:
         banks = []
