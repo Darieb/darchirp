@@ -804,7 +804,7 @@ class FT1BankModel(chirp_common.BankModel,
         super().__init__(radio, name)
 
         _banks = self._radio._memobj.bank_info
-        self.and bank_members _bank_mappings = []
+        self._bank_mappings = []
         for index, _bank in enumerate(_banks):
             bank = FT1Bank(self, f"{index}", f"BANK-{index}")
             bank.index = index
@@ -832,52 +832,6 @@ class FT1BankModel(chirp_common.BankModel,
         _members = self._radio._memobj.bank_members[bank.index]
         return [int(ch) + 1 for ch in _members.channel if ch != 0xFFFF]
 
-    # DAR def update_vfo(self) -> None:
-    # DAR     """ Uses banks to set the VFO A and B """
-    # DAR     chosen_bank = [None, None]
-    # DAR     chosen_mr = [None, None]
-
-    # DAR     flags = self._radio._memobj.flag
-
-    # DAR     # Find a suitable bank and MR for VFO A and B.
-    # DAR     for bank in self.get_mappings():
-    # DAR         for channel in self._channel_numbers_in_bank(bank):
-    # DAR             chosen_bank[0] = bank.index
-    # DAR             chosen_mr[0] = channel
-    # DAR             if channel & 0x7000 != 0:
-    # DAR                 # Ignore preset channels without comment DAR
-    # DAR                 break
-    # DAR             if not flags[channel].nosubvfo:
-    # DAR                 chosen_bank[1] = bank.index
-    # DAR                 chosen_mr[1] = channel
-    # DAR                 break
-    # DAR         if chosen_bank[1]:
-    # DAR             break
-
-    # DAR     for vfo_index in (0, 1):
-    # DAR         # 3 VFO info structs are stored as 3 pairs of (master, backup)
-    # DAR         _i = vfo_index * 2
-    # DAR         vfo = self._radio._memobj.vfo_info[_i]
-    # DAR         vfo_bak = self._radio._memobj.vfo_info[_i + 1]
-
-    # DAR         if vfo.checksum != vfo_bak.checksum:
-    # DAR             LOG.warning("VFO settings are inconsistent with backup")
-    # DAR         else:
-    # DAR             if ((chosen_bank[vfo_index] is None) and \
-    # DAR                     (vfo.bank_index != 0xFFFF)):
-    # DAR                 LOG.info(f"Disabling banks for VFO {vfo_index}")
-    # DAR                 vfo.bank_index = 0xFFFF
-    # DAR                 vfo.mr_index = 0xFFFF
-    # DAR                 vfo.bank_enable = 0xFFFF
-    # DAR             elif ((chosen_bank[vfo_index] is not None) and
-    # DAR                   (vfo.bank_index == 0xFFFF)):
-    # DAR                 LOG.info(f"Enabling banks for VFO {vfo_index}")
-    # DAR                 vfo.bank_index = chosen_bank[vfo_index]
-    # DAR                 vfo.mr_index = chosen_mr[vfo_index]
-    # DAR                 vfo.bank_enable = 0x0000
-    # DAR             vfo_bak.bank_index = vfo.bank_index
-    # DAR             vfo_bak.mr_index = vfo.mr_index
-    # DAR             vfo_bak.bank_enable = vfo.bank_enable
 
     def _update_bank_with_channel_numbers(self, bank, channels_in_bank):
         """ Side-effects in bank_members array """
@@ -900,22 +854,19 @@ class FT1BankModel(chirp_common.BankModel,
 
     def add_memory_to_mapping(self, memory, bank) -> None:
         """ Side-effects stored in _bank_used and bank_members """
-        # DAR print("\nadd_memory_to_mapping: ", repr(memory), repr(bank))
+        print(f"\nadd_memory_to_mapping: {repr(memory)}"
+              f"\nExtd: '{memory.extd_number}'"
+              f"\nbank='{bank}'")
         channels_in_bank = self._channel_numbers_in_bank(bank)
-        channels_in_bank.add(memory.number)
+        channels_in_bank.append(memory.number)
         self._update_bank_with_channel_numbers(bank, channels_in_bank)
 
         _bank_used = self._radio._memobj.bank_used[bank.index]
         _bank_used.in_use = 0x06
 
-        # DAR  do we need VFO updates here?
-        # self.update_vfo()
-
     def remove_memory_from_mapping(self, memory, bank) -> None:
         """ Side-effects occur in bank_members and bank_used arrays """
         channels_in_bank = self._channel_numbers_in_bank(bank)
-        print("\nremove_memory_from_mapping: ",
-              memory, memory.number, channels_in_bank)
         try:
             channels_in_bank.remove(memory.number)
         except KeyError:
@@ -928,22 +879,12 @@ class FT1BankModel(chirp_common.BankModel,
             _bank_used = self._radio._memobj.bank_used[bank.index]
             _bank_used.in_use = 0xFFFF
 
-        # DAR do we need VFO updates here?
-        # self.update_vfo()
-
-    # DAR def get_mapping_memories(self, bank) -> list:
-    # DAR    memories = []
-    # DAR    for channel in self._channel_numbers_in_bank(bank):
-    # DAR        memories.append(self._radio.get_memory(channel))
-    # DAR
-    # DAR    return memories
-
-    def get_memory_mappings(self, memory: int | str) -> list:
+    def get_memory_mappings(self, memory: chirp_common.Memory) -> list:
+        """ Returns list of banknames that this memory is in """
         banks = []
         for bank in self.get_mappings():
             if memory.number in self._channel_numbers_in_bank(bank):
                 banks.append(bank)
-
         return banks
 
 
@@ -957,6 +898,11 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
     VARIANT = "R"
     FORMATS = [directory.register_format('FT1D ADMS-6', '*.ft1d')]
     class_specials = SPECIALS
+    if SPECIALS_IN_BANKS:
+        # dictionary of Chirp channels to Radio preset channels 
+        Cc2Rc = {}
+        # dictionary of Radio preset channels to Chirp channels 
+        Rc2Cc = {}
     _model = b"AH44M"
     _memsize = 130507
     _block_lengths = [10, 130497]
@@ -1271,15 +1217,26 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
         elif array == SPECIALS[2][0]:       # "Home":
             _flag = None
             _mem = getattr(self._memobj, array)[ndx]
-        elif array == SPECIALS[3][0]:       # "wx_chan":
-            _flag = None
-            _mem = getattr(self._presets, array)[ndx]   # Yaesu presets
-        elif array == SPECIALS[4][0]:       # "marine":
-            _flag = None
-            _mem = getattr(self._presets, array)[ndx]
-        elif array == SPECIALS[5][0]:       # "sw_chan":
-            _flag = None
-            _mem = getattr(self._presets, array)[ndx]
+        # Yaesu presets, referenced in radio with high-order bits
+        elif SPECIALS_IN_BANKS:
+            if array == YAESUSPECIALS[0][0]:       # "wx_chan":
+                _flag = None
+                _chflg = 0x4000
+                self.Cc2Rc.update({num: _chflg | ndx})
+                self.Rc2Cc.update({_chflg | ndx: num})
+                _mem = getattr(self._presets, array)[ndx]
+            elif array == YAESUSPECIALS[1][0]:       # "marine":
+                _flag = None
+                _chflg = 0x2000
+                self.Cc2Rc.update({num: _chflg | ndx})
+                self.Rc2Cc.update({_chflg | ndx: num})
+                _mem = getattr(self._presets, array)[ndx]
+            elif array == YAESUSPECIALS[2][0]:       # "sw_chan":
+                _flag = None
+                _chflg = 0x1000
+                self.Cc2Rc.update({num: _chflg | ndx})
+                self.Rc2Cc.update({_chflg | ndx: num})
+                _mem = getattr(self._presets, array)[ndx]
         return (_mem, _flag,  ndx, num, array, ename)
 
     # Build CHIRP version (mem) of radio's memory (_mem)
@@ -1345,8 +1302,7 @@ class FT1Radio(yaesu_clone.YaesuCloneModeRadio):
                 mem.empty = False
             except KeyError:
                 mem.empty = True
-            mem.immutable += ['name', 'freq', 'mode', 'duplex', 'offset',
-                              'comment', 'empty']
+            mem.immutable = MEM_ATTRS
         # DAR if mem.number > 1050:
         # DAR    print(f"{mem.number}, {mem.extd_number}: " \
         # DAR          f"{mem.empty}, {mem.name}, {mem.freq}, {mem.mode}, " \
