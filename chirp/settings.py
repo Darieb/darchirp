@@ -203,9 +203,14 @@ class RadioSettingValueFloat(RadioSettingValue):
 
 class RadioSettingValueBoolean(RadioSettingValue):
 
-    """A boolean setting"""
+    """A boolean setting
 
-    def __init__(self, current):
+    If using MemSetting, mem_vals can be set to the False, True values
+    that are to be actually stored in memory instead of 0, 1
+    """
+
+    def __init__(self, current, mem_vals=(0, 1)):
+        self._mem_vals = mem_vals
         RadioSettingValue.__init__(self)
         self.queue_current(current)
 
@@ -218,6 +223,15 @@ class RadioSettingValueBoolean(RadioSettingValue):
 
     def __str__(self):
         return str(bool(self.get_value()))
+
+
+class RadioSettingValueInvertedBoolean(RadioSettingValueBoolean):
+    """A boolean value that is actually stored inverted in memory.
+
+    Only really useful for MemSetting, which will invert the value when
+    actually setting it in memory.
+    """
+    pass
 
 
 class RadioSettingValueList(RadioSettingValue):
@@ -268,13 +282,27 @@ class RadioSettingValueString(RadioSettingValue):
     """A string setting"""
 
     def __init__(self, minlength, maxlength, current,
-                 autopad=True, charset=chirp_common.CHARSET_ASCII):
+                 autopad=True, charset=chirp_common.CHARSET_ASCII,
+                 mem_pad_char=' '):
         RadioSettingValue.__init__(self)
         self._minlength = minlength
         self._maxlength = maxlength
         self._charset = charset
         self._autopad = autopad
+        self._mem_pad_char = mem_pad_char
         self.queue_current(current)
+
+    @property
+    def mem_pad_char(self):
+        return self._mem_pad_char
+
+    @property
+    def autopad(self):
+        return self._autopad
+
+    @property
+    def maxlength(self):
+        return self._maxlength
 
     def set_charset(self, charset):
         """Sets the set of allowed characters"""
@@ -328,11 +356,18 @@ class RadioSettingValueMap(RadioSettingValueList):
                                         "instead of: %s" % str(map_entry))
         user_options = [e[0] for e in map_entries]
         self._mem_vals = [e[1] for e in map_entries]
-        RadioSettingValueList.__init__(self, user_options, user_options[0])
+        RadioSettingValueList.__init__(self, user_options, current_index=0)
         if mem_val is not None:
-            self.set_mem_val(mem_val)
+            try:
+                self.queue_current(self._mem_vals.index(mem_val))
+            except ValueError:
+                LOG.error('Memory value %r not in value list %r',
+                          mem_val, self._mem_vals)
+                # Set this to just out of bounds so that the invalid-current
+                # handling detects it and flags it as invalid to the user.
+                self.queue_current(len(self._mem_vals))
         elif user_option is not None:
-            self.set_value(user_option)
+            self.queue_current(user_option)
         self._has_changed = False
 
     def set_mem_val(self, mem_val):
@@ -383,6 +418,35 @@ class RadioSettings(list):
         items = [str(self[i]) for i in range(0, len(self))]
         return "\n".join(items)
 
+    def walk(self):
+        """Iterate over all the RadioSettings in this tree
+
+        Returns a generator.
+        """
+        for element in self:
+            if isinstance(element, RadioSetting):
+                yield element
+            elif isinstance(element, RadioSettingGroup):
+                for subel in element.walk():
+                    yield subel
+            else:
+                raise ValueError('Unable to iterate %r' % element)
+
+    def apply_to(self, memobj):
+        """Walk all the settings in this tree, apply the direct-to-mem ones.
+
+        Returns all the settings that are not MemSetting objects to be applied
+        manually.
+        """
+        non_mem_settings = []
+        for setting in self.walk():
+            print("Walking %r" % setting)
+            if isinstance(setting, MemSetting):
+                setting.apply_to_memobj(memobj)
+            else:
+                non_mem_settings.append(setting)
+        return non_mem_settings
+
 
 class RadioSettingGroup(object):
 
@@ -418,6 +482,14 @@ class RadioSettingGroup(object):
 
             self.append(element)
 
+    def walk(self):
+        for el in self._elements.values():
+            if isinstance(el, RadioSetting):
+                yield el
+            if isinstance(el, RadioSettingGroup):
+                for subel in el.walk():
+                    yield subel
+
     def set_frozen(self):
         self._frozen = True
         for i in self:
@@ -431,6 +503,9 @@ class RadioSettingGroup(object):
     def get_shortname(self):
         """Returns the short group identifier"""
         return self._shortname
+
+    def set_shortname(self, new_name):
+        self._shortname = new_name
 
     def set_doc(self, doc):
         """Sets the docstring for the group"""
@@ -626,3 +701,57 @@ class RadioSetting(RadioSettingGroup):
             self._elements[name].set_value(value)
         else:
             self._elements[name] = value
+
+
+class MemSetting(RadioSetting):
+    """A RadioSetting that maps directly to a memory object value.
+
+    :param path: The dot-separated path to a setting value in the object (
+        i.e. "settings.dtmf.pttid")
+    :param name: The human-readable name for this setting
+    :param values: The RadioSettingValue (only one allowed)
+    :param *kwargs: Other kwargs to be passed to RadioSetting
+    """
+    def __init__(self, path, name, value, **kwargs):
+        self._path = path
+        setting_name = path.replace('.', '_')
+        super().__init__(setting_name, name, value, **kwargs)
+
+    def apply_to_memobj(self, memobj):
+        """Apply this setting value to a memory object.
+
+        Uses the path specified at init time, operates on memobj to find and
+        set the value in memory according to this setting.
+        """
+        if not self.value.initialized:
+            LOG.warning('Unable to apply uninitialized value %s',
+                        self._path)
+            return
+        if isinstance(self.value, RadioSettingValueInvertedBoolean):
+            value = not self.value
+        elif isinstance(self.value, RadioSettingValueList):
+            value = int(self.value)
+        elif isinstance(self.value, RadioSettingValueString):
+            value = str(self.value)
+            if self.value.autopad:
+                value = value.rstrip().ljust(self.value.maxlength,
+                                             self.value.mem_pad_char)
+        else:
+            value = self.value
+
+        # After we determined if this is inverted or not, convert to the values
+        # that memory wants to see.
+        if isinstance(self.value, RadioSettingValueBoolean):
+            value = self.value._mem_vals[int(value)]
+
+        obj = memobj
+        elements = self._path.split('.')
+        for element in elements[:-1]:
+            if '[' in element:
+                # foo[i] syntax
+                name, index = element.split('[', 1)
+                obj = getattr(obj, name)
+                obj = obj[int(index.replace(']', ''))]
+            else:
+                obj = getattr(obj, element)
+        setattr(obj, elements[-1], value)

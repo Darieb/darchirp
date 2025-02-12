@@ -97,6 +97,21 @@ class TestBitwiseBaseIntTypes(BaseTest):
             obj.foo[i] = i * 2
         self.assertEqual(b'\x00\x02\x04\x06', data.get_packed())
 
+    def test_int_array_of_one(self):
+        data = memmap.MemoryMapBytes(bytes(b'\x00\x01\x02\x03'))
+        obj = bitwise.parse('u8 foo[1];', data)
+        self.assertEqual(0, obj.foo[0])
+        obj.foo[0] = 1
+        self.assertEqual(b'\x01\x01\x02\x03', data.get_packed())
+
+    def test_int_array_of_zero(self):
+        data = memmap.MemoryMapBytes(bytes(b'\x00\x01\x02\x03'))
+        obj = bitwise.parse('u8 foo[0x0]; u8 bar;', data)
+        # Make sure we can't access any elements of zero-length foo
+        self.assertRaises(IndexError, lambda: obj.foo[0])
+        # Make sure bar is still at the front, unaffected by zero-length foo
+        self.assertEqual(0, obj.bar)
+
     def test_int_array_set_raw(self):
         data = memmap.MemoryMapBytes(bytes(b'\x00\x01\x02\x03'))
         obj = bitwise.parse('u8 foo[4];', data)
@@ -357,6 +372,12 @@ class TestBitwiseStructTypes(BaseTest):
         self.assertRaises(AssertionError, obj.fill_raw, b'AB')
         self.assertRaises(AssertionError, obj.fill_raw, False)
 
+    def test_struct_array_of_one(self):
+        data = memmap.MemoryMapBytes(bytes(b"123"))
+        defn = "struct { u8 bar; } foo[1];"
+        obj = bitwise.parse(defn, data)
+        self.assertEqual(ord('1'), obj.foo[0].bar)
+
 
 class TestBitwisePrintoffset(BaseTest):
     @mock.patch.object(bitwise.LOG, 'debug')
@@ -382,6 +403,17 @@ class TestBitwiseSeek(BaseTest):
 class TestBitwiseErrors(BaseTest):
     def test_missing_semicolon(self):
         self.assertRaises(SyntaxError, bitwise.parse, "u8 foo", "")
+
+    def test_missing_element(self):
+        obj = bitwise.parse('u8 foo; struct { u8 bar; } baz;', b'12')
+        self.assertRaisesRegex(AttributeError,
+                               'No attribute does_not_exist',
+                               getattr, obj, 'does_not_exist')
+        self.assertRaisesRegex(AttributeError,
+                               'No attribute this_either',
+                               getattr, obj.baz, 'this_either')
+        self.assertTrue('foo' in obj)
+        self.assertFalse('does_not_exist' in obj)
 
 
 class TestBitwiseComments(BaseTest):

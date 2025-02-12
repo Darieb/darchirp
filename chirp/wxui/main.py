@@ -182,7 +182,7 @@ class ChirpEditorSet(wx.Panel):
             radios = [radio]
             format = '%(type)s'
 
-        if len(radios) > 2:
+        if len(radios) > 2 or features.has_dynamic_subdevices:
             LOG.info('Using TreeBook because radio has %i devices',
                      len(radios))
             self._editors = wx.Treebook(self, style=wx.NB_RIGHT)
@@ -286,6 +286,11 @@ class ChirpEditorSet(wx.Panel):
     def current_editor_index(self):
         return self._editors.GetSelection()
 
+    def iter_editors(self, onlycls=None):
+        for title, editor in self._editor_index.items():
+            if onlycls is None or isinstance(editor, onlycls):
+                yield title, editor
+
     def select_editor(self, index=None, name=None):
         if index is None and name:
             try:
@@ -298,6 +303,9 @@ class ChirpEditorSet(wx.Panel):
                       index, name)
             return
         self._editors.SetSelection(index)
+
+    def selected(self):
+        self.current_editor.selected()
 
     def cb_copy(self, cut=False):
         return self.current_editor.cb_copy(cut=cut)
@@ -458,6 +466,7 @@ class ChirpMain(wx.Frame):
         self._editors.Bind(wx.aui.EVT_AUINOTEBOOK_TAB_RIGHT_DOWN,
                            self._tab_rclick)
         self.Bind(wx.EVT_CLOSE, self._window_close)
+        self.Bind(common.EVT_CROSS_EDITOR_ACTION, self._editor_cross_action)
 
         self.statusbar = self.CreateStatusBar(2)
         self.statusbar.SetStatusWidths([-1, 200])
@@ -596,7 +605,10 @@ class ChirpMain(wx.Frame):
                                      select=select)
         self.Bind(EVT_EDITORSET_CHANGED, self._editor_changed, editorset)
         self.Bind(common.EVT_STATUS_MESSAGE, self._editor_status, editorset)
+        editorset.Bind(common.EVT_EDITOR_REFRESH,
+                       lambda e: self._reload_editorset(e, editorset))
         self._update_editorset_title(editorset)
+        editorset.selected()
 
     def add_stock_menu(self):
         stock = wx.Menu()
@@ -616,6 +628,9 @@ class ChirpMain(wx.Frame):
         )
 
         def add_stock(fn):
+            if fn.startswith('.') or fn.endswith('~'):
+                LOG.debug('Ignoring stock file %s', fn)
+                return
             submenu_item = stock.Append(wx.ID_ANY, fn)
             self.Bind(wx.EVT_MENU,
                       self._menu_open_stock_config, submenu_item)
@@ -796,7 +811,10 @@ class ChirpMain(wx.Frame):
         edit_menu.Append(wx.MenuItem(edit_menu, wx.ID_SEPARATOR))
 
         for item in memedit_items[common.EditorMenuItem.MENU_EDIT]:
-            edit_menu.Append(item)
+            if item.GetId() in (wx.ID_UNDO, wx.ID_REDO):
+                edit_menu.Insert(0, item)
+            else:
+                edit_menu.Append(item)
             self.Bind(wx.EVT_MENU, self.do_editor_callback, item)
             item.add_menu_callback()
 
@@ -867,6 +885,7 @@ class ChirpMain(wx.Frame):
         source_menu.Append(query_rr_item)
 
         query_rb_item = wx.MenuItem(source_menu, wx.NewId(), 'RepeaterBook')
+        query_rb_item.SetAccel(wx.AcceleratorEntry(updownmod, ord('B')))
         self.Bind(wx.EVT_MENU, self._menu_query_rb, query_rb_item)
         source_menu.Append(query_rb_item)
 
@@ -1096,6 +1115,9 @@ class ChirpMain(wx.Frame):
     def _editor_page_changed(self, event):
         self._editors.GetPage(event.GetSelection())
         self._update_window_for_editor()
+        editors = self._editors.GetPage(event.GetSelection())
+        if editors:
+            editors.selected()
 
     def _editor_changed(self, event):
         self._update_editorset_title(event.editorset)
@@ -1104,6 +1126,83 @@ class ChirpMain(wx.Frame):
     def _editor_status(self, event):
         # FIXME: Should probably only do this for the current editorset
         self.statusbar.SetStatusText(event.message)
+
+    @common.error_proof()
+    def _reload_editorset(self, event, editorset):
+        # Rebuild a ChirpEditorSet for a radio who has undergone some
+        # fundamental change
+        LOG.info('Editor %s set %s needs refresh' % (
+            event.GetEventObject(), editorset))
+
+        # Capture the index of the current editorset, the editor within, its
+        # class, and scroll position
+        index = self._editors.GetSelection()
+        selected_editor_idx = editorset.current_editor_index
+        selected_editor_cls = editorset.current_editor.__class__
+        selected_editor_pos = editorset.current_editor.get_scroll_pos()
+
+        # Build the new editorset from the previous radio and filename
+        new_eset = ChirpEditorSet(editorset.radio, editorset.filename,
+                                  self._editors)
+        new_eset._modified = editorset.modified
+
+        # Remove the current one and replace with the new one
+        self._editors.DeletePage(index)
+        self.add_editorset(new_eset, atindex=index)
+        self._update_window_for_editor()
+
+        # Try to find the equivalent editor we were on. Must be at least the
+        # same index, and same class. This is likely to be a SettingsEdit
+        # change that adds a MemEdit. However, if this ever removes one, it
+        # won't work.
+        for i, (name, editor) in enumerate(new_eset.iter_editors()):
+            if i >= selected_editor_idx and isinstance(editor,
+                                                       selected_editor_cls):
+                LOG.debug('Selecting editor %i type %s name %r',
+                          i, selected_editor_cls.__name__, name)
+                new_eset.select_editor(i)
+                new_eset.current_editor.set_scroll_pos(selected_editor_pos)
+
+    def _editor_cross_action(self, event):
+        tabs = {}
+        for i in range(self._editors.GetPageCount()):
+            page = self._editors.GetPage(i)
+            for title, editor in page.iter_editors(
+                    onlycls=memedit.ChirpMemEdit):
+                tabs['%s::%s' % (os.path.basename(page.filename), title)] = \
+                    editor
+
+        d = wx.Dialog(self, title=_('Choose Diff Target'))
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        d.SetSizer(vbox)
+
+        label = wx.StaticText(d, label=_('Select a tab and memory to diff'),
+                              style=wx.ALIGN_CENTER_HORIZONTAL)
+        tab = wx.Choice(d, choices=list(tabs.keys()))
+        try:
+            tab.SetStringSelection(self._last_diff_tab)
+        except AttributeError:
+            # No last default
+            pass
+        memory = wx.SpinCtrl(d)
+        memory.SetMin(0)
+        memory.SetMax(2000)
+        memory.SetValue(event.memory)
+        buttons = d.CreateButtonSizer(wx.OK | wx.CANCEL)
+
+        vbox.Add(label, proportion=1, flag=wx.EXPAND | wx.ALL, border=10)
+        vbox.Add(tab, proportion=0, flag=wx.EXPAND | wx.ALL, border=10)
+        vbox.Add(memory, proportion=0, flag=wx.EXPAND | wx.ALL, border=10)
+        vbox.Add(buttons, proportion=0, flag=wx.EXPAND)
+        d.CenterOnParent()
+        c = d.ShowModal()
+        self._last_diff_tab = tab.GetStringSelection()
+        if c == wx.ID_OK:
+            mem_a = event.GetEventObject()._radio.get_raw_memory(event.memory)
+            editor = tabs[tab.GetStringSelection()]
+            mem_b = editor._radio.get_raw_memory(memory.GetValue())
+            with developer.MemoryDialog((mem_a, mem_b), self) as d:
+                d.ShowModal()
 
     def _editor_close(self, event):
         eset = self._editors.GetPage(event.GetSelection())
@@ -1177,6 +1276,9 @@ class ChirpMain(wx.Frame):
 
         for menu, items in self.editor_menu_items.items():
             for item in items:
+                if item.GetId() in (wx.ID_UNDO, wx.ID_REDO):
+                    # These are managed by the editor always
+                    continue
                 editor_match = (
                     eset and
                     isinstance(eset.current_editor, item.editor_class) or
@@ -1671,15 +1773,21 @@ class ChirpMain(wx.Frame):
         # successfully
         last_editor = self.current_editorset.current_editor_index
         self.current_editorset.close()
-        self._editors.DeletePage(self._editors.GetSelection())
+        current_index = self._editors.GetSelection()
+        self._editors.DeletePage(current_index)
         self._update_window_for_editor()
 
         # Mimic the File->Open process to get a new editorset based
         # on our franken-radio
         editorset = ChirpEditorSet(new_radio, filename, self._editors)
-        self.add_editorset(editorset, select=True)
+        self.add_editorset(editorset, select=True, atindex=current_index)
         editorset.select_editor(index=last_editor)
-        editorset.current_editor.set_scroll_pos(editor_pos)
+        try:
+            editorset.current_editor.set_scroll_pos(editor_pos)
+        except TypeError:
+            # Likely the editor at our old index is no longer the same type,
+            # so don't freak out
+            pass
 
         LOG.info('Reloaded radio driver%s in place; good luck!' % (
             andfile and ' (and file)' or ''))

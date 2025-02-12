@@ -31,7 +31,6 @@ class ChirpSettingsEdit(common.ChirpEditor):
 
         self._radio = radio
         self._settings = None
-        self._propgrid = None
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
@@ -39,9 +38,23 @@ class ChirpSettingsEdit(common.ChirpEditor):
         self._group_control = wx.Treebook(self, style=wx.LB_LEFT)
         self._group_control.GetTreeCtrl().SetMinSize((250, -1))
         sizer.Add(self._group_control, 1, wx.EXPAND)
+        self._group_control.GetTreeCtrl().Bind(wx.EVT_KEY_DOWN,
+                                               self._key)
+        self._group_control.Bind(wx.EVT_TREEBOOK_PAGE_CHANGED,
+                                 self._click)
 
         self._initialized = False
         self._restore_selection = None
+
+    def _click(self, event):
+        # This has to eat this event in order to avoid unfocusing the
+        # treeview while clicking to start keyboard nav.
+        pass
+
+    def _key(self, event):
+        if event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            self._group_control.GetCurrentPage().SetFocus()
+        event.Skip()
 
     def _initialize(self, job):
         self.stop_wait_dialog()
@@ -53,6 +66,10 @@ class ChirpSettingsEdit(common.ChirpEditor):
             if self._restore_selection is not None:
                 self._group_control.SetSelection(self._restore_selection)
                 self._restore_selection = None
+
+            # Focus the selector after it loads
+            tc = self._group_control.GetTreeCtrl()
+            wx.CallAfter(tc.SetFocus)
 
     def selected(self):
         if not self._initialized:
@@ -85,7 +102,6 @@ class ChirpSettingsEdit(common.ChirpEditor):
 
     def _add_group(self, group, parent=None):
         propgrid = common.ChirpSettingGrid(group, self._group_control)
-        self._propgrid = propgrid
         self.Bind(common.EVT_EDITOR_CHANGED, self._changed, propgrid)
         LOG.debug('Adding page for %s (parent=%s)' % (group.get_shortname(),
                                                       parent))
@@ -174,6 +190,7 @@ class ChirpSettingsEdit(common.ChirpEditor):
             elif isinstance(e, settings.RadioSettingGroup):
                 self._remove_dead_settings(e)
 
+    @common.error_proof()
     def _changed(self, event):
         if not self._apply_settings():
             return
@@ -182,9 +199,14 @@ class ChirpSettingsEdit(common.ChirpEditor):
             self._remove_dead_settings(g)
         self.do_radio(self._set_settings_cb, 'set_settings', settings)
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
-        if self._propgrid.needs_reload:
+        if event.reload:
             LOG.warning('Settings grid needs a reload')
-            wx.CallAfter(self._reload)
+            if self.radio.get_features().has_dynamic_subdevices:
+                event = common.EditorRefresh(self.GetId())
+                event.SetEventObject(self)
+                wx.PostEvent(self, event)
+            else:
+                wx.CallAfter(self._reload)
 
     def saved(self):
         for i in range(self._group_control.GetPageCount()):

@@ -161,7 +161,29 @@ def int_to_bcd(bcd_array, value):
     """Convert an int like 1234 into bcdDataElements like "\x12\x34" """
     for i in reversed(range(0, len(bcd_array))):
         bcd_array[i].set_value(value % 100)
-        value /= 100
+        value //= 100
+
+
+def numeric_str_to_bcd(bcdel, string, pad='0'):
+    """Convert a string of digits into BCD-like bytes.
+
+    This should only be used for the quasi-BCD encodings of DTMF characters
+    that some radios use (i.e. 0x12 == "12" and 0x1D == "1D")
+    """
+    string = string.ljust(2 * bcdel.size() // 8, pad)
+    for i in range(0, bcdel.size() // 8):
+        bcdel[i] = int(string[i*2:i*2+2], 16)
+
+
+def bcd_to_numeric_str(bcdel, pad='0'):
+    """Convert a list of BCD-like bytes into a string.
+
+    See numeric_str_to_bcd above.
+    """
+    string = ''
+    for i in range(0, bcdel.size() // 8):
+        string += '%02X' % bcdel[i]
+    return string.ljust(2 * bcdel.size() // 8, pad)
 
 
 def get_string(char_array):
@@ -335,13 +357,13 @@ class arrayDataElement(DataElement):
     def __set_value_bbcd(self, value):
         for i in reversed(self.__items):
             twodigits = value % 100
-            value /= 100
+            value //= 100
             i.set_value(twodigits)
 
     def __set_value_lbcd(self, value):
         for i in self.__items:
             twodigits = value % 100
-            value /= 100
+            value //= 100
             i.set_value(twodigits)
 
     def __set_value_char(self, value):
@@ -854,6 +876,13 @@ class structDataElement(DataElement):
             yield key, self._generators[key]
 
 
+def parse_count(string):
+    if string.startswith('0x'):
+        return int(string, 16)
+    else:
+        return int(string)
+
+
 class Processor:
     _types = {
         "u8":    u8DataElement,
@@ -956,7 +985,7 @@ class Processor:
         else:
             if defn[1][0] == "array":
                 sym = defn[1][1][0]
-                count = int(defn[1][1][1][1])
+                count = parse_count(defn[1][1][1][1])
             else:
                 count = 1
                 sym = defn[1]
@@ -983,7 +1012,7 @@ class Processor:
                     self._offset += (gen.size() // 8)
                 res.append(gen)
 
-            if count == 1:
+            if defn[1][0] != "array":
                 self._generators[name] = res[0]
             else:
                 self._generators[name] = res
@@ -997,7 +1026,7 @@ class Processor:
         deftype = struct[-1]
         if deftype[0] == "array":
             name = deftype[1][0][1]
-            count = int(deftype[1][1][1])
+            count = parse_count(deftype[1][1][1])
         elif deftype[0] == "symbol":
             name = deftype[1]
             count = 1
@@ -1015,7 +1044,7 @@ class Processor:
             self._generators = tmp
             self._lines = tmp_lines
 
-        if count == 1:
+        if deftype[0] != "array":
             self._generators[name] = result[0]
         else:
             self._generators[name] = result

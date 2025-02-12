@@ -41,6 +41,8 @@ CONF = config.get()
 CHIRP_DATA_MEMORY = wx.DataFormat('x-chirp/memory-channel')
 EditorChanged, EVT_EDITOR_CHANGED = wx.lib.newevent.NewCommandEvent()
 StatusMessage, EVT_STATUS_MESSAGE = wx.lib.newevent.NewCommandEvent()
+EditorRefresh, EVT_EDITOR_REFRESH = wx.lib.newevent.NewCommandEvent()
+CrossEditorAction, EVT_CROSS_EDITOR_ACTION = wx.lib.newevent.NewCommandEvent()
 INDEX_CHAR = settings.BANNED_NAME_CHARACTERS[0]
 
 # This is a lock that can be used to exclude edit-specific operations
@@ -134,7 +136,9 @@ class EditorMenuItem(wx.MenuItem):
     ITEMS = {}
 
     def __init__(self, cls, callback_name, *a, **k):
-        self._wx_id = wx.NewId()
+        self._wx_id = k.pop('id', None)
+        if not self._wx_id:
+            self._wx_id = wx.NewId()
         super().__init__(None, self._wx_id, *a, **k)
         self._cls = cls
         self._callback_name = callback_name
@@ -371,6 +375,14 @@ class ChirpSettingGrid(wx.Panel):
         self.pg.Bind(wx.propgrid.EVT_PG_CHANGED, self._pg_changed)
         self.pg.Bind(wx.EVT_MOTION, self._mouseover)
 
+        self.pg.DedicateKey(wx.WXK_TAB)
+        self.pg.DedicateKey(wx.WXK_RETURN)
+        self.pg.DedicateKey(wx.WXK_UP)
+        self.pg.DedicateKey(wx.WXK_DOWN)
+        self.pg.AddActionTrigger(wx.propgrid.PG_ACTION_EDIT, wx.WXK_RETURN)
+        self.pg.AddActionTrigger(wx.propgrid.PG_ACTION_NEXT_PROPERTY,
+                                 wx.WXK_RETURN)
+
         sizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(sizer)
         sizer.Add(self.pg, 1, wx.EXPAND)
@@ -473,12 +485,12 @@ class ChirpSettingGrid(wx.Panel):
             else:
                 LOG.info('User made change to %s=%s despite warning',
                          event.GetPropertyName(), event.GetValue())
-        self._needs_reload = setting.volatile
-        if self.needs_reload:
+        if setting.volatile:
             wx.MessageBox(_(
                 'Changing this setting requires refreshing the settings from '
                 'the image, which will happen now.'),
                           _('Refresh required'), wx.OK)
+            self._needs_reload = True
 
         # If we were unspecified or otherwise marked, clear those markings
         self.pg.SetPropertyColoursToDefault(event.GetProperty().GetName())
@@ -488,15 +500,13 @@ class ChirpSettingGrid(wx.Panel):
         return self._group.get_name()
 
     @property
-    def needs_reload(self):
-        return self._needs_reload
-
-    @property
     def propgrid(self):
         return self.pg
 
     def _pg_changed(self, event):
-        wx.PostEvent(self, EditorChanged(self.GetId()))
+        wx.PostEvent(self, EditorChanged(self.GetId(),
+                                         reload=self._needs_reload))
+        self._needs_reload = False
 
     def _get_editor_int(self, setting, value):
         e = wx.propgrid.IntProperty(setting.get_shortname(),

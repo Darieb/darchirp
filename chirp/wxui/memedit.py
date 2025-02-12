@@ -13,9 +13,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import contextlib
 import functools
 import logging
 import pickle
+import secrets
 import sys
 
 import wx
@@ -611,6 +613,9 @@ class ChirpCrossModeColumn(ChirpChoiceColumn):
 
 
 class ChirpSkipColumn(ChirpChoiceColumn):
+    # This is just here so it is marked for translation
+    __TITLE = _('Skip')
+
     @property
     def valid(self):
         return self._features.valid_skips
@@ -671,6 +676,7 @@ class ChirpMemoryDropTarget(wx.DropTarget):
         payload = self.parse_data()
         x, y = self._memedit._grid.CalcUnscrolledPosition(x, y)
         y -= self._memedit._grid.GetColLabelSize()
+        y -= self._memedit._grid.GetPosition()[1]
         row, cell = self._memedit._grid.XYToCell(x, y)
         start_row = self._memedit.mem2row(payload['mems'][0].number)
         if row < 0 or row == start_row:
@@ -681,13 +687,15 @@ class ChirpMemoryDropTarget(wx.DropTarget):
         LOG.debug('Memory dropped on row %s,%s' % (row, cell))
         original_locs = [m.number for m in payload['mems']]
         source = self._memedit.FindWindowById(payload.pop('source'))
-        if not self._memedit._cb_paste_memories(payload, row=row):
-            return defResult
+        with self._memedit.undo_context(
+                'Drag %i memories' % len(payload['mems'])):
+            if not self._memedit._cb_paste_memories(payload, row=row):
+                return defResult
 
-        if source == self._memedit and defResult == wx.DragMove:
-            LOG.debug('Same-memedit move requested')
-            for loc in original_locs:
-                self._memedit.erase_memory(loc)
+            if source == self._memedit and defResult == wx.DragMove:
+                LOG.debug('Same-memedit move requested')
+                for loc in original_locs:
+                    self._memedit.erase_memory(loc)
 
         return defResult
 
@@ -700,6 +708,7 @@ class ChirpMemoryDropTarget(wx.DropTarget):
 
         x, y = self._memedit._grid.CalcUnscrolledPosition(x, y)
         y -= self._memedit._grid.GetColLabelSize()
+        y -= self._memedit._grid.GetPosition()[1]
         row, cell = self._memedit._grid.XYToCell(x, y)
         max_row = self._memedit._grid.GetNumberRows()
         if row >= 0:
@@ -710,6 +719,140 @@ class ChirpMemoryDropTarget(wx.DropTarget):
 
     def OnDrop(self, x, y):
         return True
+
+
+class MemeditActionContext:
+    def __init__(self, memedit, name):
+        self._memedit: ChirpMemEdit = memedit
+        self._name: str = name
+        self._mem_before = []
+        self._mem_after = []
+        self._id = 'A-' + secrets.token_urlsafe(4)
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def is_undoable(self):
+        return bool(self._mem_before)
+
+    def record_memory(self, mem):
+        pass
+
+    def record_current_memory(self, mem):
+        pass
+
+    def record_changes(self):
+        pass
+
+    def __repr__(self):
+        '[NOP Action]'
+
+
+class MemeditUndoContext(MemeditActionContext):
+    """An object to record all the changes made in a single operation.
+
+    This could be a single memory edit, bulk edit of multiple memories,
+    or a large operation like moving memories around, sorting, etc. The
+    name should be something suitable for showing to the user, and short
+    enough to fit in the menu next to the Undo item.
+    """
+
+    def __init__(self, memedit, name):
+        super().__init__(memedit, name)
+        LOG.info('[%s] Creating undo item %r', self._id, self.name)
+        self._pre_selection = self._memedit._grid.GetSelectedRows()
+        self._pre_pos = self._memedit._grid.GetGridCursorCoords()
+        self._post_selection = self._post_pos = None
+
+    @property
+    def name(self):
+        return self._name
+
+    def record_memory(self, mem):
+        """Records a single memory before a change"""
+        LOG.debug('[%s] Recording memory %s', self._id, mem)
+        self._mem_before.insert(0, mem.dupe())
+
+    def record_current_memory(self, number):
+        """Records the current state of a memory by number before a change"""
+        row = self._memedit.mem2row(number)
+        try:
+            current_mem = self._memedit._memory_cache[row]
+        except KeyError:
+            # This means we never loaded this memory from the radio in the
+            # first place, likely due to some error.
+            LOG.warning('[%s] Unable to record current memory %s',
+                        self._id, number)
+        else:
+            self.record_memory(current_mem)
+
+    def record_changes(self):
+        for mem in self._mem_before:
+            row = self._memedit.mem2row(mem.number)
+            new_mem = self._memedit._memory_cache[row]
+            self._mem_after.append(new_mem.dupe())
+        LOG.debug('[%s] Recorded changes made to %i memories',
+                  self._id, len(self._mem_before))
+        self._post_selection = self._memedit._grid.GetSelectedRows()
+        self._post_pos = self._memedit._grid.GetGridCursorCoords()
+
+    def _restore_selection(self, pos, selection):
+        self._memedit._grid.SetGridCursor(pos)
+        self._memedit._grid.ClearSelection()
+        for i, row in enumerate(selection):
+            self._memedit._grid.SelectRow(row, i != 0)
+
+    def undo_changes(self):
+        """Replays all the pre-existing memory states from this context"""
+        LOG.debug('[%s] Un-applying changes', self._id)
+        try:
+            with self._memedit.undo_context('Undo', MemeditActionContext):
+                for mem in self._mem_before:
+                    LOG.debug('[%s] Setting %s', self._id, mem)
+                    if mem.empty:
+                        self._memedit.erase_memory(mem.number)
+                    else:
+                        self._memedit.set_memory(mem, refresh=False)
+            self._restore_selection(self._pre_pos, self._pre_selection)
+        except Exception as e:
+            LOG.error('[%s] Failed to undo: %s', self._id, e)
+        LOG.info('[%s] Completed undo of %r', self._id, self)
+
+    def redo_changes(self):
+        LOG.debug('[%s] Re-applying changes', self._id)
+        try:
+            with self._memedit.undo_context('Redo', MemeditActionContext):
+                for mem in self._mem_after:
+                    if mem.empty:
+                        self._memedit.erase_memory(mem.number)
+                    else:
+                        self._memedit.set_memory(mem, refresh=False)
+            self._restore_selection(self._post_pos, self._post_selection)
+        except Exception as e:
+            LOG.error('[%s] Failed to redo: %s', self._id, e)
+        LOG.info('[%s] Completed redo of %r', self._id, self)
+
+    def __repr__(self):
+        return '[Undo %s %r mems %s]' % (
+            self._id, self.name,
+            ','.join(str(m.number) for m in self._mem_after))
+
+
+def undoable(name):
+    """Mark a whole function as undoable.
+
+    This is less desirable than using the context manager directly, but it
+    works better for some large complex operations.
+    """
+    def _inner(f):
+        @functools.wraps(f)
+        def undo_wrapper(self, *a, **k):
+            with self.undo_context(name):
+                return f(self, *a, **k)
+        return undo_wrapper
+    return _inner
 
 
 class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
@@ -732,6 +875,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         # Memory errors by row
         self._memory_errors = {}
 
+        # Undo queue
+        self._undo_queue = []
+        self._redo_queue = []
+        self._undo_ctx = None
+
         self._col_defs = self._setup_columns()
 
         self.bandplan = bandplan.BandPlans(CONF)
@@ -748,10 +896,15 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._default_cell_bg_color = self._grid.GetCellBackgroundColour(0, 0)
 
         sizer = wx.BoxSizer(wx.VERTICAL)
-        self._filter_query = memquery.SearchBox(self,
-                                                style=wx.TE_PROCESS_ENTER)
-        self._filter_query.Bind(wx.EVT_TEXT_ENTER, self._do_filter_query)
-        sizer.Add(self._filter_query, 0, wx.EXPAND | wx.ALL, border=5)
+        if sys.platform != 'linux':
+            # FIXME: This doesn't work properly on Linux/GTK because the help
+            # window takes over focus from everything and has to be force quit.
+            self._filter_query = memquery.SearchBox(self,
+                                                    style=wx.TE_PROCESS_ENTER)
+            self._filter_query.Bind(wx.EVT_TEXT_ENTER, self._do_filter_query)
+            sizer.Add(self._filter_query, 0, wx.EXPAND | wx.ALL, border=5)
+        else:
+            self._filter_query = None
         sizer.Add(self._grid, 1, wx.EXPAND)
         self.SetSizer(sizer)
 
@@ -773,8 +926,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._grid.Bind(wx.grid.EVT_GRID_LABEL_RIGHT_CLICK,
                         self._memory_rclick)
         self._grid.Bind(wx.grid.EVT_GRID_CELL_BEGIN_DRAG, self._memory_drag)
-        if WX_GTK:
-            self._grid.Bind(wx.EVT_KEY_DOWN, self._gtk_short_circuit_edit_copy)
+        self.Bind(wx.EVT_KEY_DOWN, self._keyboard_overrides)
         row_labels = self._grid.GetGridRowLabelWindow()
         row_labels.Bind(wx.EVT_LEFT_DOWN, self._row_click)
         row_labels.Bind(wx.EVT_LEFT_UP, self._row_click)
@@ -788,12 +940,81 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._dc = wx.ScreenDC()
         self.set_cell_attrs()
 
+    def _update_undo(self):
+        items = {
+            wx.ID_UNDO: (_('Undo'), self._undo_queue),
+            wx.ID_REDO: (_('Redo'), self._redo_queue),
+        }
+        for ident, (label, queue) in items.items():
+            item = self.GetTopLevelParent().GetMenuBar().FindItemById(ident)
+            accel = item.GetAccel()
+            if queue:
+                item.SetItemLabel('%s %s' % (label, queue[0].name))
+                item.Enable(True)
+            else:
+                item.SetItemLabel(label)
+                item.Enable(False)
+            item.SetAccel(accel)
+
+    @contextlib.contextmanager
+    def undo_context(self, name, actiontype=MemeditUndoContext):
+        """Record changes made to memories as a single undo item"""
+        if self._undo_ctx:
+            LOG.error('Last undo context %s not closed!',
+                      self._undo_ctx.name)
+            self._undo_cx = None
+
+        self._undo_ctx = actiontype(self, name)
+        try:
+            yield self._undo_ctx
+        except Exception:
+            LOG.error('Not recording undo for failed action %s', name)
+            raise
+        else:
+            self._undo_ctx.record_changes()
+            if self._undo_ctx.is_undoable:
+                self._undo_queue.insert(0, self._undo_ctx)
+            self._undo_queue = self._undo_queue[:50]
+        finally:
+            self._undo_ctx = None
+        # After we do another thing, the items in the redo queue are no longer
+        # valid
+        self._redo_queue = []
+        self._update_undo()
+
+    def _undo(self, event):
+        """Undo the latest change."""
+        if not self._undo_queue:
+            LOG.warning('Nothing in undo queue')
+            return
+        undo_item = self._undo_queue.pop(0)
+        undo_item.undo_changes()
+        self._redo_queue.insert(0, undo_item)
+        self._redo_queue = self._redo_queue[:50]
+        self.refresh()
+        self._update_undo()
+        wx.PostEvent(self, common.EditorChanged(self.GetId()))
+
+    def _redo(self, event):
+        """Redo the latest un-done change."""
+        if not self._redo_queue:
+            LOG.warning('Nothing in redo queue')
+            return
+        undo_item = self._redo_queue.pop(0)
+        undo_item.redo_changes()
+        self._undo_queue.insert(0, undo_item)
+        self.refresh()
+        self._update_undo()
+        wx.PostEvent(self, common.EditorChanged(self.GetId()))
+
     @property
     def is_sorted(self):
         return self._grid.GetSortingColumn() != wx.NOT_FOUND
 
     @common.error_proof()
     def _do_filter_query(self, event=None):
+        if not self._filter_query:
+            return
         filter_str = self._filter_query.GetValue()
 
         if filter_str:
@@ -835,15 +1056,22 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         LOG.debug('Showing %i/%i rows', visible, num_rows)
         self._filter_query.help.Hide()
 
-    def _gtk_short_circuit_edit_copy(self, event):
-        # wxGTK is broken and does not direct Ctrl-C to the menu items
-        # because wx.grid.Grid() tries to implement something for it,
-        # which we don't want. The wxWidgets people say the only way is to
-        # grab it ourselves and direct it appropriately before wx.grid.Grid()
-        # can do it.
-        # https://github.com/wxWidgets/wxWidgets/issues/22625
-        if (event.GetKeyCode() == ord('C') and
-                event.GetModifiers() == wx.MOD_CONTROL):
+    def _keyboard_overrides(self, event):
+        if event.GetKeyCode() in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER):
+            if not self._grid.CanEnableCellControl():
+                return
+            # Make the enter key start/stop editing instead of the default
+            # behavior
+            self._grid.EnableCellEditControl(
+                not self._grid.IsCellEditControlShown())
+        elif (WX_GTK and event.GetKeyCode() == ord('C') and
+              event.GetModifiers() == wx.MOD_CONTROL):
+            # wxGTK is broken and does not direct Ctrl-C to the menu items
+            # because wx.grid.Grid() tries to implement something for it,
+            # which we don't want. The wxWidgets people say the only way is to
+            # grab it ourselves and direct it appropriately before
+            # wx.grid.Grid() can do it.
+            # https://github.com/wxWidgets/wxWidgets/issues/22625
             self.cb_copy(cut=False)
         else:
             event.Skip()
@@ -970,6 +1198,19 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     @classmethod
     def get_menu_items(cls):
+        undo = common.EditorMenuItem(
+            cls, '_undo', id=wx.ID_UNDO)
+
+        redo = common.EditorMenuItem(
+            cls, '_redo', id=wx.ID_REDO)
+        try:
+            undo.Enable(False)
+            redo.Enable(False)
+        except Exception:
+            # Linux/GTK can not enable/disable items until they have been added
+            # to a menu.
+            pass
+
         move_up = common.EditorMenuItem(
             cls, '_move_up', _('Move Up'))
         # Control-Up is used by default on macOS, so require shift as well
@@ -998,6 +1239,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         return {
             common.EditorMenuItem.MENU_EDIT: [
+                redo,  # First so Undo gets inserted at zero
+                undo,
                 goto,
                 move_up,
                 move_dn,
@@ -1244,6 +1487,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         """Update a memory in the radio and refresh our view on success"""
         row = self.mem2row(mem.number)
         orig_mem = mem.dupe()
+        if not self._undo_ctx:
+            raise RuntimeError('No undo context for action!')
+        self._undo_ctx.record_current_memory(mem.number)
         if refresh:
             self.set_row_pending(row)
 
@@ -1270,6 +1516,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     def erase_memory(self, number, refresh=True):
         """Erase a memory in the radio and refresh our view on success"""
+        if not self._undo_ctx:
+            raise RuntimeError('No undo context for action!')
+        self._undo_ctx.record_current_memory(number)
         row = self.mem2row(number)
         if refresh:
             self.set_row_pending(row)
@@ -1405,6 +1654,10 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         if defaults.mode and defaults.mode in features.valid_modes:
             if 'mode' in only:
                 mem.mode = defaults.mode
+        elif mem.mode not in features.valid_modes:
+            LOG.debug('Chose mode %s because default %s is unsupported',
+                      features.valid_modes[0], defaults.mode or mem.mode)
+            mem.mode = features.valid_modes[0]
 
         if defaults.tones and defaults.tones[0] in features.valid_tones:
             if 'rtone' in only:
@@ -1618,7 +1871,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self.set_row_pending(row)
         LOG.debug('Memory row %i column %i(%s) edited: %s',
                   row, col, col_def.name, orig_mem.debug_diff(mem, '->'))
-        self.set_memory(mem)
+        with self.undo_context(
+                _('Manual edit of memory %i') % orig_mem.number):
+            self.set_memory(mem)
 
         wx.CallAfter(self._resize_col_after_edit, row, col)
 
@@ -1651,6 +1906,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self.erase_memory(number)
 
     @common.error_proof(errors.InvalidMemoryLocation)
+    @undoable(_('Delete memories'))
     def _delete_memories_at(self, rows, event, shift_up=None):
         if rows:
             wx.PostEvent(self, common.EditorChanged(self.GetId()))
@@ -1693,7 +1949,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         # Shift them all up by however many we deleted
         for number in mems_to_move:
             LOG.debug('Moving memory %i -> %i', number, number - delta)
-            mem = self._memory_cache[self.mem2row(number)]
+            mem = self._memory_cache[self.mem2row(number)].dupe()
             mem.number -= delta
             if mem.empty:
                 self.erase_memory(mem.number, refresh=False)
@@ -1711,15 +1967,17 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             self.refresh_memory(number)
 
     def _do_sort_memories(self, rows, reverse, sortattr):
-        memories = [self._memory_cache[r] for r in rows]
+        memories = [self._memory_cache[r].dupe() for r in rows]
         LOG.debug('Sorting %s by %s%s',
                   memories, reverse and '>' or '<', sortattr)
         memories.sort(key=lambda m: getattr(m, sortattr), reverse=reverse)
-        for i, mem in enumerate(memories):
-            new_number = self.row2mem(rows[0] + i)
-            LOG.debug('Moving memory %i to %i', mem.number, new_number)
-            mem.number = new_number
-            self.set_memory(mem)
+
+        with self.undo_context(_('Sort %i memories') % len(memories)):
+            for i, mem in enumerate(memories):
+                new_number = self.row2mem(rows[0] + i)
+                LOG.debug('Moving memory %i to %i', mem.number, new_number)
+                mem.number = new_number
+                self.set_memory(mem)
         LOG.debug('Sorted: %s', memories)
 
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
@@ -1886,6 +2144,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                       functools.partial(self._mem_showraw, event.GetRow()),
                       raw_item)
             menu.Append(raw_item)
+            menu.Enable(raw_item.GetId(), len(selected_rows) == 1)
 
             diff_item = wx.MenuItem(menu, wx.NewId(),
                                     _('Diff Raw Memories'))
@@ -1894,6 +2153,14 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                       diff_item)
             menu.Append(diff_item)
             menu.Enable(diff_item.GetId(), len(selected_rows) == 2)
+
+            diff_across_item = wx.MenuItem(menu, wx.NewId(),
+                                           _('Diff against another editor'))
+            self.Bind(wx.EVT_MENU,
+                      functools.partial(self._mem_diff_across, event.GetRow()),
+                      diff_across_item)
+            menu.Append(diff_across_item)
+            menu.Enable(diff_across_item.GetId(), len(selected_rows) == 1)
 
         self.PopupMenu(menu)
         menu.Destroy()
@@ -1910,8 +2177,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                 return
 
         # Schedule all the set jobs
-        for memory in memories:
-            self.set_memory(memory)
+        with self.undo_context(_('Edit %i memories') % len(memories)):
+            for memory in memories:
+                self.set_memory(memory)
 
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
@@ -1959,6 +2227,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         with developer.MemoryDialog((mem_a, mem_b), self) as d:
             d.ShowModal()
 
+    def _mem_diff_across(self, row, event):
+        evt = common.CrossEditorAction(self.GetId(), memory=self.row2mem(row))
+        evt.SetEventObject(self)
+        wx.PostEvent(self, evt)
+
     def update_font(self, refresh=True):
         fixed = CONF.get_bool('font_fixed', 'state', False)
         large = CONF.get_bool('font_large', 'state', False)
@@ -1975,6 +2248,10 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         wx.CallAfter(self._grid.AutoSizeColumns, setAsMin=False)
         wx.CallAfter(self._grid.AutoSizeRows, setAsMin=False)
         wx.CallAfter(self._grid.SetRowLabelSize, wx.grid.GRID_AUTOSIZE)
+
+    def selected(self):
+        self._grid.SetFocus()
+        self._update_undo()
 
     def cb_copy_getdata(self, cut=False):
         rows = self.get_selected_rows_safe()
@@ -1998,8 +2275,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             if any('empty' in mem.immutable for mem in mems):
                 raise errors.InvalidMemoryLocation(
                     _('Some memories are not deletable'))
-            for mem in mems:
-                self.erase_memory(mem.number)
+            with self.undo_context(_('Cut %i memories') % len(mems)):
+                for mem in mems:
+                    self.erase_memory(mem.number)
 
         if cut:
             wx.PostEvent(self, common.EditorChanged(self.GetId()))
@@ -2031,7 +2309,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                  first, last, source_radio.VENDOR, source_radio.MODEL)
         payload = {'mems': [m for m in memories if first <= m.number <= last],
                    'features': source_rf}
-        self._cb_paste_memories(payload, row=row)
+        with self.undo_context(_('Import %i memories') % len(payload['mems'])):
+            self._cb_paste_memories(payload, row=row)
 
     def _cb_paste_memories(self, payload, row=None):
         mems = payload['mems']
@@ -2078,7 +2357,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         modified = False
         for mem in mems:
             try:
-                existing = self._memory_cache[row]
+                existing = self._memory_cache[row].dupe()
             except KeyError:
                 if not mem.empty:
                     LOG.debug('Not pasting to row %i beyond end of memory',
@@ -2159,6 +2438,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         return True
 
+    @undoable(_('Paste memories'))
     def cb_paste(self):
         data = super().cb_paste()
         if common.CHIRP_DATA_MEMORY in data.GetAllFormats():
@@ -2233,25 +2513,28 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         LOG.debug('Transplanting %s to %i for move indexes: %s -> %s',
                   transplant, new_number, selected, new_indexes)
+        transplant = transplant.dupe()
         transplant.number = new_number
 
-        to_set = [transplant]
-        self._grid.ClearSelection()
-        for old_row, new_row in zip(selected, new_indexes):
-            mem = self._memory_cache[old_row]
-            new_number = self.row2mem(new_row)
-            LOG.debug('Moving %s to %i', mem, new_number)
-            mem.number = new_number
-            to_set.append(mem)
-            self._grid.SelectRow(new_row, True)
+        with self.undo_context(_('Move %i memories') % len(new_indexes)):
+            to_set = [transplant]
+            self._grid.ClearSelection()
+            for old_row, new_row in zip(selected, new_indexes):
+                mem = self._memory_cache[old_row].dupe()
+                new_number = self.row2mem(new_row)
+                LOG.debug('Moving %s to %i', mem, new_number)
+                mem.number = new_number
+                to_set.append(mem)
+                self._grid.SelectRow(new_row, True)
 
-        for mem in to_set:
-            self.set_memory(mem)
-        cursor_r, cursor_c = self._grid.GetGridCursorCoords()
-        cursor_r += direction
-        if 0 <= cursor_r <= last_row:
-            # Avoid pushing the cursor past the edges
-            self._grid.SetGridCursor(cursor_r, cursor_c)
+            for mem in to_set:
+                self.set_memory(mem)
+
+            cursor_r, cursor_c = self._grid.GetGridCursorCoords()
+            cursor_r += direction
+            if 0 <= cursor_r <= last_row:
+                # Avoid pushing the cursor past the edges
+                self._grid.SetGridCursor(cursor_r, cursor_c)
 
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
@@ -2396,6 +2679,14 @@ class ChirpMemPropDialog(wx.Dialog):
         self._pg = wx.propgrid.PropertyGrid(self._tabs,
                                             style=wx.propgrid.PG_BOLD_MODIFIED)
         self._pg.Bind(wx.propgrid.EVT_PG_CHANGED, self._mem_prop_changed)
+
+        self._pg.DedicateKey(wx.WXK_RETURN)
+        self._pg.DedicateKey(wx.WXK_UP)
+        self._pg.DedicateKey(wx.WXK_DOWN)
+        self._pg.AddActionTrigger(wx.propgrid.PG_ACTION_EDIT, wx.WXK_RETURN)
+        self._pg.AddActionTrigger(wx.propgrid.PG_ACTION_NEXT_PROPERTY,
+                                  wx.WXK_RETURN)
+
         self._tabs.InsertPage(0, self._pg, _('Values'))
         page_index = 0
         self._extra_page = None

@@ -147,7 +147,7 @@ struct {
      bcl:1,            // Busy Lock  OFF=0 ON=1
      unknown2:3;       //
   u8 reserved[3];      // Reserved               D-F
-} memory[30];
+} memory[%(memcnt)d];
 
 #seekto 0x002D;
 struct {
@@ -179,7 +179,7 @@ struct {
   u8 tailmode;         // QT/DQT Tail Mode       007F
 } settings;
 
-#seekto 0x01F0;
+#seekto %(settings_offset)s;
 u8 skipflags[4];       // Scan Add
 
 #seekto 0x029F;
@@ -767,6 +767,8 @@ class RT21Radio(chirp_common.CloneModeRadio):
     _skipflags = True
     _reserved = False
     _mask = 0x2000  # bit mask to identify DTCS tone decoding is used
+    _dcs_octal = 0x0800  # bit mask to identify DTCS stored in octal
+    _dcs_inverse = 0x8000  # bit mask to identify inverted DTCS codes
     _gmrs = _frs = _pmr = False
     _echo = False
 
@@ -839,9 +841,29 @@ class RT21Radio(chirp_common.CloneModeRadio):
         return repr(self._memobj.memory[number - 1])
 
     def _get_tone(self, _mem, mem):
+        # 0xA662 = 662R = 1010 0...
+        # 0xA9DC = 734R = 1010 1...
+        # 0x29D3 = 723N - 0010 1...
+
         def _get_dcs(val):
-            code = int("%03o" % (val & 0x07FF))
-            pol = (val & 0x8000) and "R" or "N"
+            # 0x0800 means code is stored in hex instead of ocal (?!)
+            if val & self._dcs_octal:
+                code = int("%03o" % (val & 0x07FF))
+            else:
+                try:
+                    code = int("%03x" % (val & 0x07FF))
+                    if code not in chirp_common.DTCS_CODES:
+                        raise ValueError('DCS code assumed to be wrong')
+                except ValueError:
+                    # Memories may have been stored as octal but without the
+                    # proper bit flag in the past, so if we see something
+                    # recorded as "should be hex" but interpretation as hex
+                    # yields an invalid code, assume it's actually octal and
+                    # parse it as such.
+                    LOG.warning('Trying DCS conversion of 0x%04x as octal '
+                                'for compatibility', val)
+                    code = int("%03o" % (val & 0x07FF))
+            pol = (val & self._dcs_inverse) and "R" or "N"
             return code, pol
 
         tpol = False
@@ -1129,9 +1151,10 @@ class RT21Radio(chirp_common.CloneModeRadio):
 
     def _set_tone(self, mem, _mem):
         def _set_dcs(code, pol):
-            val = int("%i" % code, 8) + self._mask
+            val = int("%i" % code, 8)
             if pol == "R":
-                val += 0x8000
+                val |= self._dcs_inverse
+            val |= self._mask | self._dcs_octal
             return val
 
         rx_mode = tx_mode = None
@@ -1919,7 +1942,6 @@ class RB26Radio(RT21Radio):
     _ack_1st_block = False
     _skipflags = True
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _gmrs = True
 
     _ranges = [
@@ -1928,13 +1950,39 @@ class RB26Radio(RT21Radio):
     _memsize = 0x0320
 
     def process_mmap(self):
-        self._memobj = bitwise.parse(MEM_FORMAT_RB26, self._mmap)
+        mem_params = {'memcnt': self._upper, 'settings_offset': '0x01F0'}
+        self._memobj = bitwise.parse(MEM_FORMAT_RB26 % mem_params, self._mmap)
 
 
 @directory.register
-class RB626(RB26Radio):
-    MODEL = 'RB626'
+class RB626(RT21Radio):
+    """RETEVIS RB626"""
+    VENDOR = "Retevis"
+    MODEL = "RB626"
+    BAUD_RATE = 9600
+    BLOCK_SIZE = 0x20
+    BLOCK_SIZE_UP = 0x10
+
+    DTCS_CODES = DTCS_EXTRA
+    POWER_LEVELS = [chirp_common.PowerLevel("High", watts=3.00),
+                    chirp_common.PowerLevel("Low", watts=0.50)]
+
+    _magic = b"PHOGR" + b"\x01" + b"0"
+    _fingerprint = [b"P32073" + b"\x02\xFF", ]
+    _upper = 32
+    _ack_1st_block = False
+    _skipflags = True
+    _reserved = True
     _gmrs = False
+
+    _ranges = [
+               (0x0000, 0x0320),
+              ]
+    _memsize = 0x0320
+
+    def process_mmap(self):
+        mem_params = {'memcnt': self._upper, 'settings_offset': '0x0200'}
+        self._memobj = bitwise.parse(MEM_FORMAT_RB26 % mem_params, self._mmap)
 
 
 @directory.register
@@ -1956,7 +2004,6 @@ class RT76Radio(RT21Radio):
     _ack_1st_block = False
     _skipflags = False
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _gmrs = True
 
     _ranges = [
@@ -2038,7 +2085,6 @@ class RB23Radio(RT21Radio):
     _ack_1st_block = False
     _skipflags = True
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _gmrs = True
 
     _ranges = [
@@ -2047,7 +2093,8 @@ class RB23Radio(RT21Radio):
     _memsize = 0x0320
 
     def process_mmap(self):
-        self._memobj = bitwise.parse(MEM_FORMAT_RB26, self._mmap)
+        mem_params = {'memcnt': self._upper, 'settings_offset': '0x01F0'}
+        self._memobj = bitwise.parse(MEM_FORMAT_RB26 % mem_params, self._mmap)
 
 
 @directory.register
@@ -2071,7 +2118,6 @@ class RT19Radio(RT21Radio):
     _ack_1st_block = False
     _skipflags = False
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _frs = True
 
     _ranges = [
@@ -2100,7 +2146,6 @@ class RT619Radio(RT19Radio):
                    0x100,   # memory start
                    _upper   # number of freqhops
                    )
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _frs = False
     _pmr = True
 
@@ -2128,7 +2173,6 @@ class AR63Radio(RT21Radio):
     _ack_1st_block = False
     _skipflags = True
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _gmrs = False
 
     _ranges = [
@@ -2162,7 +2206,6 @@ class RT40BRadio(RT21Radio):
     _ack_1st_block = False
     _skipflags = True
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _gmrs = True
     _echo = True
 
@@ -2194,7 +2237,6 @@ class RB28BRadio(RT21Radio):
     _ack_1st_block = False
     _skipflags = False
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _frs = True
 
     _ranges = [
@@ -2218,7 +2260,6 @@ class RB628BRadio(RB28BRadio):
     _magic = b"PHOGR\x09\xB2"
     _fingerprint = [b"P32073" + b"\x02\xFF", ]
     _upper = 16
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
     _frs = False
     _pmr = True
 
@@ -2243,7 +2284,6 @@ class RT86Radio(RT21Radio):
     _ack_1st_block = False
     _skipflags = True
     _reserved = True
-    _mask = 0x2800  # bit mask to identify DTCS tone decoding is used
 
     _ranges = [
                (0x0000, 0x01A0),
@@ -2279,4 +2319,5 @@ class RB89Radio(RT21Radio):
     _memsize = 0x0340
 
     def process_mmap(self):
-        self._memobj = bitwise.parse(MEM_FORMAT_RB26, self._mmap)
+        mem_params = {'memcnt': self._upper, 'settings_offset': '0x01F0'}
+        self._memobj = bitwise.parse(MEM_FORMAT_RB26 % mem_params, self._mmap)

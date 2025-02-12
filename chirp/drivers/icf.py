@@ -131,7 +131,7 @@ class RadioStream:
                 end = self.data.index(b'\xFD')
                 frame = IcfFrame.parse(self.data[:end + 1])
                 self.data = self.data[end + 1:]
-                if frame.src == 0xEE and frame.dst == 0xEF:
+                if frame.src == ADDR_PC and frame.dst == ADDR_RADIO:
                     # PC echo, ignore
                     if self.iecho is None:
                         LOG.info('Detected an echoing cable')
@@ -181,28 +181,33 @@ class RadioStream:
             if len(f) != 0:
                 LOG.warning('Expected to read one echo frame, found %i',
                             len(f))
-            if f and f[0].src == 0xEF:
+            if f and f[0].src == ADDR_RADIO:
                 LOG.warning('Expected PC echo but found radio frame!')
 
 
 def decode_model(data):
-    if len(data) != 49:
+    if len(data) == 49:
+        rev = util.byte_to_int(data[5])
+        LOG.info('Radio revision is %i' % rev)
+        comment = data[6:6 + 16]
+        LOG.info('Radio comment is %r' % comment)
+        serial = binascii.unhexlify(data[35:35 + 14])
+        model, b1, b2, u1, s3 = struct.unpack('>HBBBH', serial)
+        serial_num = '%04i%02i%02i%04i' % (model, b1, b2, s3)
+        LOG.info('Radio serial is %r' % serial_num)
+    if len(data) == 56:
+        rev = None
+        comment = data[6:6 + 32]
+        LOG.info('Radio comment is %r' % comment)
+    else:
+        rev = None
         LOG.info('Unable to decode %i-byte model data' % len(data))
-        return None
-    rev = util.byte_to_int(data[5])
-    LOG.info('Radio revision is %i' % rev)
-    comment = data[6:6 + 16]
-    LOG.info('Radio comment is %r' % comment)
-    serial = binascii.unhexlify(data[35:35 + 14])
-    model, b1, b2, u1, s3 = struct.unpack('>HBBBH', serial)
-    serial_num = '%04i%02i%02i%04i' % (model, b1, b2, s3)
-    LOG.info('Radio serial is %r' % serial_num)
     return rev
 
 
 def get_model_data(radio, mdata=b"\x00\x00\x00\x00", stream=None):
     """Query the @radio for its model data"""
-    send_clone_frame(radio, 0xe0, mdata, raw=True)
+    send_clone_frame(radio, CMD_CLONE_ID, mdata, raw=True)
 
     if stream is None:
         stream = RadioStream(radio.pipe)
@@ -250,7 +255,7 @@ def send_clone_frame(radio, cmd, data, raw=False, checksum=False):
     if TRACE_ICF:
         LOG.debug('Sending:\n%s' % frame)
 
-    if cmd == 0xe4:
+    if cmd == CMD_CLONE_DAT:
         # Uncomment to avoid cloning to the radio
         # return frame
         pass

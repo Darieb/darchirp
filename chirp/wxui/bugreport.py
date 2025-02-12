@@ -437,6 +437,16 @@ class ExistingBugInfo(BugReportPage):
                              _('An error has occurred'),
                              style=wx.OK | wx.ICON_ERROR).ShowModal()
             event.Veto()
+        elif r.json()['issue']['status']['is_closed']:
+            LOG.error('Issue %s is closed', self.context.bugnum)
+            wx.MessageDialog(
+                self,
+                _('Please check the bug number and try again. If you do '
+                  'actually want to report against this bug, please comment '
+                  'on it via the website and ask for it to be re-opened.'),
+                _('Bug number %s is closed') % self.context.bugnum
+                ).ShowModal()
+            event.Veto()
         else:
             LOG.debug('Validated issue %s', self.context.bugnum)
 
@@ -451,10 +461,21 @@ class BugUpdateInfo(BugReportPage):
     INST = _('Enter details about this update. Be descriptive about what '
              'you were doing, what you expected to happen, and what '
              'actually happened.')
+    DEFAULT = '\n'.join([
+            _('(Describe what you were doing)'),
+            '',
+            _('(Describe what you expected to happen)'),
+            '',
+            _('(Describe what actually happened instead)'),
+            '',
+            _('(Has this ever worked before? New radio? '
+                'Does it work with OEM software?)'),
+    ])
 
     def _build(self, vbox):
         self.context.bugdetails = None
-        self.details = wx.TextCtrl(self, style=wx.TE_MULTILINE)
+        self.details = wx.TextCtrl(self, style=wx.TE_MULTILINE,
+                                   value=self.DEFAULT)
         try:
             self.details.SetHint(_('Enter information to add to the bug here'))
         except Exception:
@@ -465,19 +486,8 @@ class BugUpdateInfo(BugReportPage):
                  flag=wx.EXPAND | wx.LEFT | wx.RIGHT)
 
     def _validate_next(self):
-        if self.details.GetValue() == '' and self.context.is_new:
-            self.details.SetValue('\n'.join([
-                _('(Describe what you were doing)'),
-                '',
-                _('(Describe what you expected to happen)'),
-                '',
-                _('(Describe what actually happened instead)'),
-                '',
-                _('(Has this ever worked before? New radio? '
-                  'Does it work with OEM software?)'),
-            ]))
-
-        return len(self.details.GetValue()) > 10
+        current = self.details.GetValue()
+        return len(current) > 10 and current != self.DEFAULT
 
     def validate_success(self, *a):
         self.context.bugdetails = self.details.GetValue()
