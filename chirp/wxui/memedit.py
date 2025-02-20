@@ -763,7 +763,8 @@ class MemeditUndoContext(MemeditActionContext):
         super().__init__(memedit, name)
         LOG.info('[%s] Creating undo item %r', self._id, self.name)
         self._pre_selection = self._memedit._grid.GetSelectedRows()
-        self._pre_pos = self._memedit._grid.GetGridCursorCoords()
+        self._pre_pos = (self._memedit._grid.GetGridCursorRow(),
+                         self._memedit._grid.GetGridCursorCol())
         self._post_selection = self._post_pos = None
 
     @property
@@ -796,7 +797,8 @@ class MemeditUndoContext(MemeditActionContext):
         LOG.debug('[%s] Recorded changes made to %i memories',
                   self._id, len(self._mem_before))
         self._post_selection = self._memedit._grid.GetSelectedRows()
-        self._post_pos = self._memedit._grid.GetGridCursorCoords()
+        self._post_pos = (self._memedit._grid.GetGridCursorRow(),
+                          self._memedit._grid.GetGridCursorCol())
 
     def _restore_selection(self, pos, selection):
         self._memedit._grid.SetGridCursor(pos)
@@ -2184,6 +2186,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
     @common.error_proof()
+    @undoable('Insert row')
     def _mem_insert(self, row, event):
         # Traverse memories downward until we find a hole
         for i in range(row, self.mem2row(self._features.memory_bounds[1]) + 1):
@@ -2198,7 +2201,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         mems_to_refresh = []
         # Move memories down in reverse order
         for target_row in range(empty_row, row, -1):
-            mem = self._memory_cache[target_row - 1]
+            mem = self._memory_cache[target_row - 1].dupe()
             LOG.debug('Moving memory %i -> %i', mem.number,
                       self.row2mem(target_row))
             mem.number = self.row2mem(target_row)
@@ -2277,7 +2280,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                     _('Some memories are not deletable'))
             with self.undo_context(_('Cut %i memories') % len(mems)):
                 for mem in mems:
-                    self.erase_memory(mem.number)
+                    # No need to delete empty memories
+                    if not mem.empty:
+                        self.erase_memory(mem.number)
 
         if cut:
             wx.PostEvent(self, common.EditorChanged(self.GetId()))
@@ -2387,7 +2392,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             mem.immutable = immutable
             row += 1
             try:
-                if mem.empty:
+                if mem.empty and existing.empty:
+                    # No need to delete this
+                    LOG.debug('Skipping re-deleting empty memory %i',
+                              existing.number)
+                elif mem.empty:
                     self.erase_memory(mem.number)
                     self._radio.check_set_memory_immutable_policy(existing,
                                                                   mem)
@@ -2530,7 +2539,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             for mem in to_set:
                 self.set_memory(mem)
 
-            cursor_r, cursor_c = self._grid.GetGridCursorCoords()
+            cursor_r, cursor_c = (self._grid.GetGridCursorRow(),
+                                  self._grid.GetGridCursorCol())
             cursor_r += direction
             if 0 <= cursor_r <= last_row:
                 # Avoid pushing the cursor past the edges

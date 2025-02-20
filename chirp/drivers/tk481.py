@@ -247,7 +247,7 @@ class TKx80_Trunked(tk280.KenwoodTKx80):
                 self, TKx80System, i,
                 to_copy,
                 VARIANT=str(getattr(self._memobj,
-                                    'system%i' % i).sys.name).strip())(
+                                    'system%i' % i).sys.name).strip(' \xFF'))(
                     self, i + 1)
             for i in range(32)
             if self._memobj.trunk.sys_start[i] != 0xFFFF]
@@ -287,6 +287,9 @@ class TKx80_Trunked(tk280.KenwoodTKx80):
         except IndexError:
             system = self._parent._expand_system(self._system)
             _mem = system.channels[system.sys.channels - 1]
+            # Immediately set the channel number on the new memory in case
+            # fail to do anything below (or delete it immediately)
+            _mem.number = mem.number
 
         if mem.empty:
             self._parent._reduce_system(self._system, mem.number)
@@ -335,12 +338,13 @@ class TKx80_Trunked(tk280.KenwoodTKx80):
             rsg.append(rse)
             if rse.value:
                 _, _, system = self._get_system_info(i)
-                name = str(system.sys.name)
+                name = str(system.sys.name).strip()
             else:
                 name = ''
 
             rs = RadioSetting('system-%i-name' % i, 'Name',
-                              RadioSettingValueString(0, 10, name))
+                              RadioSettingValueString(
+                                  0, 10, name.strip(' \xFF')))
             rs.value.set_mutable(bool(rse.value))
             rsg.append(rs)
 
