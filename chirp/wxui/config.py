@@ -17,6 +17,7 @@ import base64
 import binascii
 import logging
 
+from chirp import directory
 from chirp import platform
 from configparser import ConfigParser
 import os
@@ -71,11 +72,18 @@ class ChirpConfig:
         if not self.__config.items(section):
             self.__config.remove_section(section)
 
+    def remove_section(self, section):
+        return self.__config.remove_section(section)
+
 
 class ChirpConfigProxy:
     def __init__(self, config, section="global"):
         self._config = config
         self._section = section
+
+    @property
+    def section(self):
+        return self._section
 
     def get(self, key, section=None, raw=False):
         return self._config.get(key, section or self._section,
@@ -161,8 +169,11 @@ class ChirpConfigProxy:
     def is_defined(self, key, section=None):
         return self._config.is_defined(key, section or self._section)
 
-    def remove_option(self, key, section):
-        self._config.remove_option(section, key)
+    def remove_option(self, key, section=None):
+        self._config.remove_option(section or self._section, key)
+
+    def remove_section(self, section=None):
+        return self._config.remove_section(section or self._section)
 
 
 _CONFIG = None
@@ -177,3 +188,22 @@ def get(section="global"):
         _CONFIG = ChirpConfig(p.config_dir())
 
     return ChirpConfigProxy(_CONFIG, section)
+
+
+def get_for_radio(radio):
+    if isinstance(radio, type):
+        rclass = radio
+    else:
+        rclass = radio.__class__
+    try:
+        registered_id = directory.registered_class(rclass)
+    except KeyError:
+        # Network sources and any other special cases where a radio is not
+        # registered. Try to get a driver id if possible, otherwise combine
+        # into a single config blob
+        try:
+            registered_id = directory.radio_class_id(rclass)
+        except Exception:
+            LOG.warning('Unable to get radio-specific config for %s', rclass)
+            registered_id = 'other'
+    return get(section='radio_%s' % registered_id)

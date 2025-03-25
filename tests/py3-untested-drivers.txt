@@ -1,6 +1,5 @@
 # These drivers have not been converted (or confirmed working) for python3
 ARRL_Travel_Plus
-Baofeng_K5-Plus
 Baojie_BJ-9900
 Baojie_BJ-UV55
 Boblov_X3Plus
@@ -36,7 +35,6 @@ Kenwood_TS-850
 Puxing_PX-2R
 RT_Systems_CSV
 Sainsonic_AP510
-TYT_TH-350
 TYT_TH-7800_File
 TYT_TH-9800_File
 TYT_TH-UV3R

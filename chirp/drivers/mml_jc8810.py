@@ -32,6 +32,7 @@ from chirp.settings import (
     RadioSettingValueInteger,
     RadioSettingValueList,
     RadioSettingValueString,
+    RadioSettingValueMap,
 )
 
 LOG = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ struct {
      scode:4;         //     Signaling
   u8 unknown2:6,      // D
      pttid:2;         //     PTT-ID
-  u8 unknown3:6,      // E
+  u8 scramble:6,      //     Scramble
      txpower:2;       //     Power Level  0 = H, 1 = L, 2 = M
   u8 unknown4:1,      // F
      narrow:1,        //     Bandwidth  0 = Wide, 1 = Narrow
@@ -268,6 +269,8 @@ ALL_SKEY_VALUES = [0xFF,
                    0x2A,
                    0x2D,
                    0x23]
+
+SCRAMBLE_VALUEMAP = [("Off", 0x00), ("SCRAM1", 0x04), ("SCRAM2", 0x08)]
 
 
 def _enter_programming_mode(radio):
@@ -627,6 +630,16 @@ class JC8810base(chirp_common.CloneModeRadio):
         mem.mode = _mem.narrow and "NFM" or "FM"
 
         mem.extra = RadioSettingGroup("Extra", "extra")
+
+        # Encryption
+        rs = RadioSettingValueList(ENCRYPT_LIST, current_index=_mem.encrypt)
+        rset = RadioSetting("encrypt", "Encryption", rs)
+        mem.extra.append(rset)
+
+        # Scramble
+        rs = RadioSettingValueMap(SCRAMBLE_VALUEMAP, _mem.scramble)
+        rset = RadioSetting("scramble", "Scramble", rs)
+        mem.extra.append(rset)
 
         # BCL (Busy Channel Lockout)
         rs = RadioSettingValueBoolean(_mem.bcl)
@@ -1364,24 +1377,27 @@ class RT470XRadio(RT470LRadio):
     def get_features(self):
         rf = super().get_features()
         rf.valid_modes.append('AM')
+        rf.valid_modes.append('NAM')
         rf.valid_bands = [(18000000, 1000000000)]
         return rf
 
     def validate_memory(self, mem):
         msgs = []
         in_range = chirp_common.in_range
-        if in_range(mem.freq, [self._AIRBAND]) and not mem.mode == 'AM':
+        AM_mode = mem.mode == 'AM' or mem.mode == "NAM"
+        if in_range(mem.freq, [self._AIRBAND]) and not AM_mode:
             msgs.append(chirp_common.ValidationWarning(
                 _('Frequency in this range requires AM mode')))
-        if not in_range(mem.freq, [self._AIRBAND]) and mem.mode == 'AM':
+        if not in_range(mem.freq, [self._AIRBAND]) and AM_mode:
             msgs.append(chirp_common.ValidationWarning(
                 _('Frequency in this range must not be AM mode')))
         return msgs + super().validate_memory(mem)
 
     def get_memory(self, number):
         mem = super().get_memory(number)
+        _mem = self._memobj.memory[mem.number - 1]
         if chirp_common.in_range(mem.freq, [self._AIRBAND]):
-            mem.mode = 'AM'
+            mem.mode = _mem.narrow and "NAM" or "AM"
         return mem
 
 

@@ -903,6 +903,10 @@ class ChirpMain(wx.Frame):
         self.Bind(wx.EVT_MENU, self._menu_query_przeu, query_przeu_item)
         source_menu.Append(query_przeu_item)
 
+        query_mapy73pl_item = wx.MenuItem(source_menu, wx.NewId(), 'mapy73.pl')
+        self.Bind(wx.EVT_MENU, self._menu_query_mapy73pl, query_mapy73pl_item)
+        source_menu.Append(query_mapy73pl_item)
+
         radio_menu.Append(wx.MenuItem(radio_menu, wx.ID_SEPARATOR))
 
         auto_edits = wx.MenuItem(radio_menu, wx.NewId(),
@@ -2030,6 +2034,7 @@ GNU General Public License for more details."""
             for shortname, name in plans:
                 CONF.set_bool(shortname, shortname == selected, 'bandplan')
 
+    @common.error_proof()
     def _do_network_query(self, query_cls):
         self.enable_bugreport()
         d = query_cls(self, title=_('Query %s') % query_cls.NAME)
@@ -2054,6 +2059,9 @@ GNU General Public License for more details."""
 
     def _menu_query_przeu(self, event):
         self._do_network_query(query_sources.PrzemiennikiEuQueryDialog)
+
+    def _menu_query_mapy73pl(self, event):
+        self._do_network_query(query_sources.Mapy73PlQueryDialog)
 
 
 def display_update_notice(version):

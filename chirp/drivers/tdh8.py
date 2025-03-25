@@ -702,7 +702,6 @@ MDFB_LIST = ["Frequency", "Name"]
 HOP_LIST = ["A", "B", "C", "D"]
 SYNC_LIST = ["ON", "OFF"]
 LANG_LIST = ["Chinese", "English"]
-BTV_SAVER_LIST = ["OFF", "1:1", "1:2", "1:3", "1:4"]
 SCAN_MODE_LIST = ["TO", "CO", "SE"]
 PRIO_LIST = ["Edit", "Busy"]
 SHORT_KEY_LIST = ["None", "FM Radio", "Lamp", "Monitor",
@@ -806,7 +805,6 @@ RTONE_LIST = ["1000 Hz", "1450 Hz", "1750 Hz", "2100 Hz"]
 RESUME_LIST = ["TO", "CO", "SE"]
 ROGERRX_LIST = ["Off"] + AB_LIST
 RPSTE_LIST = ["OFF"] + ["%s" % x for x in range(1, 11)]
-SAVE_LIST = ["Off", "1:1", "1:2", "1:3", "1:4"]
 SCODE_LIST = ["%s" % x for x in range(1, 16)]
 SHIFTD_LIST = ["Off", "+", "-"]
 STEDELAY_LIST = ["OFF"] + ["%s ms" % x for x in range(100, 1100, 100)]
@@ -828,7 +826,7 @@ MIC_GAIN_LIST_H8 = ['%s' % x for x in range(0, 33)]
 H8_LIST = ["TD-H8", "TD-H8-HAM", "TD-H8-GMRS"]
 H3_LIST = ["TD-H3", "TD-H3-HAM", "TD-H3-GMRS"]
 
-GMRS_FREQS = bandplan_na.GMRS_HIRPT
+GMRS_FREQS = bandplan_na.ALL_GMRS_FREQS
 
 NOAA_FREQS = [162550000, 162400000, 162475000, 162425000, 162450000,
               162500000, 162525000, 161650000, 161775000, 161750000,
@@ -1049,6 +1047,8 @@ class TDH8(chirp_common.CloneModeRadio):
                  chirp_common.PowerLevel("Mid",  watts=4.00),
                  chirp_common.PowerLevel("High", watts=8.00)]
     _ponmsg_list = ["Full", "Message", "Icon"]
+    _save_list = ["Off", "1:1", "1:2", "1:3", "1:4"]
+    _save_shortname = "Battery Save"
 
     @classmethod
     def detect_from_serial(cls, pipe):
@@ -1247,8 +1247,6 @@ class TDH8(chirp_common.CloneModeRadio):
                     mem.immutable = ['freq', 'mode', 'power',
                                      'duplex', 'offset']
             elif mem.number >= 31 and mem.number <= 54:
-                # mem.immutable = ['duplex', 'offset']
-                mem.duplex = '+'
                 mem.offset = 5000000
             elif mem.number >= 189 and mem.number <= 199:
                 ham_freqs = NOAA_FREQS[mem.number - 189]
@@ -1477,12 +1475,14 @@ class TDH8(chirp_common.CloneModeRadio):
                               RadioSettingValueList(
                                   SYNC_LIST,
                                   current_index=_settings.sync))
+
             basic.append(rs)
 
-            rs = RadioSetting("save", "Battery Save",
+            rs = RadioSetting("save", self._save_shortname,
                               RadioSettingValueList(
-                                  BTV_SAVER_LIST,
+                                  self._save_list,
                                   current_index=_settings.save))
+
             basic.append(rs)
 
         rs = RadioSetting("dbrx", "Double Rx",
@@ -1519,12 +1519,20 @@ class TDH8(chirp_common.CloneModeRadio):
         basic.append(rs)
 
         if self.MODEL != "RT-730":
-            rs = RadioSetting("rogerprompt", "Roger",
-                              RadioSettingValueBoolean(_settings.rogerprompt))
+            if self.MODEL in H3_LIST:
+                # H3 uses roger-beep list
+                rs = RadioSetting("rogerprompt", "Roger",
+                                  RadioSettingValueList(
+                                      self._roger_list,
+                                      current_index=_settings.rogerprompt))
+            else:
+                # H8 uses roger-beep bool
+                rs = RadioSetting("rogerprompt", "Roger",
+                                  RadioSettingValueBoolean(
+                                      _settings.rogerprompt))
             basic.append(rs)
 
         rs = RadioSetting("txled", "Disp Lcd(TX)",
-
                           RadioSettingValueBoolean(_settings.txled))
         basic.append(rs)
 
@@ -2638,10 +2646,16 @@ class TDH8_GMRS(TDH8):
 
     def validate_memory(self, mem):
         msgs = super().validate_memory(mem)
-        if 31 <= mem.number <= 54 and mem.freq not in GMRS_FREQS:
-            msgs.append(chirp_common.ValidationError(
-                "The frequency in channels 31-54 must be between"
-                "462.55000-462.72500 in 0.025 increments."))
+        if 31 <= mem.number <= 54:
+            if mem.freq not in GMRS_FREQS:
+                msgs.append(chirp_common.ValidationError(
+                    "The frequency in channels 31-54 must be between "
+                    "462.55000-467.71250 in 0.025 increments."))
+            if mem.duplex not in ('', '+', 'off') or (
+                    mem.duplex == '+' and mem.offset != 5000000):
+                msgs.append(chirp_common.ValidationError(
+                    "Channels in this range must be GMRS frequencies and "
+                    "either simplex or +5MHz offset"))
         return msgs
 
 
@@ -2668,6 +2682,9 @@ class TDH3(TDH8):
     _tx_power = [chirp_common.PowerLevel("Low",  watts=2.00),
                  chirp_common.PowerLevel("High",  watts=5.00)]
     _ponmsg_list = ["Off", "Message", "Icon"]
+    _roger_list = ["Off", "TONE1", "TONE2"]
+    _save_list = ["Off", "1:1", "1:2", "1:3", "1:4", "1:8"]
+    _save_shortname = "Power Save"
 
     def process_mmap(self):
         self._memobj = bitwise.parse(MEM_FORMAT_H3, self._mmap)

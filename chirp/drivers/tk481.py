@@ -237,11 +237,12 @@ class TKx80_Trunked(tk280.KenwoodTKx80):
         return rf
 
     def get_sub_devices(self):
-        # For the uninitialized case of just surveying the features
-        if not self._memobj:
-            return [TKx80System(self, 1)]
         to_copy = ('MODEL', 'TYPE', 'POWER_LEVELS', '_range', '_steps',
                    '_freqmult')
+        if not self._memobj:
+            # For the uninitialized case of just surveying the features
+            return [tk280.TKx80SubdevMeta.make_subdev(
+                self, TKx80System, 1, to_copy)(self, 1)]
         return [
             tk280.TKx80SubdevMeta.make_subdev(
                 self, TKx80System, i,
@@ -366,7 +367,7 @@ class TKx80_Trunked(tk280.KenwoodTKx80):
         return
 
 
-class TKx80System(TKx80_Trunked):
+class TKx80System:
     def __init__(self, parent, system):
         self._system = system
         self._parent = parent
@@ -374,6 +375,14 @@ class TKx80System(TKx80_Trunked):
     @property
     def _memobj(self):
         return self._parent._memobj
+
+    def get_sub_devices(self):
+        return []
+
+    def get_features(self):
+        rf = self._parent.get_features()
+        rf.has_sub_devices = False
+        return rf
 
 
 @directory.register

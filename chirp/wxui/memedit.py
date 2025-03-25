@@ -42,6 +42,7 @@ _ = wx.GetTranslation
 LOG = logging.getLogger(__name__)
 CONF = config.get()
 WX_GTK = 'gtk' in wx.version().lower()
+TX_WORKFLOW_ID = wx.NewId()
 
 
 class ChirpGridTable(wx.grid.GridStringTable):
@@ -189,7 +190,7 @@ class ChirpMemoryColumn(object):
 
     @property
     def valid(self):
-        if self._name in ['freq', 'rtone']:
+        if self._name in ['freq', 'rtone', 'txfreq']:
             return True
         to_try = ['has_%s', 'valid_%ss', 'valid_%ses', 'valid_%s_levels']
         for thing in to_try:
@@ -246,8 +247,11 @@ class ChirpMemoryColumn(object):
                 raise ValueError(
                     _('Unable to set %s on this memory') % self._name)
         else:
-            setattr(memory, self._name, self._digest_value(memory,
-                                                           input_value))
+            self._set_mem_value(memory,
+                                self._digest_value(memory, input_value))
+
+    def _set_mem_value(self, memory, value):
+        setattr(memory, self._name, value)
 
     def get_editor(self):
         return wx.grid.GridCellTextEditor()
@@ -289,19 +293,48 @@ class ChirpFrequencyColumn(ChirpMemoryColumn):
         super().__init__(*a, **k)
         self._wants_split = set()
 
+    def value(self, memory):
+        if self._name == 'txfreq':
+            if memory.duplex == 'split':
+                return memory.offset
+            elif memory.duplex == '-':
+                mult = -1
+            else:
+                mult = 1
+
+            return memory.freq + (memory.offset * mult)
+        return super().value(memory)
+
     @property
     def label(self):
         if self._name == 'offset':
             return (_('Offset/\nTX Freq')
                     if 'split' in self._features.valid_duplexes
                     else _('Offset'))
+        elif self._name == 'txfreq':
+            return _('TX Frequency')
         else:
             return _('Frequency')
 
     def hidden_for(self, memory):
-        return (self._name == 'offset' and
-                memory.duplex in ('', 'off') and
-                memory.number not in self._wants_split)
+        if self._name == 'offset':
+            return (memory.duplex in ('', 'off') and
+                    memory.number not in self._wants_split)
+        else:
+            return False
+
+    def _set_mem_value(self, memory, value):
+        if self._name == 'txfreq':
+            if 'split' in self._features.valid_duplexes:
+                # Always in split mode
+                memory.duplex = 'split'
+                memory.offset = value
+            else:
+                # This radio does not support proper split, so try to fake it
+                chirp_common.split_to_offset(memory,
+                                             memory.freq, value)
+        else:
+            return super()._set_mem_value(memory, value)
 
     def _render_value(self, memory, value):
         if not value:
@@ -864,6 +897,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self.SetDropTarget(ChirpMemoryDropTarget(self))
 
         self._radio = radio
+        self._rconfig = config.get_for_radio(radio)
         self._features = self._radio.get_features()
 
         # Cache of memories by *row*
@@ -942,13 +976,14 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._dc = wx.ScreenDC()
         self.set_cell_attrs()
 
-    def _update_undo(self):
+    def _update_menu(self):
+        menubar = self.GetTopLevelParent().GetMenuBar()
         items = {
             wx.ID_UNDO: (_('Undo'), self._undo_queue),
             wx.ID_REDO: (_('Redo'), self._redo_queue),
         }
         for ident, (label, queue) in items.items():
-            item = self.GetTopLevelParent().GetMenuBar().FindItemById(ident)
+            item = menubar.FindItemById(ident)
             accel = item.GetAccel()
             if queue:
                 item.SetItemLabel('%s %s' % (label, queue[0].name))
@@ -957,6 +992,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
                 item.SetItemLabel(label)
                 item.Enable(False)
             item.SetAccel(accel)
+
+        workflow = menubar.FindItemById(TX_WORKFLOW_ID)
+        workflow.Check(self._has_coldef('txfreq'))
 
     @contextlib.contextmanager
     def undo_context(self, name, actiontype=MemeditUndoContext):
@@ -982,7 +1020,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         # After we do another thing, the items in the redo queue are no longer
         # valid
         self._redo_queue = []
-        self._update_undo()
+        self._update_menu()
 
     def _undo(self, event):
         """Undo the latest change."""
@@ -994,7 +1032,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         self._redo_queue.insert(0, undo_item)
         self._redo_queue = self._redo_queue[:50]
         self.refresh()
-        self._update_undo()
+        self._update_menu()
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
     def _redo(self, event):
@@ -1006,7 +1044,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         undo_item.redo_changes()
         self._undo_queue.insert(0, undo_item)
         self.refresh()
-        self._update_undo()
+        self._update_menu()
         wx.PostEvent(self, common.EditorChanged(self.GetId()))
 
     @property
@@ -1239,6 +1277,10 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             cls, '_set_hide_empty', ('hide_empty', 'memedit'),
             _('Hide empty memories'))
 
+        use_txfreq = common.EditorMenuItemToggleStateless(
+            cls, '_set_use_txfreq',
+            _('Use TX Frequency Workflow'), id=TX_WORKFLOW_ID)
+
         return {
             common.EditorMenuItem.MENU_EDIT: [
                 redo,  # First so Undo gets inserted at zero
@@ -1250,6 +1292,7 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             common.EditorMenuItem.MENU_VIEW: [
                 expand_extra,
                 hide_empty,
+                use_txfreq,
                 ]
             }
 
@@ -1258,6 +1301,21 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     def _set_hide_empty(self, event):
         self.refresh()
+
+    def _set_use_txfreq(self, event):
+        wx.MessageBox(_('The memory editor requires a reload in order to '
+                        'change the workflow. That will happen now. Any '
+                        'other open tabs will be updated the next time they '
+                        'are loaded.'),
+                      _('Reload required'),
+                      parent=self)
+
+        self._rconfig.set_bool(
+            'use_txfreq_workflow',
+            not self._rconfig.get_bool('use_txfreq_workflow'))
+        event = common.EditorRefresh(self.GetId())
+        event.SetEventObject(self)
+        wx.PostEvent(self, event)
 
     def _goto(self, event):
         l, u = self._features.memory_bounds
@@ -1291,6 +1349,16 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             valid_power_levels = self._features.valid_power_levels
             power_column = ChirpChoiceColumn('power', self._radio,
                                              valid_power_levels)
+
+        if self._rconfig.get_bool('use_txfreq_workflow'):
+            tx_cols = [ChirpFrequencyColumn('txfreq', self._radio),]
+        else:
+            tx_cols = [
+                ChirpDuplexColumn('duplex', self._radio,
+                                  valid_duplexes),
+                ChirpFrequencyColumn('offset', self._radio),
+            ]
+
         defs = [
             ChirpFrequencyColumn('freq', self._radio),
             ChirpMemoryColumn('name', self._radio),
@@ -1302,10 +1370,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             ChirpDTCSColumn('dtcs', self._radio),
             ChirpDTCSColumn('rx_dtcs', self._radio),
             ChirpDTCSPolColumn('dtcs_polarity', self._radio),
+            *tx_cols,
             ChirpCrossModeColumn('cross_mode', self._radio),
-            ChirpDuplexColumn('duplex', self._radio,
-                              valid_duplexes),
-            ChirpFrequencyColumn('offset', self._radio),
             ChirpChoiceColumn('mode', self._radio,
                               valid_modes),
             ChirpChoiceColumn('tuning_step', self._radio,
@@ -1323,6 +1389,12 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             if coldef._name == name:
                 return coldef
         LOG.error('No column definition for %s' % name)
+
+    def _has_coldef(self, name):
+        for coldef in self._col_defs:
+            if coldef._name == name:
+                return True
+        return False
 
     def mem2row(self, number):
         if isinstance(number, str):
@@ -1392,10 +1464,11 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         hide_empty = CONF.get_bool('hide_empty', 'memedit', False)
         if memory.empty:
             # Reset our "wants split" flags if the memory is empty
-            offset_col = self._col_def_by_name('offset')
-            duplex_col = self._col_def_by_name('duplex')
-            offset_col.wants_split(memory, False)
-            duplex_col.wants_split(memory, False)
+            if self._has_coldef('duplex'):
+                offset_col = self._col_def_by_name('offset')
+                duplex_col = self._col_def_by_name('duplex')
+                offset_col.wants_split(memory, False)
+                duplex_col.wants_split(memory, False)
             if hide_empty:
                 self._grid.HideRow(row)
             else:
@@ -1413,13 +1486,18 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         self._memory_cache[row] = memory
 
+        # Build a list of coldef names that are immutable extras for this
+        # memory
+        immutable_extras = ['extra.%s' % setting.get_name()
+                            for setting in memory.extra
+                            if not setting.value.get_mutable()]
         with wx.grid.GridUpdateLocker(self._grid):
             self.set_row_finished(row)
 
             for col, col_def in enumerate(self._col_defs):
                 self._grid.SetCellValue(row, col, col_def.render_value(memory))
-                immutable = col_def.name in memory.immutable or (
-                    'extra' in col_def.name and 'extra' in memory.immutable)
+                immutable = (col_def.name in memory.immutable or
+                             col_def.name in immutable_extras)
                 self._grid.SetReadOnly(row, col,
                                        immutable or not self.editable)
                 if immutable:
@@ -2028,14 +2106,21 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         cut_item = wx.MenuItem(menu, wx.NewId(), _('Cut'))
         self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(cut=True), cut_item)
         menu.Append(cut_item)
+        cut_item.Enable(self.editable)
 
         copy_item = wx.MenuItem(menu, wx.NewId(), _('Copy'))
         self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(cut=False), copy_item)
         menu.Append(copy_item)
 
+        copy_item = wx.MenuItem(menu, wx.NewId(), _('Copy portable'))
+        self.Bind(wx.EVT_MENU, lambda e: self.cb_copy(
+            cut=False, portable=True), copy_item)
+        menu.Append(copy_item)
+
         paste_item = wx.MenuItem(menu, wx.NewId(), _('Paste'))
         self.Bind(wx.EVT_MENU, lambda e: self.cb_paste(), paste_item)
         menu.Append(paste_item)
+        paste_item.Enable(self.editable)
 
         delete_menu = wx.Menu()
         delete_menu_item = menu.AppendSubMenu(delete_menu, _('Delete'))
@@ -2254,9 +2339,9 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
     def selected(self):
         self._grid.SetFocus()
-        self._update_undo()
+        self._update_menu()
 
-    def cb_copy_getdata(self, cut=False):
+    def cb_copy_getdata(self, cut=False, portable=False):
         rows = self.get_selected_rows_safe()
         mems = []
         for row in rows:
@@ -2271,9 +2356,20 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
         memdata = wx.CustomDataObject(common.CHIRP_DATA_MEMORY)
         data.Add(memdata)
         memdata.SetData(pickle.dumps(payload))
-        strfmt = chirp_common.mem_to_text(mems[0])
-        textdata = wx.TextDataObject(strfmt)
-        data.Add(textdata)
+        if portable:
+            strfmt = chirp_common.mem_to_text(mems[0])
+            textdata = wx.TextDataObject(strfmt)
+            data.Add(textdata)
+        else:
+            try:
+                r = generic_csv.TSVRadio(None)
+                r.clear()
+                for m in mems:
+                    r.set_memory(m.dupe())
+                textdata = wx.TextDataObject(r.as_string())
+                data.Add(textdata)
+            except Exception as e:
+                LOG.exception('Failed to get TSV format for paste: %s', e)
         if cut:
             if any('empty' in mem.immutable for mem in mems):
                 raise errors.InvalidMemoryLocation(
@@ -2289,8 +2385,8 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
 
         return data
 
-    def cb_copy(self, cut=False):
-        self.cb_copy_data(self.cb_copy_getdata(cut=cut))
+    def cb_copy(self, cut=False, portable=False):
+        self.cb_copy_data(self.cb_copy_getdata(cut=cut, portable=portable))
 
     def memedit_import_all(self, source_radio):
         if self.is_sorted:
@@ -2456,19 +2552,28 @@ class ChirpMemEdit(common.ChirpEditor, common.ChirpSyncEditor):
             self._cb_paste_memories(payload)
         elif wx.DF_UNICODETEXT in data.GetAllFormats():
             try:
-                mem = chirp_common.mem_from_text(
-                    data.GetText())
+                if data.GetText().count('\t') > 10:
+                    # This looks plausibly like a TSV paste from a spreadsheet
+                    mems = common.mems_from_clipboard(data.GetText(),
+                                                      parent=self)
+                    if not mems:
+                        raise ValueError('No channels extracted from paste')
+                else:
+                    mems = [chirp_common.mem_from_text(line)
+                            for line in data.GetText().split('\n')
+                            if line.strip()]
+                    # Since matching the offset is kinda iffy, set our band
+                    # plan set the offset, if a rule exists.
+                    for mem in mems:
+                        if mem.duplex in ('-', '+') and not mem.offset:
+                            self._set_memory_defaults(mem, 'offset')
             except Exception as e:
                 LOG.warning('Failed to parse pasted data %r: %s' % (
                     data.GetText(), e))
                 return
-            # Since matching the offset is kinda iffy, set our band plan
-            # set the offset, if a rule exists.
-            if mem.duplex in ('-', '+'):
-                self._set_memory_defaults(mem, 'offset')
             LOG.debug('Generic text paste %r: %s' % (
-                data.GetText(), mem))
-            self._cb_paste_memories({'mems': [mem],
+                data.GetText(), mems))
+            self._cb_paste_memories({'mems': mems,
                                      'features': self._features})
         else:
             LOG.warning('Unknown data format %s paste' % (

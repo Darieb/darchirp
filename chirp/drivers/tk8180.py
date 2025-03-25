@@ -20,6 +20,7 @@ from collections import OrderedDict
 
 from chirp import chirp_common, directory, memmap, errors, util
 from chirp import bitwise
+from chirp.drivers import tk280
 from chirp.settings import MemSetting, RadioSettingValueInvertedBoolean
 from chirp.settings import RadioSettingGroup, RadioSetting
 from chirp.settings import RadioSettingValueBoolean, RadioSettingValueList
@@ -259,7 +260,7 @@ BATTWARN_SETTINGS = {
 # The buttons in memory are not logically arranged for display and sorting
 # would do weird things, so map them manually here
 BUTTONS = {
-    'Side 1': 0,
+    'Side 1 / Triangle': 0,
     'Side 2': 5,
     'S': 1,
     'A': 2,
@@ -308,6 +309,7 @@ BUTTON_FUNCTIONS = {
     'Display Character': 0x1E,
     'Fixed Volume': 0x20,
     'Function': 0x21,
+    'LCD Brightness': 0x27,
     'Monitor': 0x2A,
     'Monitor Momentary': 0x2B,
     'Transceiver Password': 0x32,
@@ -328,6 +330,7 @@ PORTABLE_BUTTON_FUNCTIONS = {
 }
 # These are only available on the mobile transceiver
 MOBILE_BUTTON_FUNCTIONS = {
+    'Zone Down': 0x4A,  # Different on mobile?
 }
 KNOB_MODE = {
     'None': 0xFF,
@@ -1412,7 +1415,7 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
         else:
             model_functions = PORTABLE_BUTTON_FUNCTIONS
 
-        pri_functions = model_functions | BUTTON_FUNCTIONS
+        pri_functions = BUTTON_FUNCTIONS | model_functions
         sec_functions = (
             {k: v for k, v in (model_functions | BUTTON_FUNCTIONS).items()
              if v not in PRIMARY_ONLY})
@@ -1486,22 +1489,20 @@ class KenwoodTKx180Radio(chirp_common.CloneModeRadio):
 
     def get_sub_devices(self):
         zones = []
+        to_copy = ('VENDOR', 'MODEL', 'VALID_BANDS', '_model')
         for i, _ in enumerate(self._zones):
             zone = getattr(self._memobj, 'zone%i' % i)
 
-            class _Zone(KenwoodTKx180RadioZone):
-                VENDOR = self.VENDOR
-                MODEL = self.MODEL
-                VALID_BANDS = self.VALID_BANDS
-                VARIANT = 'Zone %s' % (
-                    str(zone.zoneinfo.name).rstrip('\x00').rstrip())
-                _model = self._model
+            zone_cls = tk280.TKx80SubdevMeta.make_subdev(
+                self, KenwoodTKx180RadioZone, zone, to_copy,
+                VARIANT='Zone %s' % (
+                    str(zone.zoneinfo.name).rstrip('\x00').rstrip()))
 
-            zones.append(_Zone(self, i))
+            zones.append(zone_cls(self, i))
         return zones
 
 
-class KenwoodTKx180RadioZone(KenwoodTKx180Radio):
+class KenwoodTKx180RadioZone:
     _zone = None
 
     def __init__(self, parent, zone=0):
