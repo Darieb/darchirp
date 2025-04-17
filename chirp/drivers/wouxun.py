@@ -60,7 +60,7 @@ class KGUVD1PRadio(chirp_common.CloneModeRadio,
     MODEL = "KG-UVD1P"
     _model = b"KG669V"
 
-    _querymodel = (b"HiWOUXUN\x02", b"PROGUV6X\x02")
+    _querymodels = (b"HiWOUXUN\x02", b"PROGUV6X\x02")
 
     CHARSET = list("0123456789") + \
         [chr(x + ord("A")) for x in range(0, 26)] + list("?+-")
@@ -227,22 +227,11 @@ class KGUVD1PRadio(chirp_common.CloneModeRadio,
             "6. Click OK to upload image to device.\n")
         return rp
 
-    @classmethod
-    def _get_querymodel(cls):
-        if isinstance(cls._querymodel, str):
-            while True:
-                yield cls._querymodel
-        else:
-            i = 0
-            while True:
-                yield cls._querymodel[i % len(cls._querymodel)]
-                i += 1
-
     def _identify(self):
         """Do the original Wouxun identification dance"""
-        query = self._get_querymodel()
         for _i in range(0, 10):
-            self.pipe.write(next(query))
+            model = self._querymodels[_i % len(self._querymodels)]
+            self.pipe.write(model)
             resp = self.pipe.read(9)
             if len(resp) != 9:
                 LOG.debug("Got:\n%s" % util.hexprint(resp))
@@ -747,17 +736,7 @@ class KGUVD1PRadio(chirp_common.CloneModeRadio,
     def _is_txinh(self, _mem):
         return _mem.tx_freq.get_raw() == b"\xFF\xFF\xFF\xFF"
 
-    def get_memory(self, number):
-        _mem = self._memobj.memory[number - 1]
-        _nam = self._memobj.names[number - 1]
-
-        mem = chirp_common.Memory()
-        mem.number = number
-
-        if _mem.get_raw() == (b"\xff" * 16):
-            mem.empty = True
-            return mem
-
+    def _set_duplex_offset_freq(self, _mem, mem):
         mem.freq = int(_mem.rx_freq) * 10
         if _mem.splitdup:
             mem.duplex = "split"
@@ -774,6 +753,19 @@ class KGUVD1PRadio(chirp_common.CloneModeRadio,
             mem.offset = int(_mem.tx_freq) * 10
         else:
             mem.offset = abs(int(_mem.tx_freq) - int(_mem.rx_freq)) * 10
+
+    def get_memory(self, number):
+        _mem = self._memobj.memory[number - 1]
+        _nam = self._memobj.names[number - 1]
+
+        mem = chirp_common.Memory()
+        mem.number = number
+
+        if _mem.get_raw() == (b"\xff" * 16):
+            mem.empty = True
+            return mem
+
+        self._set_duplex_offset_freq(_mem, mem)
 
         if not _mem.skip:
             mem.skip = "S"
@@ -842,6 +834,9 @@ class KGUVD1PRadio(chirp_common.CloneModeRadio,
         LOG.debug("Set TX %s (%i) RX %s (%i)" %
                   (tx_mode, _mem.tx_tone, rx_mode, _mem.rx_tone))
 
+    def _set_split_duplex(self, _mem, mem):
+        _mem.splitdup = mem.duplex == "split"
+
     def set_memory(self, mem):
         _mem = self._memobj.memory[mem.number - 1]
         _nam = self._memobj.names[mem.number - 1]
@@ -864,7 +859,8 @@ class KGUVD1PRadio(chirp_common.CloneModeRadio,
             _mem.tx_freq = int(mem.freq / 10) - int(mem.offset / 10)
         else:
             _mem.tx_freq = int(mem.freq / 10)
-        _mem.splitdup = mem.duplex == "split"
+
+        self._set_split_duplex(_mem, mem)
         _mem.skip = mem.skip != "S"
         _mem.iswide = mem.mode != "NFM"
 
@@ -909,7 +905,7 @@ class KGUV6DRadio(KGUVD1PRadio):
     """Wouxun KG-UV6 (D and X variants)"""
     MODEL = "KG-UV6"
 
-    _querymodel = (b"HiWXUVD1\x02", b"HiKGUVD1\x02")
+    _querymodels = (b"HiWXUVD1\x02", b"HiKGUVD1\x02")
 
     _MEM_FORMAT = """
         #seekto 0x0010;
@@ -1436,7 +1432,7 @@ class KG816Radio(KGUVD1PRadio, chirp_common.ExperimentalRadio):
     """Wouxun KG-816"""
     MODEL = "KG-816"
 
-    _querymodel = b"HiWOUXUN\x02"
+    _querymodels = (b"HiWOUXUN\x02", )
 
     _MEM_FORMAT = """
         #seekto 0x0010;
@@ -1562,6 +1558,74 @@ class KG816Radio(KGUVD1PRadio, chirp_common.ExperimentalRadio):
 class KG818Radio(KG816Radio):
     """Wouxun KG-818"""
     MODEL = "KG-818"
+
+    @classmethod
+    def match_model(cls, filedata, filename):
+        return False
+
+
+@directory.register
+class KG805GRadio(KGUVD1PRadio):
+    """Wouxun KG-805G"""
+    MODEL = "KG-805G"
+
+    _querymodels = (b"HiWOUXUN\x02", )
+    valid_freq = [(400000000, 470987500)]
+
+    _MEM_FORMAT = """
+        #seekto 0x0010;
+        struct {
+          lbcd rx_freq[4];
+          lbcd tx_freq[4];
+          ul16 rx_tone;
+          ul16 tx_tone;
+          u8 _3_unknown_1:4,
+             bcl:1,
+             _3_unknown_2:3;
+          u8 _2_unknown_1:1,
+             skip:1,
+             power_high:1,
+             iswide:1,
+             _2_unknown_2:4;
+          u8 unknown;
+          u8 _0_unknown_1:3,
+             iswidex:1,
+             _0_unknown_2:4;
+        } memory[128];
+
+        #seekto 0x1010;
+        struct {
+            u8 name[6];
+            u8 pad[10];
+        } names[128];
+    """
+
+    def get_features(self):
+        rf = KGUVD1PRadio.get_features(self)
+        rf.has_settings = False
+        return rf
+
+    def process_mmap(self):
+        self._memobj = bitwise.parse(self._MEM_FORMAT, self._mmap)
+        # This sets our frequency ranges, so run it once after we process the
+        # mmap to make sure they're set for later
+        self.get_settings()
+
+    def get_settings(self):
+        pass
+
+    def _set_duplex_offset_freq(self, _mem, mem):
+        if self._is_txinh(_mem):
+            # TX freq not set
+            mem.duplex = "off"
+            mem.offset = 0
+            mem.freq = int(_mem.rx_freq) * 10
+        else:
+            chirp_common.split_to_offset(
+                mem, int(_mem.rx_freq) * 10, int(_mem.tx_freq) * 10)
+
+    def _set_split_duplex(self, _mem, mem):
+        pass
 
     @classmethod
     def match_model(cls, filedata, filename):

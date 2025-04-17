@@ -417,7 +417,7 @@ class Memory:
             if callable(valid):
                 if not valid(val):
                     raise ValueError("`%s' is not a valid value for `%s'" % (
-                                         val, name))
+                        val, name))
             elif val not in self._valid_map[name]:
                 raise ValueError("`%s' is not in valid list: %s" %
                                  (val, self._valid_map[name]))
@@ -769,6 +769,7 @@ class StaticBankModel(BankModel):
     channelAlwaysHasBank = True
 
     """A BankModel that shows a static mapping but does not allow changes."""
+
     def __init__(self, radio, name='Banks', banks=10):
         super().__init__(radio, name=name)
         self._num_banks = banks
@@ -1785,85 +1786,62 @@ def make_is(stephz):
 def required_step(freq, allowed=None):
     """Returns the simplest tuning step that is required to reach @freq"""
     if allowed is None:
-        allowed = [5.0, 10.0, 12.5, 6.25, 2.5, 8.33]
+        allowed = [5.0, 10.0, 12.5, 6.25, 2.5, 1.0, 0.5, 8.33, 0.25]
 
-    # These should be in order of most common to least common
-    steps = {
-        5.0: make_is(5000),
-        10.0: make_is(10000),
-        12.5: make_is(12500),
-        6.25: make_is(6250),
-        2.5: make_is(2500),
-        1.0: make_is(1000),
-        0.5: make_is(500),
-        0.25: make_is(250),
-        8.33: is_8_33,
-    }
-
-    # Try the above "standard" steps first in order
-    required_step = None
-    for step, validate in steps.items():
-        if step in allowed and validate(freq):
-            return step
-        elif validate(freq) and required_step is None:
-            required_step = step
-
-    # Try any additional steps in the allowed list
+    special = {8.33: is_8_33}
     for step in allowed:
-        if step in steps:
-            # Already tried
-            continue
-        if make_is(int(step * 1000))(freq):
-            LOG.debug('Chose non-standard step %s for %s' % (
-                step, format_freq(freq)))
+        if step in special:
+            validate = special[step]
+        else:
+            validate = make_is(int(step * 1000))
+        if validate(freq):
+            LOG.debug('Chose step %s for %s' % (step, format_freq(freq)))
             return step
 
-    if required_step is not None:
-        raise errors.InvalidDataError((
-            'Frequency %s requires step %.2f, '
-            'which is not supported') % (
-                format_freq(freq), required_step))
-    else:
-        raise errors.InvalidDataError("Unable to find a supported " +
-                                      "tuning step for %s" % format_freq(freq))
+    raise errors.InvalidDataError("Unable to find a supported " +
+                                  "tuning step for %s" % format_freq(freq))
 
 
 def fix_rounded_step(freq):
     """Some radios imply the last bit of 12.5 kHz and 6.25 kHz step
     frequencies. Take the base @freq and return the corrected one"""
-    try:
-        required_step(freq)
-        return freq
-    except errors.InvalidDataError:
-        pass
+    allowed = [12.5, 6.25]
 
     try:
-        required_step(freq + 500)
+        required_step(freq + 500, allowed=allowed)
         return freq + 500
     except errors.InvalidDataError:
         pass
 
     try:
-        required_step(freq + 250)
+        required_step(freq + 250, allowed=allowed)
         return freq + 250
     except errors.InvalidDataError:
         pass
 
     try:
-        required_step(freq + 750)
+        required_step(freq + 750, allowed=allowed)
         return float(freq + 750)
     except errors.InvalidDataError:
         pass
 
     try:
-        required_step(freq + 330)
+        required_step(freq + 330, allowed=allowed)
         return float(freq + 330)
     except errors.InvalidDataError:
         pass
 
     try:
-        required_step(freq + 660)
+        required_step(freq + 660, allowed=allowed)
         return float(freq + 660)
+    except errors.InvalidDataError:
+        pass
+
+    # These radios can all resolve 5kHz, so make sure what we are left with
+    # is 5kHz-aligned, else we refuse below.
+    try:
+        required_step(freq, allowed=[5.0])
+        return freq
     except errors.InvalidDataError:
         pass
 
@@ -1927,8 +1905,9 @@ def split_to_offset(mem, rxfreq, txfreq):
     """Set the freq, offset, and duplex fields of a memory based on
     a separate rx/tx frequency.
     """
+    mem.freq = rxfreq
+
     if abs(txfreq - rxfreq) > to_MHz(70):
-        mem.freq = rxfreq
         mem.offset = txfreq
         mem.duplex = 'split'
     else:
