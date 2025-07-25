@@ -17,7 +17,7 @@
 from chirp import chirp_common, directory, memmap
 from chirp import bitwise
 from chirp.settings import RadioSetting, RadioSettingGroup,\
-                           RadioSettingValueInteger, RadioSettingValueList
+                           RadioSettingValueList, RadioSettingValueString
 
 # Here is where we define the memory map for the radio. Since
 # We often just know small bits of it, we can use #seekto to skip
@@ -174,7 +174,8 @@ class TemplateRadioExtra(TemplateRadio):
                           ]
         rf.valid_modes = self.MODES
         rf.valid_name_length = 8
-        rf.valid_power_levels = [0.0, 15.0]
+        rf.valid_power_levels = [chirp_common.PowerLevel('min', watts = 0.0),\
+                                 chirp_common.PowerLevel('max', watts = 15.0)]
         return rf
 
     def get_memory(self, number: int|str) -> chirp_common.Memory:
@@ -200,8 +201,8 @@ class TemplateRadioExtra(TemplateRadio):
         vfoa = rmem.vfoa
         modea = rmem.modea
         mem.extra = RadioSettingGroup('extra', 'Extra')
-        _rs = RadioSetting('vfoa', 'VFO A (Hz)',
-              RadioSettingValueInteger(0, 450000000, vfoa))
+        _rs = RadioSetting('vfoa', 'VFO A (MHz)',
+              RadioSettingValueString(0, 10, chirp_common.format_freq(vfoa)))
         mem.extra.append(_rs)
         _rs = RadioSetting('modea', 'Mode A',
               RadioSettingValueList(self.MODES, None, modea))
@@ -209,8 +210,8 @@ class TemplateRadioExtra(TemplateRadio):
 
         vfob = rmem.vfob
         modeb = rmem.modeb
-        _rs = RadioSetting('vfob', 'VFO B (Hz)',
-              RadioSettingValueInteger(0, 450000000, vfob))
+        _rs = RadioSetting('vfob', 'VFO B (MHz)',
+              RadioSettingValueString(0, 10, chirp_common.format_freq(vfob)))
         mem.extra.append(_rs)
         _rs = RadioSetting('modeb', 'Mode B',
               RadioSettingValueList(self.MODES, None, modeb))
@@ -227,7 +228,7 @@ class TemplateRadioExtra(TemplateRadio):
         # Convert CHIRP to Radio level frequency representation
         rmem.freq = mem.freq
         rmem.name = mem.name.ljust(8)[:8]  # Store the alpha tag
-        rmem.vfoa = mem.extra['vfoa'].value
-        rmem.vfob = mem.extra['vfob'].value
+        rmem.vfoa = chirp_common.parse_freq(str(mem.extra['vfoa'].value))
+        rmem.vfob = chirp_common.parse_freq(str(mem.extra['vfob'].value))
         rmem.modea = mem.extra['modea'].value
         rmem.modeb = mem.extra['modeb'].value
